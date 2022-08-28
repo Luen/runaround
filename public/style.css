@@ -1,0 +1,22 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+}
+
+img.logo {
+  width: 10%;
+}
+
+div.wrapper {
+  width: 50%;
+  margin: auto;
+}
+div.wrapper p {
+  text-align: center;
+}
+
+footer, footer a {
+  font-size: small;
+  color: grey;
+  margin-top: 1em;
+}
