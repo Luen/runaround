@@ -15,6 +15,12 @@ div.wrapper p {
   text-align: center;
 }
 
+#map {
+  width: 600px;
+  height: 400px;
+  margin: auto;
+}
+
 footer, footer a {
   font-size: small;
   color: grey;

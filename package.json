@@ -21,7 +21,9 @@
   "author": "Luen Warneke",
   "license": "ISC",
   "dependencies": {
+    "@mapbox/polyline": "^1.1.1",
     "express": "^4.18.1",
+    "puppeteer": "^16.2.0",
     "strava-v3": "^2.1.0"
   },
   "devDependencies": {
