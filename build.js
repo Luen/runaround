@@ -36,7 +36,7 @@ strava = new strava.client('a44f6b17c747f496484adb5e9bb7e8356823a862'); // eslin
     await page.evaluate(() => document.querySelector('button#login-button').click());
     await page.waitForNavigation();
 
-    await page.screenshot({ path: '02_logged_in.png' });
+    // await page.screenshot({ path: '02_logged_in.png' });
 
     const recaptcha = await page.evaluate(() => document.querySelector('input[name=recaptcha_enterprise_token]'));
     if (recaptcha) {
@@ -94,8 +94,9 @@ strava = new strava.client('a44f6b17c747f496484adb5e9bb7e8356823a862'); // eslin
         });
 
         segment.leaderboard = leaderboard;
+
         // console.log(segment);
-        await page.screenshot({ path: '03_segment.png' });
+        // await page.screenshot({ path: '03_segment.png' });
 
         database.push(segment);
       } catch (error) {
