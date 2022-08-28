@@ -8,7 +8,7 @@ const races = [30354222, 30505431, 30361147, 30561161, 30500288];
 const login = 'anygis0000+1@gmail.com';
 const password = 'AnyG15server';
 
-strava = new strava.client('9e19ee6487d7f9ffbe4f643e9c6eed5cac1ff3f4'); // eslint-disable-line
+strava = new strava.client('a44f6b17c747f496484adb5e9bb7e8356823a862'); // eslint-disable-line
 
 (async () => { // eslint-disable-line
   let browser; const database = [];
@@ -35,6 +35,8 @@ strava = new strava.client('9e19ee6487d7f9ffbe4f643e9c6eed5cac1ff3f4'); // eslin
     await page.waitForSelector('button#login-button');
     await page.evaluate(() => document.querySelector('button#login-button').click());
     await page.waitForNavigation();
+
+    await page.screenshot({ path: '02_logged_in.png' });
 
     const recaptcha = await page.evaluate(() => document.querySelector('input[name=recaptcha_enterprise_token]'));
     if (recaptcha) {
@@ -73,9 +75,7 @@ strava = new strava.client('9e19ee6487d7f9ffbe4f643e9c6eed5cac1ff3f4'); // eslin
       console.log('Getting segment via Puppeteer', id);
       try {
         const pageSegment = page;
-        await pageSegment.goto(`https://www.strava.com/segments/${id}`, {
-          waitUntil: 'networkidle2',
-        });
+        await pageSegment.goto(`https://www.strava.com/segments/${id}`, { waitUntil: 'networkidle2' });
         await page.waitForSelector('.table-leaderboard tr');
         const leaderboard = await page.$$eval('.table-leaderboard tr', tr => {
           const results = [];
@@ -95,6 +95,7 @@ strava = new strava.client('9e19ee6487d7f9ffbe4f643e9c6eed5cac1ff3f4'); // eslin
 
         segment.leaderboard = leaderboard;
         // console.log(segment);
+        await page.screenshot({ path: '03_segment.png' });
 
         database.push(segment);
       } catch (error) {
