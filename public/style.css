@@ -4,7 +4,8 @@ body {
 }
 
 img.logo {
-  width: 10%;
+  width: 20%;
+  min-width: 100px;
 }
 
 div.wrapper {
@@ -19,6 +20,13 @@ div.wrapper p {
   width: 600px;
   height: 400px;
   margin: auto;
+}
+
+table {
+  margin: auto;
+}
+td:last-child {
+  text-align: right;
 }
 
 footer, footer a {

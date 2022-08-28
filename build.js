@@ -77,7 +77,7 @@ strava = new strava.client('a44f6b17c747f496484adb5e9bb7e8356823a862'); // eslin
         const pageSegment = page;
         await pageSegment.goto(`https://www.strava.com/segments/${id}`, { waitUntil: 'networkidle2' });
         await page.waitForSelector('.table-leaderboard tr');
-        const leaderboard = await page.$$eval('.table-leaderboard tr', tr => {
+        const leaderboard = await page.$$eval('.table-leaderboard tr:not(:first-child)', tr => {
           const results = [];
           tr.forEach((row, index) => {
             const rank = index + 1;

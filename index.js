@@ -11,14 +11,25 @@ const segments = JSON.parse(fs.readFileSync('./public/database.json'));
 let html = '';
 segments.forEach((segment) => {
   const localLegend = (segment.local_legend ? `${segment.local_legend.title} with ${segment.local_legend.effort_description}` : 'N/A');
+  let leaderboard;
+  if (segment.leaderboard) {
+    leaderboard = '<table><b>Leaderboard</b><br />';
+    segment.leaderboard.forEach((leader) => {
+      leaderboard += `<tr><td>${leader[0]}</td><td>${leader[2]}</td><td>${leader[1]}</td><td>${leader[3]}</td><td>${leader[4]}</td><td>${leader[5]}</td></tr>`;
+      // Jul 15, 2021
+    });
+    leaderboard += '</table>';
+  }
+
   html += `<div>
   <a href="https://www.strava.com/segments/${segment.id}" target="_blank"><h1>${segment.name}</h1></a>
-  <div>Distance: ${segment.distance}</div>
-  <div>Total elevation gain: ${segment.total_elevation_gain}</div>
+  <div>Distance: ${(segment.distance / 1000).toFixed(1)}km</div>
+  <div>Total elevation gain: ${Math.round(segment.total_elevation_gain)}m</div>
   <div>KOM: ${segment.xoms.kom}</div>
   <div>QOM: ${segment.xoms.qom}</div>
   <div>${segment.effort_count} efforts by ${segment.athlete_count} athletes</div>
   <div>Local Legend: ${localLegend}</div>
+  <div>${leaderboard}</div>
   <div><a href="https://www.strava.com/segments/${segment.id}" target="_blank">Link to segment on Strava</a></div>
   <img src="${segment.elevation_profile}" alt="${segment.name} elevation plot">
 </div>`;
@@ -57,9 +68,7 @@ The Townsville Virtual Running Series is the brainchild of Sidney Willis from <a
 
 <hr>
 <div>
-<a href="https://www.facebook.com/hungryrunnercoaching/">Facebook</a>
-<a href="https://www.instagram.com/hungryrunnercoaching/">Instagram</a>
-<a href="http://www.youtube.com/channel/UCmhB-NcSDzajJ9o3Hx9-9nw">YouTube</a>
+<a href="https://www.facebook.com/RunAroundAUS">Facebook</a>
 </div>
 <footer>&copy; <a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a></footer>
 </div>

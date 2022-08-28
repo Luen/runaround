@@ -7,27 +7,17 @@ fetch("database.json").then(response => response.json()).then(segments => { // e
     attribution: '© OpenStreetMap',
   }).addTo(map);
 
-  // '#'+Math.floor(Math.random()*16777215).toString(16), // random color
-  function getRandomColor() {
-    const availableCharacters = '0123456789ABCDEF';
-    const availableCharacterLength = availableCharacters.length;
-
-    let color = '#';
-
-    for (let i = 0; i < 6; i++) { // eslint-disable-line
-      color += availableCharacters[Math.floor(Math.random() * availableCharacterLength)];
-    }
-
-    return color;
+  function makeColor(colorNum, colors) {
+    if (colors < 1) colors = 1; // eslint-disable-line
+    return colorNum * (360 / colors) % 360; // eslint-disable-line
   }
-
   const layerGroup = L.featureGroup(); // eslint-disable-line
   layerGroup.addTo(map);
 
-  segments.forEach((segment) => {
+  segments.forEach((segment, i) => {
     L.geoJSON(segment.map.geoJSON, { // eslint-disable-line
       style: {
-        color: getRandomColor(),
+        color: `hsl(${makeColor(i, segments.length)}, 100%, 50%)`,
         weight: 3,
         opacity: 0.85,
       },
