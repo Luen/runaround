@@ -14,7 +14,7 @@ strava = new strava.client('9e19ee6487d7f9ffbe4f643e9c6eed5cac1ff3f4'); // eslin
   let browser; const database = [];
 
   try {
-    browser = await puppeteer.launch({ headless: false });
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 
     // Authorization on www.strava.com/login
     const page = await browser.newPage();
