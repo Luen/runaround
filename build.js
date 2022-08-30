@@ -5,14 +5,14 @@ const fs = require('fs');
 
 const races = [30354222, 30505431, 30361147, 30561161, 30500288];
 
-const STRAVA_EMAIL = process.env.STRAVA_ACCESS_TOKEN;
-const STRAVA_PASSWORD = process.env.STRAVA_ACCESS_TOKEN;
+const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
+const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
 
 (async () => { // eslint-disable-line
   let browser; const database = [];
 
   try {
-    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 
     // Authorization on www.strava.com/login
     const page = await browser.newPage();
