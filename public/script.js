@@ -2,6 +2,8 @@ fetch("database.json").then(response => response.json()).then(segments => { // e
 
   var map = L.map('map').setView([-19.22517, 146.70953], 11); // eslint-disable-line
 
+  map.attributionControl.setPrefix(false); // disable default map attribution (to be replaced with custom version)
+  
   L.tileLayer('https://maps.wanderstories.space/outdoor/{z}/{x}/{y}', { // eslint-disable-line
     maxZoom: 19,
     attribution: 'tile style © <a href="https://wanderstories.space/maps/">Wanderstories</a>, map engine © <a href="https://leafletjs.com/">Leaflet</a>, tile generator © <a href="https://www.mapbox.com/">Mapbox</a>, map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> &amp; <a href="https://wanderstories.space/">WS</a> under <a href="http://opendatacommons.org/licenses/odbl/summary/">ODbL</a>, <a href="https://www.openstreetmap.org/edit">Improve</a></div>',
