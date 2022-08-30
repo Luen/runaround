@@ -5,10 +5,8 @@ const fs = require('fs');
 
 const races = [30354222, 30505431, 30361147, 30561161, 30500288];
 
-const login = 'anygis0000+1@gmail.com';
-const password = 'AnyG15server';
-
-strava = new strava.client('a44f6b17c747f496484adb5e9bb7e8356823a862'); // eslint-disable-line
+const STRAVA_EMAIL = process.env.STRAVA_ACCESS_TOKEN;
+const STRAVA_PASSWORD = process.env.STRAVA_ACCESS_TOKEN;
 
 (async () => { // eslint-disable-line
   let browser; const database = [];
@@ -29,8 +27,8 @@ strava = new strava.client('a44f6b17c747f496484adb5e9bb7e8356823a862'); // eslin
     });
 
     await page.waitForSelector('form');
-    await page.type('input#email', login);
-    await page.type('input#password', password);
+    await page.type('input#email', STRAVA_EMAIL);
+    await page.type('input#password', STRAVA_PASSWORD);
 
     await page.waitForSelector('button#login-button');
     await page.evaluate(() => document.querySelector('button#login-button').click());

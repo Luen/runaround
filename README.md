@@ -1,17 +1,20 @@
 # RunAround
+
 A website of Virtual Running Races in Townsville, North Queensland, Australia and their leaderboards.
 
-# 1
-Firstly, you'll need to generate an access token by running the script
-OR??
-Set the environment variables:
-STRAVA_ACCESS_TOKEN = access_token
-STRAVA_CLIENT_ID = client_id
-STRAVA_CLIENT_SECRET = client_secret
-STRAVA_REDIRECT_URI = redirect_uri
+# 1 Environment Variables
 
-# 2
-Then the data base can be built by running build.js
+Set the environment variables
+or run STRAVA_EMAIL=anygis0000+1@gmail.com STRAVA_PASSWORD=AnyG15server STRAVA_ACCESS_TOKEN=a84fec0774ed062bcaed9b581ad36ccd38979465 STRAVA_CLIENT_ID=54973 STRAVA_CLIENT_SECRET=6c4ce997f71a1f56991f6dea667370d14af4dbe5 STRAVA_REDIRECT_URI=localhost node build
 
-# 3
+# 2 Build Database
+
+Then the database can be built by running build.js
+
+# 3 Start ExpressJS server
+
 Now the server can be start (index.js)
+
+# Notes
+
+Use pm2 and nginx server.
