@@ -13,7 +13,7 @@ segments.forEach((segment) => {
   const localLegend = (segment.local_legend ? `${segment.local_legend.title} with ${segment.local_legend.effort_description}` : 'N/A');
   let leaderboard;
   if (segment.leaderboard) {
-    leaderboard = '<table><b>Leaderboard</b><br />';
+    leaderboard = '<table><strong>Leaderboard</strong><br />';
     segment.leaderboard.forEach((leader) => {
       leaderboard += `<tr><td>${leader[0]}</td><td>${leader[2]}</td><td>${leader[1]}</td><td>${leader[3]}</td><td>${leader[4]}</td><td>${leader[5]}</td></tr>`;
       // Jul 15, 2021
@@ -36,7 +36,7 @@ segments.forEach((segment) => {
 });
 
 app.get('/', (req, res) => {
-  res.send(`<html><head>
+  res.send(`<!DOCTYPE html><head>
     <title>RunAround - Virtual Running Events</title>
 <link rel="stylesheet" href="./style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
    integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
    crossorigin=""></script>
-<script type="text/javascript" src="database.json"></script>
+<script src="database.json"></script>
 <script src="./script.js" defer="defer"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-1X8FP56G6T"></script>
