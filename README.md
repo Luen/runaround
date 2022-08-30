@@ -18,4 +18,8 @@ Now the server can be start (index.js)
 # Notes
 
 Use pm2 and nginx server.
-Setup cron
+Setup cron (update.sh).
+
+old:
+
+0 0 1 \* \* node /var/www/runaround/build.js >/dev/null 2>&1
