@@ -12,7 +12,7 @@ const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
   let browser; const database = [];
 
   try {
-    browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 
     // Authorization on www.strava.com/login
     const page = await browser.newPage();
