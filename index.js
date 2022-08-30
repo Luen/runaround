@@ -15,7 +15,7 @@ segments.forEach((segment) => {
   if (segment.leaderboard) {
     leaderboard = '<table><strong>Leaderboard</strong><br />';
     segment.leaderboard.forEach((leader) => {
-      leaderboard += `<tr><td>${leader[0]}</td><td>${leader[2]}</td><td>${leader[1]}</td><td>${leader[3]}</td><td>${leader[4]}</td><td>${leader[5]}</td></tr>`;
+      leaderboard += `<tr><td><strong>${leader[0]}</strong></td><td>${leader[2]}</td><td>${leader[1]}</td><td>${leader[3]}</td><td>${leader[4]}</td><td>${leader[5]}</td></tr>`;
       // Jul 15, 2021
     });
     leaderboard += '</table>';
