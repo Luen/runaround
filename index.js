@@ -15,7 +15,7 @@ segments.forEach((segment) => {
   if (segment.leaderboard) {
     leaderboard = '<table><strong>Leaderboard</strong><br />';
     segment.leaderboard.forEach((leader) => {
-      leaderboard += `<tr><td><strong>${leader[0]}</strong></td><td>${leader[2]}</td><td>${leader[1]}</td><td>${leader[3]}</td><td>${leader[4]}</td><td>${leader[5]}</td></tr>`;
+      leaderboard += `<tr><td><strong>${leader[0]}</strong></td><td><a href="${leader[7]}">${leader[2]}</a></td><td><a href="${leader[6]}">${leader[1]}</a></td><td>${leader[3]}</td><td>${leader[4]}</td><td>${leader[5]}</td></tr>`;
       // Jul 15, 2021
     });
     leaderboard += '</table>';
@@ -23,6 +23,7 @@ segments.forEach((segment) => {
 
   html += `<div>
   <a href="https://www.strava.com/segments/${segment.id}" target="_blank"><h1>${segment.name}</h1></a>
+  <img src="${segment.elevation_profile}" alt="${segment.name} elevation plot">
   <div>Distance: ${(segment.distance / 1000).toFixed(1)}km</div>
   <div>Total elevation gain: ${Math.round(segment.total_elevation_gain)}m</div>
   <div>KOM: ${segment.xoms.kom}</div>
@@ -30,8 +31,6 @@ segments.forEach((segment) => {
   <div>${segment.effort_count} efforts by ${segment.athlete_count} athletes</div>
   <div>Local Legend: ${localLegend}</div>
   <div>${leaderboard}</div>
-  <div><a href="https://www.strava.com/segments/${segment.id}" target="_blank">Link to segment on Strava</a></div>
-  <img src="${segment.elevation_profile}" alt="${segment.name} elevation plot">
 </div>`;
 });
 

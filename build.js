@@ -5,6 +5,8 @@ const fs = require('fs');
 
 const races = [30354222, 30505431, 30361147, 30561161, 30500288];
 
+// Can navigate to each athlete and find out if they are male or female by the "QOMs / CRs" or "KOMs / CRs" tabs.
+
 /* 3m+3f for the month & 3m+3f for year (until deadline)
 const races = {
   30354222: { // January
@@ -98,14 +100,17 @@ const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
         const leaderboard = await page.$$eval('.table-leaderboard tr:not(:first-child)', tr => {
           const results = [];
           tr.forEach((row, index) => {
+            if (row.querySelector(':first-child').textContent == "Rank") return;
             const rank = index + 1;
             const name = row.querySelector(':nth-child(2)').textContent;
+            const profileURL = row.querySelector(':nth-child(2) a[href]').href;
             const date = row.querySelector(':nth-child(3)').textContent;
+            const effortURL = row.querySelector(':nth-child(3) a[href]').href;
             const pace = row.querySelector(':nth-child(4)').textContent;
             const hr = row.querySelector(':nth-child(5)').textContent;
             const time = row.querySelector(':nth-child(6)').textContent;
             if (date) { // if date within the segment timeframe
-              results.push([rank, name, date, pace, hr, time]);
+              results.push([rank, name, date, pace, hr, time, profileURL, effortURL]);
             }
           });
           return results;
