@@ -5,6 +5,26 @@ const fs = require('fs');
 
 const races = [30354222, 30505431, 30361147, 30561161, 30500288];
 
+/* 3m+3f for the month & 3m+3f for year (until deadline)
+const races = {
+  30354222: { // January
+    results: [
+      { 
+        start: 1/1/22
+        end: 21/1/22
+      }, 
+      {
+        start: 1/1/22
+        end: 1/12/22
+      }
+    ]
+  },
+  30505431 march
+  30361147 june
+  30561161 august
+  30500288 october
+}*/
+
 const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
 const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
 

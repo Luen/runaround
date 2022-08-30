@@ -73,7 +73,7 @@ October Race 5</p>
 <h2>Ranking for each Virtual Race</h2>
 <p>For each race you will have one month to clock your fastest time. You can run it as many times as you want within that month. We will take your fastest time for the ranking. We will have rewards for the first 3 males and females for every virtual race! Prizes will be awarded during a Hungry Runner group run the week following the virtual race.</p>
 <h2>Ranking for the General Classification</h2>
-<p>For the General Classification, you can run the races any time through the year to clock your fastest time! It doesn't matter if the Virtual Race already took place. All the race maps are available with this post. So you can run the races at any time of the year to register a time or better your time. However, to be ranked on the General Classification, you will need to run all the courses! The deadline is December 1 2022! We will have great rewards for the first 3 males and females!</p>
+<p>For the General Classification, you can run the races any time through the year to clock your fastest time! It doesn't matter if the Virtual Race already took place. All the race maps are available below. So you can run the races at any time of the year to register a time or better your time. However, to be ranked on the General Classification, you will need to run all the courses! The deadline is December 1 2022! We will have great rewards for the first 3 males and females!</p>
 
 <div id="map"></div>
 
