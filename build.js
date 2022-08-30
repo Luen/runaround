@@ -3,9 +3,10 @@ const polyline = require('@mapbox/polyline');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 
-const races = [30354222, 30505431, 30361147, 30561161, 30500288];
+const races = [30354222, 30505431, 30361147, 30561161, 30500288, 28927372, 26897948, 26897961, 27927100];
 
-// Can navigate to each athlete and find out if they are male or female by the "QOMs / CRs" or "KOMs / CRs" tabs.
+// Pupperteer can navigate to each athlete and find out if they are male or female by the "QOMs / CRs" or "KOMs / CRs" tabs.
+// or can api get it???
 
 /* 3m+3f for the month & 3m+3f for year (until deadline)
 const races = {
@@ -29,6 +30,8 @@ const races = {
 
 const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
 const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
+
+const atheletes = [];
 
 (async () => { // eslint-disable-line
   let browser; const database = [];
@@ -104,11 +107,19 @@ const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
             const rank = index + 1;
             const name = row.querySelector(':nth-child(2)').textContent;
             const profileURL = row.querySelector(':nth-child(2) a[href]').href;
+            const profileID = profileURL.match(/\d+/)[0];
             const date = row.querySelector(':nth-child(3)').textContent;
-            const effortURL = row.querySelector(':nth-child(3) a[href]').href;
+            const effortURL = row.querySelector(':nth-child(3) a[href]').href; // redirects to activity url
+            // const effortID = effortURL.match(/\d+/)[0];
             const pace = row.querySelector(':nth-child(4)').textContent;
             const hr = row.querySelector(':nth-child(5)').textContent;
             const time = row.querySelector(':nth-child(6)').textContent;
+
+            if (atheletes) {
+              
+            }
+            
+
             if (date) { // if date within the segment timeframe
               results.push([rank, name, date, pace, hr, time, profileURL, effortURL]);
             }

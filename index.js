@@ -44,7 +44,6 @@ app.get('/', (req, res) => {
 <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
    integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
    crossorigin=""></script>
-<script src="database.json"></script>
 <script src="./script.js" defer="defer"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-1X8FP56G6T"></script>
@@ -80,9 +79,10 @@ October Race 5</p>
 
 <hr>
 <div>
-<a href="https://www.facebook.com/RunAroundAUS">Facebook</a> <a href="https://www.instagram.com/runaroundaus/">Instagram</a>
+<a href="https://www.facebook.com/RunAroundAUS">Facebook</a> <a href="https://www.instagram.com/runaroundaus/">Instagram</a><br />
+Townsville, North Queensland, Australia.
 </div>
-<footer>&copy; <a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a></footer>
+<footer>Website built by <a href="https://luenwarneke.com/">Luen Warneke</a><br><a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a> &copy; ${new Date().getFullYear()}</footer>
 </div>
 <div></div>
 </body></html>`);
