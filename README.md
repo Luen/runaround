@@ -18,3 +18,4 @@ Now the server can be start (index.js)
 # Notes
 
 Use pm2 and nginx server.
+Setup cron
