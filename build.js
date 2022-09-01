@@ -2,8 +2,11 @@ let strava = require('strava-v3');
 const polyline = require('@mapbox/polyline');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const e = require('express');
 
 const races = [30354222, 30505431, 30361147, 30561161, 30500288, 28927372, 26897948, 26897961, 27927100];
+
+const databasePath = "./database.json";
 
 // Pupperteer can navigate to each athlete and find out if they are male or female by the "QOMs / CRs" or "KOMs / CRs" tabs.
 // or can api get it???
@@ -31,10 +34,21 @@ const races = {
 const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
 const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
 
-const atheletes = [];
+console.log(process.env.STRAVA_ACCESS_TOKEN);
+
+strava = new strava.client('326cb4fa326653edf27751dd0c0dfe9062da5612 '); // eslint-disable-line
+
+const atheletes = {};
 
 (async () => { // eslint-disable-line
-  let browser; const database = [];
+  let browser; let database;
+  if (process.argv[2] == "all") {
+    console.log("Buidling fresh database");
+    database = [];
+  } else {
+    console.log("Only updating active race data");
+    database = JSON.parse(fs.readFileSync(databasePath).toString());
+  }
 
   try {
     browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -58,8 +72,6 @@ const atheletes = [];
     await page.waitForSelector('button#login-button');
     await page.evaluate(() => document.querySelector('button#login-button').click());
     await page.waitForNavigation();
-
-    // await page.screenshot({ path: '02_logged_in.png' });
 
     const recaptcha = await page.evaluate(() => document.querySelector('input[name=recaptcha_enterprise_token]'));
     if (recaptcha) {
@@ -97,35 +109,47 @@ const atheletes = [];
       }
       console.log('Getting segment via Puppeteer', id);
       try {
-        const pageSegment = page;
-        await pageSegment.goto(`https://www.strava.com/segments/${id}`, { waitUntil: 'networkidle2' });
+        await page.goto(`https://www.strava.com/segments/${id}`, { waitUntil: 'networkidle2' });
         await page.waitForSelector('.table-leaderboard tr');
         const leaderboard = await page.$$eval('.table-leaderboard tr:not(:first-child)', tr => {
           const results = [];
-          tr.forEach((row, index) => {
+          tr.forEach(async (row, index) => {
             if (row.querySelector(':first-child').textContent == "Rank") return;
+            // Jul 15, 2021
+            const date = row.querySelector(':nth-child(3)').textContent;
             const rank = index + 1;
             const name = row.querySelector(':nth-child(2)').textContent;
             const profileURL = row.querySelector(':nth-child(2) a[href]').href;
             const profileID = profileURL.match(/\d+/)[0];
-            const date = row.querySelector(':nth-child(3)').textContent;
             const effortURL = row.querySelector(':nth-child(3) a[href]').href; // redirects to activity url
             // const effortID = effortURL.match(/\d+/)[0];
             const pace = row.querySelector(':nth-child(4)').textContent;
             const hr = row.querySelector(':nth-child(5)').textContent;
             const time = row.querySelector(':nth-child(6)').textContent;
-
-            if (atheletes) {
-              
-            }
-            
-
-            if (date) { // if date within the segment timeframe
-              results.push([rank, name, date, pace, hr, time, profileURL, effortURL]);
-            }
+            //if (date) { // if date within the segment timeframe
+              results.push({rank: rank, name: name, date, pace, hr, time, profileURL, profileID, effortURL});
+            //}
           });
           return results;
         });
+        /*
+        let gender;
+        if (atheletes[profileID]) {
+          gender = atheletes[profileID];
+        } else {
+          await page.goto(profileURL, { waitUntil: 'networkidle2' });
+          await page.waitForSelector('#athlete-profile li:nth-child(4) > a.tab');
+          gender = await page.$$eval('.table-leaderboard tr:not(:first-child)', tab => {
+            if (tab.textContent == "KOMs / CRs") {
+              return 'm';
+            } else if (tab.textContent == "QOMs / CRs") {
+              return 'f';
+            }
+            return 
+          });
+          atheletes[profileID] = gender; // save in case needed again
+        }
+          */
 
         segment.leaderboard = leaderboard;
 
@@ -142,7 +166,7 @@ const atheletes = [];
   } finally {
     try {
       // write segment data to file
-      fs.writeFileSync('./public/database.json', JSON.stringify(database));
+      fs.writeFileSync(databasePath, JSON.stringify(database));
       console.log('Data saved to file');
     } catch (err) {
       console.error(err);
