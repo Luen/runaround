@@ -10,6 +10,7 @@ const databasePath = "./database.json";
 
 // Pupperteer can navigate to each athlete and find out if they are male or female by the "QOMs / CRs" or "KOMs / CRs" tabs.
 // or can api get it???
+// Subscribe to Strava and get age groups
 
 /* 3m+3f for the month & 3m+3f for year (until deadline)
 const races = {
@@ -36,7 +37,7 @@ const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
 
 console.log(process.env.STRAVA_ACCESS_TOKEN);
 
-strava = new strava.client('326cb4fa326653edf27751dd0c0dfe9062da5612 '); // eslint-disable-line
+strava = new strava.client('64d0a7e0d4a5a54257d4f0675a407e79f192ba81'); // eslint-disable-line
 
 const atheletes = {};
 
@@ -111,14 +112,14 @@ const atheletes = {};
       try {
         await page.goto(`https://www.strava.com/segments/${id}`, { waitUntil: 'networkidle2' });
         await page.waitForSelector('.table-leaderboard tr');
-        const leaderboard = await page.$$eval('.table-leaderboard tr:not(:first-child)', tr => {
+        const leaderboard = await page.$$eval('.table-leaderboard tr', tr => {
           const results = [];
           tr.forEach(async (row, index) => {
             if (row.querySelector(':first-child').textContent == "Rank") return;
             // Jul 15, 2021
             const date = row.querySelector(':nth-child(3)').textContent;
             const rank = index + 1;
-            const name = row.querySelector(':nth-child(2)').textContent;
+            const name = row.querySelector(':nth-child(2)').textContent; 
             const profileURL = row.querySelector(':nth-child(2) a[href]').href;
             const profileID = profileURL.match(/\d+/)[0];
             const effortURL = row.querySelector(':nth-child(3) a[href]').href; // redirects to activity url
@@ -164,12 +165,14 @@ const atheletes = {};
   } catch (err) {
     console.error(err);
   } finally {
-    try {
-      // write segment data to file
-      fs.writeFileSync(databasePath, JSON.stringify(database));
-      console.log('Data saved to file');
-    } catch (err) {
-      console.error(err);
+    if (database.length !== 0) {
+      try {
+        // write segment data to file
+        fs.writeFileSync(databasePath, JSON.stringify(database));
+        console.log('Data saved to file');
+      } catch (err) {
+        console.error(err);
+      }
     }
     console.log('Closing browser');
     if (browser) await browser.close();
