@@ -10,12 +10,12 @@ const databasePath = './database.json';
 
 const segments = JSON.parse(fs.readFileSync(databasePath));
 
-let submenu = segments.map((segment) => '<a href="./race/' + segment.id + '">' + segment.id + '</a> ').join('')
+let submenu = segments.map((segment) => '<a href="./races/' + segment.id + '">' + segment.id + '</a> ').join('')
 // const menu = `<a href="./">Home</a> <a href="#">Races</a> ${submenu} <a href="./about">About</a> <a href="./contact">Contact</a>`;
-const menu = `<a href="./">Home</a> <a href="./about">About</a> <a href="./contact">Contact</a>`;
+const menu = (data) => `<a href="${data.baseurl}">Home</a> <a href="${data.baseurl}races">Races</a> <a href="${data.baseurl}about">About</a> <a href="${data.baseurl}contact">Contact</a>`;
 
 let html = ''; 
-segments.forEach((segment) => {
+function getSegment(segment) {
   const localLegend = (segment.local_legend ? `${segment.local_legend.title} with ${segment.local_legend.effort_description}` : 'N/A');
   let leaderboard;
   if (segment.leaderboard) {
@@ -38,8 +38,8 @@ segments.forEach((segment) => {
     leaderboard += '</table>';
   }
 
-  html += `<div>
-  <a href="https://www.strava.com/segments/${segment.id}" target="_blank"><h1>${segment.name}</h1></a>
+  return `<div>
+  <a href="https://www.strava.com/segments/${segment.id}" target="_blank"><h1 title="${segment.name}">${segment.title}</h1></a>
   <img src="${segment.elevation_profile}" alt="${segment.name} elevation plot">
   <div>Distance: ${(segment.distance / 1000).toFixed(1)}km</div>
   <div>Total elevation gain: ${Math.round(segment.total_elevation_gain)}m</div>
@@ -49,12 +49,37 @@ segments.forEach((segment) => {
   <div>Local Legend: ${localLegend}</div>
   <div>${leaderboard}</div>
 </div>`;
+}
+let a = ''
+segments.forEach((segment) => {
+  // if active 
+  active = false;
+  segment.duration.forEach((d) => {
+    var d1 = d[0].split("/"); // start
+    var d2 = d[1].split("/"); // end
+    var from = new Date('20'+d1[2], parseInt(d1[1]), d1[0]);  // -1 because months are from 0 to 11
+    var to = new Date('20'+d2[2], parseInt(d2[1]), d2[0]);
+    var now = new Date();
+    
+    //console.log(to, 'to', from, 'now:', now);
+    //console.log(now > from && now < to);
+    if (now > from && now < to) {
+      active = true;
+      html += getSegment(segment);
+      a += `<a href="./races/${segment.id}" title="${segment.name}">${segment.title}</a><br />`;
+    }
+  });
 });
 
 
-const header = (data) => `<!DOCTYPE html><head>
+function header(data) {
+  if (!data.baseurl) {
+  console.log(data.baseurl);
+    data.baseurl = './';
+  }
+  return `<!DOCTYPE html><head>
 <title>${data.title} - RunAround</title>
-<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="${data.baseurl}style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
 integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
 crossorigin=""/>
@@ -64,7 +89,7 @@ crossorigin=""></script>
 <script>
 var segments = ${fs.readFileSync(databasePath).toString()};
 </script>
-<script src="./script.js" defer="defer"></script>
+<script src="${data.baseurl}script.js" defer="defer"></script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-1X8FP56G6T"></script>
 <script>
@@ -73,44 +98,65 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-1X8FP56G6T');
 </script>
-</head><body><div class="wrapper"><img class="logo" src="./runaround-logo.png" alt="RunAround logo - Virtual Running Events">
+</head><body><div class="wrapper"><img class="logo" src="${data.baseurl}runaround-logo.png" alt="RunAround logo - Virtual Running Events">
 <h1>RunAround</h1>
-${menu}`;
+${menu({baseurl: data.baseurl})}`;
+}
 
-const footer = '</div></body></html>';
-
-app.get('/', (req, res) => {
-  res.send(`${header({title:'Virtual Running Events'})}
-<p>January, Race 1<br />
-March, Race 2<br />
-June, Race 3<br />
-August, Race 4<br />
-October Race 5</p>
-
-<div id="map"></div>
-
-<div>${html}</div>
-
-<hr>
+const footer = `<hr>
 <div>
 <a href="https://www.facebook.com/RunAroundAUS">Facebook</a> <a href="https://www.instagram.com/runaroundaus/">Instagram</a><br />
 Townsville, North Queensland, Australia.
 </div>
 <footer>Website built by <a href="https://luenwarneke.com/">Luen Warneke</a><br><a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a> &copy; ${new Date().getFullYear()}</footer>
 </div>
-<div>
+<div></div></body></html>`;
+
+
+app.get('/', (req, res) => {
+  res.send(`${header({title:'Virtual Running Events'})}
+<p>Active:<br />${a}</p>
+
+<div id="map" data-id="active"></div>
+
 ${footer}`);
 });
 
-app.get('/race/:id', (req, res) => {
+app.get('/races', (req, res) => {
+  const id = req.params.id;
+  res.send(`${header({title:'Virtual Running Events'})}
+  <br /><br />
+  Races:<br />
+  ${segments.map((segment) => '<a href="./races/' + segment.id + '" title="segment.name">' + segment.title + '</a><br />\n').join('')}
+  <div id="map" data-id="all"></div>
+  Active races:
+  <div>${html}</div>
+
+  ${footer}`);
+});
+
+app.get('/races/:id', (req, res) => {
   const id = req.params.id;
   if (!segments.some(segment => segment.id == id)) {
     // If not in database
     res.status(404).send('Not found');
   }
-  res.send(`${header({title:'Virtual Running Events'})}
-  ${id}
-  ${footer}`);
+  //console.log(id);
+  //i = segments.findIndex(e => e.id === id);
+  //i = segments.map(object => object.id).indexOf(id);
+  i = 0;
+  //console.log(i);
+  if (i > -1) {
+    segment = segments[i];
+    res.send(`${header({title:segment.name, baseurl: '../'})}
+    <br /><br />
+    <div id="map" data-id="${segment.id}"></div>
+    ${getSegment(segment)}
+    <br />
+    ${footer}`);
+  } else {
+    res.status(404).send('Not found');
+  }
 });
 
 app.get('/about', (req, res) => {
@@ -140,7 +186,10 @@ app.get('/sitemap.xml', (req, res) => {
   <url>
     <loc>https://runaround.com.au/</loc>
   </url>
-${segments.map((segment) => '  <url>\n    <loc>https://runaround.com.au/race/' + segment.id + '</loc>\n  </url>\n').join('')}   <url>
+  <url>
+    <loc>https://runaround.com.au/races</loc>
+  </url>
+${segments.map((segment) => '  <url>\n    <loc>https://runaround.com.au/races/' + segment.id + '</loc>\n  </url>\n').join('')}   <url>
     <loc>https://runaround.com.au/about</loc>
   </url>
   <url>

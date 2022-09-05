@@ -1,50 +1,96 @@
 let strava = require('strava-v3');
-const polyline = require('@mapbox/polyline');
+//const polyline = require('@mapbox/polyline');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const e = require('express');
 
-const races = [30354222, 30505431, 30361147, 30561161, 30500288, 28927372, 26897948, 26897961, 27927100];
+// Delete me once auth is sorted out:
+strava = new strava.client('66505c73f3474d933734deab5261db32340fed34'); // eslint-disable-line
 
 const databasePath = "./database.json";
 
-// Pupperteer can navigate to each athlete and find out if they are male or female by the "QOMs / CRs" or "KOMs / CRs" tabs.
-// or can api get it???
-// Subscribe to Strava and get age groups
-
-/* 3m+3f for the month & 3m+3f for year (until deadline)
+//const races = [30354222, 30505431, 30361147, 30561161, 30500288, 28927372, 26897948, 26897961, 27927100];
+// Subscribe to Strava and get age groups and gender
+// 3m+3f for the month & 3m+3f for year (until deadline)
+January, Race 1<br />
+March, Race 2<br />
+June, Race 3<br />
+August, Race 4<br />
+October Race 5
 const races = {
-  30354222: { // January
-    results: [
-      { 
-        start: 1/1/22
-        end: 21/1/22
-      }, 
-      {
-        start: 1/1/22
-        end: 1/12/22
-      }
+  30500288: { 
+    title: 'Race 1 - October 22',
+    duration: [
+      ['1/10/22','31/10/22'],
+      ['1/1/22','1/12/22']
     ]
   },
-  30505431 march
-  30361147 june
-  30561161 august
-  30500288 october
-}*/
+  30561161: { 
+    title: 'Race 2 - August 22',
+    duration: [
+      ['1/8/22','31/8/22'],
+      ['1/1/22','1/12/22']
+    ]
+  },
+  30361147: { 
+    title: 'Race 3 - June 22',
+    duration: [
+      ['1/6/22','30/6/22'],
+      ['1/1/22','1/12/22']
+    ]
+  },
+  30505431: { 
+    title: 'Race 4 - March 22',
+    duration: [
+      ['1/3/22','31/3/22'],
+      ['1/1/22','1/12/22']
+    ]
+  },
+  30354222: { 
+    title: 'Race 5 - January 22',
+    duration: [
+      ['1/1/22','31/1/22'],
+      ['1/1/22','1/12/22']
+    ]
+  },
+  28927372: { 
+    title: 'Race 3 - June 21',
+    duration: [
+      ['1/6/22','30/6/22']
+    ]
+  },
+  27927100: { 
+    title: 'Race 2 - May 21',
+    duration: [
+      ['1/5/22','31/5/22']
+    ]
+  },
+  26897948: { 
+    title: 'Race 1 - Jan 21 - Short',
+    duration: [
+      ['1/1/22','31/1/22']
+    ]
+  },
+  26897961: { 
+    title: 'Race 1 - Jan 21 - Long',
+    duration: [
+      ['1/1/22','31/1/22']
+    ]
+  }
+}
 
 const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
 const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
 
 console.log(process.env.STRAVA_ACCESS_TOKEN);
 
-strava = new strava.client('64d0a7e0d4a5a54257d4f0675a407e79f192ba81'); // eslint-disable-line
 
 const atheletes = {};
 
 (async () => { // eslint-disable-line
   let browser; let database;
   if (process.argv[2] == "all") {
-    console.log("Buidling fresh database");
+    console.log("Building fresh database");
     database = [];
   } else {
     console.log("Only updating active race data");
@@ -97,14 +143,18 @@ const atheletes = {};
       }
     }
 
-    for (let i = 0; i < races.length; i++) { // eslint-disable-line
+    //for (let i = 0; i < races.length; i++) { // eslint-disable-line
+    for (const [i, [id, v]] of Object.entries(Object.entries(races))) {
       let segment;
-      const id = races[i];
+// if not in database, then (build fresh)
+      //const id = races[i];
       console.log('Getting segment via API', id);
       try {
         // get segment data
         segment = await strava.segments.get({ id });
-        segment.map.geoJSON = polyline.toGeoJSON(segment.map.polyline); // https://stackoverflow.com/questions/48017792/strava-api-how-to-get-route-image
+        //segment.map.geoJSON = polyline.toGeoJSON(segment.map.polyline); // https://stackoverflow.com/questions/48017792/strava-api-how-to-get-route-image
+        segment.duration = v.duration;
+        segment.title = (v.title ? v.title : null);
       } catch (error) {
         console.log(`Error: ${error}`);
       }
