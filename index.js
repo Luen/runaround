@@ -141,22 +141,18 @@ app.get('/races/:id', (req, res) => {
     // If not in database
     res.status(404).send('Not found');
   }
-  //console.log(id);
-  //i = segments.findIndex(e => e.id === id);
-  //i = segments.map(object => object.id).indexOf(id);
-  i = 0;
-  //console.log(i);
-  if (i > -1) {
-    segment = segments[i];
-    res.send(`${header({title:segment.name, baseurl: '../'})}
-    <br /><br />
-    <div id="map" data-id="${segment.id}"></div>
-    ${getSegment(segment)}
-    <br />
-    ${footer}`);
-  } else {
-    res.status(404).send('Not found');
-  }
+  let segment;
+  segments.forEach((s, i) => {
+    if (s.id == id) {
+      segment = segments[i];
+    }
+  })
+  res.send(`${header({title:segment.name, baseurl: '../'})}
+  <br /><br />
+  <div id="map" data-id="${segment.id}"></div>
+  ${getSegment(segment)}
+  <br />
+  ${footer}`);
 });
 
 app.get('/about', (req, res) => {
