@@ -84,7 +84,7 @@ function header(data) {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="${data.description}" />
-<link rel="icon" href="/favicon.png" type="image/png" />
+<link rel="icon" href="/favicon.ico" type="image/x-icon" />
 <link rel="canonical" href="https://wanderstories.space/" />
 <link rel="stylesheet" href="${data.baseurl}style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
