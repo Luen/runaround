@@ -163,7 +163,7 @@ app.get('/races/:id', (req, res) => {
 
 app.get('/about', (req, res) => {
   res.send(`${header({title:'About Us', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
-  <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of Sidney Willis from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
+  <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of <a href="/about/sidney-willis">Sidney Willis</a> from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
   <p>Our goal is to give Townsville runners the opportunity to regularly test themselves on different running courses. Each race will be different. Some races will be flat, others will be hilly. Some races are more like an urban trail while others are only on dirt trails. We hope that this will challenge runners to run on terrains that they are more or less adapted to. Furthermore, each race is designed by a different runner from the <a href="https://www.facebook.com/groups/723606077775909">Hungry Runner group</a>. So maybe you will discover new paths through Townville City or Castle Hill!</p>
   <p>2022 will have 5 Virtual Races throughout the year as well as a general classification.</p>
   <h2>How to enter</h2>
@@ -173,6 +173,34 @@ app.get('/about', (req, res) => {
   <h2>Ranking for the General Classification</h2>
   <p>For the General Classification, you can run the races any time through the year to clock your fastest time! It doesn't matter if the Virtual Race already took place. All the race maps are available below. So you can run the races at any time of the year to register a time or better your time. However, to be ranked on the General Classification, you will need to run all the courses! The deadline is December 1 2022! We will have great rewards for the first 3 males and females!</p>
   <img src="./Run-Hungry-2022-virtual-run-series.webp" alt="Run Hungry 2022 virtual run series">
+  <p>Read more about <a href="/about/luen-warneke">Luen Warneke</a> and <a href="/about/sidney-willis">Sidney Willis</a>.</p>
+  ${footer}`);
+});
+
+
+app.get('/about/luen-warneke', (req, res) => {
+  res.send(`${header({title:'About Luen Warneke', baseurl: '../', description: ''})}
+  <br /><br />
+  <img src="https://luenwarneke.com/img/luen-warneke.jpg" alt="Luen Warneke" style="max-height:120px;" />
+  <h1>Luen Warneke</h1>
+  <p>Professional Adventurer</p>
+  <p>Luen has been living in Townsville for most of his life and loves to explore the great outdoors. For the past several years, I have been writing articles for the <a href="https://wanderstories.space/">Wanderstories</a> website which documents the Townsville region's natural landscapes, such as waterfalls, lookouts, and mountains, and associated adventures, such as hiking, canyoning, rock climbing, bikepacking, and packrafting.</p>
+  <p>Luen is a trip leader for the Townsville Rock Climbing Club (<a href="https://www.facebook.com/groups/jcu.rockclimbing">RANQ</a>) and the president of the <a href="https://www.townsvillebushwalkingclub.com/">Townsville Bushwalking Club</a>.</p>
+  <p><a href="https://hungryrunner.net/">Hungry Runner Coaching</a></p>
+  <br />
+  ${footer}`);
+});
+
+app.get('/about/sidney-willis', (req, res) => {
+  res.send(`${header({title:'About Sidney Willis', baseurl: '../', description: ''})}
+  <br /><br />
+  <img src="https://static.wixstatic.com/media/62e31f_b5925d57fcfe4117a6cdceccdf9c4fff~mv2.jpg" alt="Sidney Willis" style="max-height:120px;" />
+  <h1>Sidney Willis</h1>
+  <p>Head Coach</p>
+  <p>Sidney is an Australian Frenchy with a passion for endurance sports. Sidney has played tennis national level during his childhood and switched sports to rock climbing. Sidney enjoyed discovering amazing cliffs all over France and developed a love for mountains. He then started trail running, which has become slightly obsessive features over the years, and has performed in many road and mountain races throughout Europe and Australia - from 10km distance up to 100km ultra's.</p>
+  <p>His passion for sports and eye for detail had him start coaching fellow sport enthusiasts. Sidney's always been passionate about training and loves to help people reach their goals. He uses his skills and experience to offer personalised training programs.</p>
+  <p><a href="https://hungryrunner.net/">Hungry Runner Coaching</a></p>
+  <br />
   ${footer}`);
 });
 
@@ -194,6 +222,12 @@ app.get('/sitemap.xml', (req, res) => {
   </url>
 ${segments.map((segment) => '  <url>\n    <loc>https://runaround.com.au/races/' + segment.id + '</loc>\n  </url>\n').join('')}   <url>
     <loc>https://runaround.com.au/about</loc>
+  </url>
+  <url>
+    <loc>https://runaround.com.au/about/luen-warneke</loc>
+  </url>
+  <url>
+    <loc>https://runaround.com.au/about/sidney-willis</loc>
   </url>
   <url>
     <loc>https://runaround.com.au/contact</loc>
