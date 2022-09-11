@@ -51,6 +51,7 @@ function getSegment(segment) {
 </div>`;
 }
 let a = ''
+let activeRaces = [];
 segments.forEach((segment) => {
   // if active 
   active = false;
@@ -60,11 +61,12 @@ segments.forEach((segment) => {
     var from = new Date('20'+d1[2], parseInt(d1[1]), d1[0]);  // -1 because months are from 0 to 11
     var to = new Date('20'+d2[2], parseInt(d2[1]), d2[0]);
     var now = new Date();
-    
+     
     //console.log(to, 'to', from, 'now:', now);
     //console.log(now > from && now < to);
-    if (now > from && now < to) {
+    if (now > from && now < to && !activeRaces.includes(segment.id)) {
       active = true;
+      activeRaces.push(segment.id);
       html += getSegment(segment);
       a += `<a href="./races/${segment.id}" title="${segment.name}">${segment.title}</a><br />`;
     }
@@ -79,6 +81,11 @@ function header(data) {
   }
   return `<!DOCTYPE html><head>
 <title>${data.title} - RunAround</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="${data.description}" />
+<link rel="icon" href="/favicon.png" type="image/png" />
+<link rel="canonical" href="https://wanderstories.space/" />
 <link rel="stylesheet" href="${data.baseurl}style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
 integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
@@ -114,7 +121,7 @@ Townsville, North Queensland, Australia.
 
 
 app.get('/', (req, res) => {
-  res.send(`${header({title:'Virtual Running Events'})}
+  res.send(`${header({title:'Virtual Running Events', description: 'RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. This virtual running series allows participants the flexibility that conventional races can\'t offer.'})}
 <p>Active:<br />${a}</p>
 
 <div id="map" data-id="active"></div>
@@ -123,8 +130,7 @@ ${footer}`);
 });
 
 app.get('/races', (req, res) => {
-  const id = req.params.id;
-  res.send(`${header({title:'Virtual Running Events'})}
+  res.send(`${header({title:'Virtual Running Events', description: 'We have ' + activeRaces.length + ' active virtual running races around Townsville, North Queensland, Australia.'})}
   <br /><br />
   Races:<br />
   ${segments.map((segment) => '<a href="./races/' + segment.id + '" title="segment.name">' + segment.title + '</a><br />\n').join('')}
@@ -147,7 +153,7 @@ app.get('/races/:id', (req, res) => {
       segment = segments[i];
     }
   })
-  res.send(`${header({title:segment.name, baseurl: '../'})}
+  res.send(`${header({title:segment.name, baseurl: '../', description: segment.description})}
   <br /><br />
   <div id="map" data-id="${segment.id}"></div>
   ${getSegment(segment)}
@@ -156,7 +162,8 @@ app.get('/races/:id', (req, res) => {
 });
 
 app.get('/about', (req, res) => {
-  res.send(`${header({title:'About Us'})}<p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of Sidney Willis from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
+  res.send(`${header({title:'About Us', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
+  <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of Sidney Willis from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
   <p>Our goal is to give Townsville runners the opportunity to regularly test themselves on different running courses. Each race will be different. Some races will be flat, others will be hilly. Some races are more like an urban trail while others are only on dirt trails. We hope that this will challenge runners to run on terrains that they are more or less adapted to. Furthermore, each race is designed by a different runner from the <a href="https://www.facebook.com/groups/723606077775909">Hungry Runner group</a>. So maybe you will discover new paths through Townville City or Castle Hill!</p>
   <p>2022 will have 5 Virtual Races throughout the year as well as a general classification.</p>
   <h2>How to enter</h2>
@@ -170,7 +177,7 @@ app.get('/about', (req, res) => {
 });
 
 app.get('/contact', (req, res) => {
-  res.send(`${header({title:'Virtual Running Events'})}
+  res.send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
   <p>Contact us on the <a href="https://www.hungryrunner.net/">Hungry Runner</a> website</p>
    <img src="./castle-hill-map.jpg" alt="Castle Hill map">
   ${footer}`);
