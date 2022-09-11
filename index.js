@@ -1,5 +1,9 @@
-const express = require('express');
 const fs = require('fs');
+const express = require('express');
+//const cors = require("cors");
+const nodemailer = require("nodemailer");
+const multiparty = require("multiparty");
+require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 4008;
@@ -76,7 +80,6 @@ segments.forEach((segment) => {
 
 function header(data) {
   if (!data.baseurl) {
-  console.log(data.baseurl);
     data.baseurl = './';
   }
   return `<!DOCTYPE html><head>
@@ -105,6 +108,7 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-1X8FP56G6T');
 </script>
+${data.extra ? data.extra : ''}
 </head><body><div class="wrapper"><img class="logo" src="${data.baseurl}runaround-logo.png" alt="RunAround logo - Virtual Running Events">
 <h1>RunAround</h1>
 ${menu({baseurl: data.baseurl})}`;
@@ -113,9 +117,10 @@ ${menu({baseurl: data.baseurl})}`;
 const footer = `<hr>
 <div>
 <a href="https://www.facebook.com/RunAroundAUS">Facebook</a> <a href="https://www.instagram.com/runaroundaus/">Instagram</a><br />
-Townsville, North Queensland, Australia.
+<i>Townsville, North Queensland, Australia</i>
 </div>
-<footer>Website built by <a href="https://luenwarneke.com/">Luen Warneke</a><br><a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a> &copy; ${new Date().getFullYear()}</footer>
+<footer>Website built by <a href="/about/luen-warneke">Luen Warneke</a><br />
+<a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a> &copy; ${new Date().getFullYear()}</footer>
 </div>
 <div></div></body></html>`;
 
@@ -163,8 +168,12 @@ app.get('/races/:id', (req, res) => {
 
 app.get('/about', (req, res) => {
   res.send(`${header({title:'About Us', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
+  <br />
+  <h1>About RunAround</h1>
   <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of <a href="/about/sidney-willis">Sidney Willis</a> from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
   <p>Our goal is to give Townsville runners the opportunity to regularly test themselves on different running courses. Each race will be different. Some races will be flat, others will be hilly. Some races are more like an urban trail while others are only on dirt trails. We hope that this will challenge runners to run on terrains that they are more or less adapted to. Furthermore, each race is designed by a different runner from the <a href="https://www.facebook.com/groups/723606077775909">Hungry Runner group</a>. So maybe you will discover new paths through Townville City or Castle Hill!</p>
+  <p>Read more about <a href="/about/luen-warneke">Luen Warneke</a> and <a href="/about/sidney-willis">Sidney Willis</a>.</p>
+  <img src="./Run-Hungry-2022-virtual-run-series.webp" alt="Run Hungry 2022 virtual run series" />
   <p>2022 will have 5 Virtual Races throughout the year as well as a general classification.</p>
   <h2>How to enter</h2>
   <p>We will use Strava segments for the rankings. You will be ranked for each Virtual Race in the month the specific race opens. In addition there will be a general classification with your accumulated fastest overall time for all the races. Everyone is welcome to participate, you do not need to be a Hungry Runner! Also, there is no registration and it is free.</p>
@@ -172,8 +181,8 @@ app.get('/about', (req, res) => {
   <p>For each race you will have one month to clock your fastest time. You can run it as many times as you want within that month. We will take your fastest time for the ranking. We will have rewards for the first 3 males and females for every virtual race! Prizes will be awarded during a Hungry Runner group run the week following the virtual race.</p>
   <h2>Ranking for the General Classification</h2>
   <p>For the General Classification, you can run the races any time through the year to clock your fastest time! It doesn't matter if the Virtual Race already took place. All the race maps are available below. So you can run the races at any time of the year to register a time or better your time. However, to be ranked on the General Classification, you will need to run all the courses! The deadline is December 1 2022! We will have great rewards for the first 3 males and females!</p>
-  <img src="./Run-Hungry-2022-virtual-run-series.webp" alt="Run Hungry 2022 virtual run series">
-  <p>Read more about <a href="/about/luen-warneke">Luen Warneke</a> and <a href="/about/sidney-willis">Sidney Willis</a>.</p>
+  <h2>Map of Castle Hill</h2>
+  <img src="./castle-hill-map.jpg" alt="Castle Hill map" />
   ${footer}`);
 });
 
@@ -207,8 +216,76 @@ app.get('/about/sidney-willis', (req, res) => {
 app.get('/contact', (req, res) => {
   res.send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
   <p>Contact us on the <a href="https://www.hungryrunner.net/">Hungry Runner</a> website</p>
-   <img src="./castle-hill-map.jpg" alt="Castle Hill map">
+  <form id="contact-form" method="POST" action="send" enctype="multipart/form-data">
+    <div class="form-group">
+      <div class="row">
+        <div class="col-md-6">
+          <input placeholder="Name" id="name" name="name" type="text" class="form-control" required />
+        </div>
+        <div class="col-md-6">
+          <input placeholder="Email" id="email" type="email" name="email" class="form-control" aria-describedby="emailHelp" required />
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <input placeholder="Subject" id="subject" name="subject" type="text" class="form-control" required />
+    </div>
+    <div class="form-group">
+      <textarea placeholder="Message" id="message" name="message" class="form-control" rows="3" required></textarea>
+    </div>
+    <button type="submit" value="submit" class="btn btn-primary">Submit</button>
+  </form>
   ${footer}`);
+});
+
+app.post("/send", (req, res) => {
+  //const EMAIL = 'info@runaround.com.au';
+  const EMAIL = 'contact@wanderstories.space';
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.mailgun.org',
+    port: 587,
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.PASS,
+    },
+  });
+  // verify connection configuration
+  transporter.verify(function (error, success) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Server is ready to take our messages");
+    }
+  });
+  let form = new multiparty.Form();
+  let data = {};
+  form.parse(req, function (err, fields) {
+    Object.keys(fields).forEach(function (property) {
+      data[property] = fields[property].toString();
+    });
+    console.log(data);
+    const mail = {
+      sender: `${data.name} <${data.email}>`,
+      to: EMAIL, // receiver email,
+      subject: data.subject,
+      text: `${data.name} <${data.email}> \n${data.message}`,
+    };
+    transporter.sendMail(mail, (err, data) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
+        <br />
+        <h1>Something went wrong.</h1><br />
+        Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a>
+        ${footer}`);
+      } else {
+        res.status(200).send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.', extra:"<meta name=\"robots\" content=\"noindex\">"})}
+        <br>
+        <h1>Email successfully sent to recipient!</h1>
+        ${footer}`);
+      }
+    });
+  });
 });
 
 app.get('/sitemap.xml', (req, res) => {
