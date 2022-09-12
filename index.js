@@ -89,6 +89,7 @@ function header(data) {
 <meta name="description" content="${data.description}" />
 <link rel="icon" href="/favicon.ico" type="image/x-icon" />
 <link rel="canonical" href="https://wanderstories.space/" />
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
 <link rel="stylesheet" href="${data.baseurl}style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
 integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
@@ -110,7 +111,7 @@ gtag('config', 'G-1X8FP56G6T');
 </script>
 ${data.extra ? data.extra : ''}
 </head><body><div class="wrapper"><img class="logo" src="${data.baseurl}runaround-logo.png" alt="RunAround logo - Virtual Running Events">
-<h1>RunAround</h1>
+<h1>${data.title}</h1>
 ${menu({baseurl: data.baseurl})}`;
 }
 
@@ -126,8 +127,8 @@ const footer = `<hr>
 
 
 app.get('/', (req, res) => {
-  res.send(`${header({title:'Virtual Running Events', description: 'RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. This virtual running series allows participants the flexibility that conventional races can\'t offer.'})}
-<p>Active:<br />${a}</p>
+  res.send(`${header({title:'RunAround Home', description: 'RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. This virtual running series allows participants the flexibility that conventional races can\'t offer.'})}
+<p>Active Races:<br />${a}</p>
 
 <div id="map" data-id="active"></div>
 
@@ -137,7 +138,7 @@ ${footer}`);
 app.get('/races', (req, res) => {
   res.send(`${header({title:'Virtual Running Events', description: 'We have ' + activeRaces.length + ' active virtual running races around Townsville, North Queensland, Australia.'})}
   <br /><br />
-  Races:<br />
+  All Races:<br />
   ${segments.map((segment) => '<a href="./races/' + segment.id + '" title="segment.name">' + segment.title + '</a><br />\n').join('')}
   <div id="map" data-id="all"></div>
   Active races:
@@ -158,8 +159,9 @@ app.get('/races/:id', (req, res) => {
       segment = segments[i];
     }
   })
-  res.send(`${header({title:segment.name, baseurl: '../', description: segment.description})}
+  res.send(`${header({title:segment.title, baseurl: '../', description: segment.description})}
   <br /><br />
+  <h2>${segment.name}</h2>
   <div id="map" data-id="${segment.id}"></div>
   ${getSegment(segment)}
   <br />
@@ -167,9 +169,8 @@ app.get('/races/:id', (req, res) => {
 });
 
 app.get('/about', (req, res) => {
-  res.send(`${header({title:'About Us', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
+  res.send(`${header({title:'About RunAround', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
   <br />
-  <h1>About RunAround</h1>
   <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of <a href="/about/sidney-willis">Sidney Willis</a> from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
   <p>Our goal is to give Townsville runners the opportunity to regularly test themselves on different running courses. Each race will be different. Some races will be flat, others will be hilly. Some races are more like an urban trail while others are only on dirt trails. We hope that this will challenge runners to run on terrains that they are more or less adapted to. Furthermore, each race is designed by a different runner from the <a href="https://www.facebook.com/groups/723606077775909">Hungry Runner group</a>. So maybe you will discover new paths through Townville City or Castle Hill!</p>
   <p>Read more about <a href="/about/luen-warneke">Luen Warneke</a> and <a href="/about/sidney-willis">Sidney Willis</a>.</p>
@@ -191,11 +192,11 @@ app.get('/about/luen-warneke', (req, res) => {
   res.send(`${header({title:'About Luen Warneke', baseurl: '../', description: ''})}
   <br /><br />
   <img src="https://luenwarneke.com/img/luen-warneke.jpg" alt="Luen Warneke" style="max-height:120px;" />
-  <h1>Luen Warneke</h1>
+  <h2>Luen Warneke</h2>
   <p>Professional Adventurer</p>
-  <p>Luen has been living in Townsville for most of his life and loves to explore the great outdoors. For the past several years, I have been writing articles for the <a href="https://wanderstories.space/">Wanderstories</a> website which documents the Townsville region's natural landscapes, such as waterfalls, lookouts, and mountains, and associated adventures, such as hiking, canyoning, rock climbing, bikepacking, and packrafting.</p>
+  <p>Luen has been living in Townsville for most of his life and loves to explore the great outdoors. For the past several years, Luen has been writing articles for the <a href="https://wanderstories.space/">Wanderstories</a> website which documents the Townsville region's natural landscapes, such as waterfalls, lookouts, and mountains, and associated adventures, such as hiking, canyoning, rock climbing, bikepacking, and packrafting.</p>
   <p>Luen is a trip leader for the Townsville Rock Climbing Club (<a href="https://www.facebook.com/groups/jcu.rockclimbing">RANQ</a>) and the president of the <a href="https://www.townsvillebushwalkingclub.com/">Townsville Bushwalking Club</a>.</p>
-  <p><a href="https://hungryrunner.net/">Hungry Runner Coaching</a></p>
+  <p><a href="https://wanderstories.space/">Wanderstoroies</a></p>
   <br />
   ${footer}`);
 });
@@ -204,9 +205,9 @@ app.get('/about/sidney-willis', (req, res) => {
   res.send(`${header({title:'About Sidney Willis', baseurl: '../', description: ''})}
   <br /><br />
   <img src="https://static.wixstatic.com/media/62e31f_b5925d57fcfe4117a6cdceccdf9c4fff~mv2.jpg" alt="Sidney Willis" style="max-height:120px;" />
-  <h1>Sidney Willis</h1>
+  <h2>Sidney Willis</h2>
   <p>Head Coach</p>
-  <p>Sidney is an Australian Frenchy with a passion for endurance sports. Sidney has played tennis national level during his childhood and switched sports to rock climbing. Sidney enjoyed discovering amazing cliffs all over France and developed a love for mountains. He then started trail running, which has become slightly obsessive features over the years, and has performed in many road and mountain races throughout Europe and Australia - from 10km distance up to 100km ultra's.</p>
+  <p>Sidney is an Australian Frenchy with a passion for endurance sports. Sidney played tennis at a national level during his childhood and later switched sports to rock climbingto enjoy amazing cliffs all over France, developing a love for mountains. He then started trail running, which has become slightly obsessive features over the years, and has performed in many road and mountain races throughout Europe and Australia - from 10km distance up to 100km ultra's.</p>
   <p>His passion for sports and eye for detail had him start coaching fellow sport enthusiasts. Sidney's always been passionate about training and loves to help people reach their goals. He uses his skills and experience to offer personalised training programs.</p>
   <p><a href="https://hungryrunner.net/">Hungry Runner Coaching</a></p>
   <br />
@@ -214,8 +215,8 @@ app.get('/about/sidney-willis', (req, res) => {
 });
 
 app.get('/contact', (req, res) => {
-  res.send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
-  <p>Contact us on the <a href="https://www.hungryrunner.net/">Hungry Runner</a> website</p>
+  res.send(`${header({title:'Contact RunAround', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
+  <br /><br />
   <form id="contact-form" method="POST" action="send" enctype="multipart/form-data">
     <div class="form-group">
       <div class="row">
@@ -276,7 +277,7 @@ app.post("/send", (req, res) => {
         res.status(500).send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
         <br />
         <h1>Something went wrong.</h1><br />
-        Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a>
+        Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a>.
         ${footer}`);
       } else {
         res.status(200).send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.', extra:"<meta name=\"robots\" content=\"noindex\">"})}
