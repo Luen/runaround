@@ -162,6 +162,7 @@ app.get('/races/:id', (req, res) => {
   res.send(`${header({title:segment.title, baseurl: '../', description: segment.description})}
   <br /><br />
   <h2>${segment.name}</h2>
+  <p>${segment.description}</p>
   <div id="map" data-id="${segment.id}"></div>
   ${getSegment(segment)}
   <br />
@@ -183,7 +184,7 @@ app.get('/about', (req, res) => {
   <h2>Ranking for the General Classification</h2>
   <p>For the General Classification, you can run the races any time through the year to clock your fastest time! It doesn't matter if the Virtual Race already took place. All the race maps are available below. So you can run the races at any time of the year to register a time or better your time. However, to be ranked on the General Classification, you will need to run all the courses! The deadline is December 1 2022! We will have great rewards for the first 3 males and females!</p>
   <h2>Map of Castle Hill</h2>
-  <img src="./castle-hill-map.jpg" alt="Castle Hill map" />
+  <img src="./castle-hill-map.jpg" alt="Castle Hill map" style="width:100%;" />
   ${footer}`);
 });
 
@@ -196,7 +197,7 @@ app.get('/about/luen-warneke', (req, res) => {
   <p>Professional Adventurer</p>
   <p>Luen has been living in Townsville for most of his life and loves to explore the great outdoors. For the past several years, Luen has been writing articles for the <a href="https://wanderstories.space/">Wanderstories</a> website which documents the Townsville region's natural landscapes, such as waterfalls, lookouts, and mountains, and associated adventures, such as hiking, canyoning, rock climbing, bikepacking, and packrafting.</p>
   <p>Luen is a trip leader for the Townsville Rock Climbing Club (<a href="https://www.facebook.com/groups/jcu.rockclimbing">RANQ</a>) and the president of the <a href="https://www.townsvillebushwalkingclub.com/">Townsville Bushwalking Club</a>.</p>
-  <p><a href="https://wanderstories.space/">Wanderstoroies</a></p>
+  <p><a href="https://wanderstories.space/">Wanderstories</a></p>
   <br />
   ${footer}`);
 });

@@ -5,28 +5,24 @@ const fs = require('fs');
 const e = require('express');
 
 // Delete me once auth is sorted out:
-strava = new strava.client('66505c73f3474d933734deab5261db32340fed34'); // eslint-disable-line
+strava = new strava.client('db17f78ccc1105dde0c0d73d827d996fbe8ff10b'); // eslint-disable-line
 
 const databasePath = "./database.json";
 
-//const races = [30354222, 30505431, 30361147, 30561161, 30500288, 28927372, 26897948, 26897961, 27927100];
 // Subscribe to Strava and get age groups and gender
 // 3m+3f for the month & 3m+3f for year (until deadline)
-January, Race 1<br />
-March, Race 2<br />
-June, Race 3<br />
-August, Race 4<br />
-October Race 5
 const races = {
   30500288: { 
-    title: 'Race 1 - October 22',
+    title: 'Race 5 - October 22',
+    description: 'Two laps of The Cutheringa Track and the Goat Track',
     duration: [
       ['1/10/22','31/10/22'],
       ['1/1/22','1/12/22']
     ]
   },
   30561161: { 
-    title: 'Race 2 - August 22',
+    title: 'Race 4 - August 22',
+    description: 'Around Castle Hill and Queens Gardens',
     duration: [
       ['1/8/22','31/8/22'],
       ['1/1/22','1/12/22']
@@ -34,20 +30,23 @@ const races = {
   },
   30361147: { 
     title: 'Race 3 - June 22',
+    description: 'West Ridge & Yarrawonga Hill',
     duration: [
       ['1/6/22','30/6/22'],
       ['1/1/22','1/12/22']
     ]
   },
   30505431: { 
-    title: 'Race 4 - March 22',
+    title: 'Race 2 - March 22',
+    description: 'A lap of the Ross River, around Bicentennial Park and Townsville Golf Club',
     duration: [
       ['1/3/22','31/3/22'],
       ['1/1/22','1/12/22']
     ]
   },
   30354222: { 
-    title: 'Race 5 - January 22',
+    title: 'Race 1 - January 22',
+    description: 'Lap of Castle Hill and the suburbs',
     duration: [
       ['1/1/22','31/1/22'],
       ['1/1/22','1/12/22']
@@ -55,24 +54,28 @@ const races = {
   },
   28927372: { 
     title: 'Race 3 - June 21',
+    description: 'Cutheringa and Goat tracks',
     duration: [
       ['1/6/22','30/6/22']
     ]
   },
   27927100: { 
     title: 'Race 2 - May 21',
+    description: 'The north end of Castle Hill loop. Yarrawonga Hill.',
     duration: [
       ['1/5/22','31/5/22']
     ]
   },
   26897948: { 
-    title: 'Race 1 - Jan 21 - Short',
+    title: 'Race 1 - Jan 21 (Short)',
+    description: 'A lap of Ross Creek, through Reid Park, around Cowboys Training Field and Stadium',
     duration: [
       ['1/1/22','31/1/22']
     ]
   },
   26897961: { 
-    title: 'Race 1 - Jan 21 - Long',
+    title: 'Race 1 - Jan 21 - (Long)',
+    description: 'Two laps of Ross Creek, through Reid Park, around Cowboys Training Field and Stadium',
     duration: [
       ['1/1/22','31/1/22']
     ]
@@ -83,7 +86,6 @@ const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
 const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
 
 console.log(process.env.STRAVA_ACCESS_TOKEN);
-
 
 const atheletes = {};
 
@@ -96,7 +98,7 @@ const atheletes = {};
     console.log("Only updating active race data");
     database = JSON.parse(fs.readFileSync(databasePath).toString());
   }
-
+  
   try {
     browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 
@@ -155,6 +157,7 @@ const atheletes = {};
         //segment.map.geoJSON = polyline.toGeoJSON(segment.map.polyline); // https://stackoverflow.com/questions/48017792/strava-api-how-to-get-route-image
         segment.duration = v.duration;
         segment.title = (v.title ? v.title : null);
+        segment.description = (v.description ? v.description : null);
       } catch (error) {
         console.log(`Error: ${error}`);
       }
