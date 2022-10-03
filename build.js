@@ -3,154 +3,119 @@ let strava = require('strava-v3');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const e = require('express');
+var https = require('follow-redirects').https;
 const stravaConfigFile = 'strava_config.json';
-const https = require('https');
-/*
-var stravaConfig = {};
-fs.readFile(stravaConfigFile, 'utf8', (err, data) => {
-  if (err) {
-    console.error(err);
-    return;
-  }
-  stravaConfig = JSON.parse(data);
-});
 
-var timestamp = new Date().getTime();
-if (!stravaConfig.expires_at || stravaConfig.expires_at > timestamp)  {
-  console.log('Getting fresh access token');
-
-  const client_id = "92757";
-  const client_secret = "95bb20df3f812fcc3cd04ca116c131ef622eed3f";
-  const refresh_token = "d91b4f8d5840efe7124442a7733b01cd66ce2686";
-  const stravaTokenUrl = "https://www.strava.com/api/v3/oauth/token";
-  const stravaOAuthCode = "5193c5aa288e96cd6f63c86d4edbeff19d98af11";
-
-  const postData = JSON.stringify({
-    client_id,
-    client_secret,
-    grant_type: 'refresh_token',
-    refresh_token
-  });
-  const options = {
-    method: 'POST',
-    headers: {
-      'method': 'POST',
-      'Content-Type': 'application/json',
-      'Content-Length': postData.length
-    }
-  };
-  let data = '';
-  const req = https.request(stravaTokenUrl, options, (res) => {
-    console.log('Status Code:', res.statusCode);
-
-    res.on('data', (chunk) => {
-      data += chunk;
-    });
-
-    res.on('end', () => {
-      console.log('Body: ', JSON.parse(data));
-    });
-
-  }).on("error", (err) => {
-    console.log("Error: ", err.message);
-  });
-
-  req.write(data);
-  req.end();
-
-  var stravaConfig = data;
-  fs.writeFileSync(stravaConfigFile, JSON.stringify(stravaConfig));
-}
-
-const access_token = stravaConfig.access_token;
-*/
-access_token = "5a663377b6d40250a43ffbd1967c68150b9f34f3";
-
-strava = new strava.client(access_token); // eslint-disable-line
-
-const databasePath = "./database.json";
-
-// Subscribe to Strava and get age groups and gender
-// 3m+3f for the month & 3m+3f for year (until deadline)
-const races = {
-  30500288: { 
-    title: 'Race 5 - October 22',
-    description: 'Two laps of The Cutheringa Track and the Goat Track',
-    duration: [
-      ['1/10/22','31/10/22'],
-      ['1/1/22','1/12/22']
-    ]
-  },
-  30561161: { 
-    title: 'Race 4 - August 22',
-    description: 'Around Castle Hill and Queens Gardens',
-    duration: [
-      ['1/8/22','31/8/22'],
-      ['1/1/22','1/12/22']
-    ]
-  },
-  30361147: { 
-    title: 'Race 3 - June 22',
-    description: 'West Ridge & Yarrawonga Hill',
-    duration: [
-      ['1/6/22','30/6/22'],
-      ['1/1/22','1/12/22']
-    ]
-  },
-  30505431: { 
-    title: 'Race 2 - March 22',
-    description: 'A lap of the Ross River, around Bicentennial Park and Townsville Golf Club',
-    duration: [
-      ['1/3/22','31/3/22'],
-      ['1/1/22','1/12/22']
-    ]
-  },
-  30354222: { 
-    title: 'Race 1 - January 22',
-    description: 'Lap of Castle Hill and the suburbs',
-    duration: [
-      ['1/1/22','31/1/22'],
-      ['1/1/22','1/12/22']
-    ]
-  },
-  28927372: { 
-    title: 'Race 3 - June 21',
-    description: 'Cutheringa and Goat tracks',
-    duration: [
-      ['1/6/22','30/6/22']
-    ]
-  },
-  27927100: { 
-    title: 'Race 2 - May 21',
-    description: 'The north end of Castle Hill loop. Yarrawonga Hill.',
-    duration: [
-      ['1/5/22','31/5/22']
-    ]
-  },
-  26897948: { 
-    title: 'Race 1 - Jan 21 (Short)',
-    description: 'A lap of Ross Creek, through Reid Park, around Cowboys Training Field and Stadium',
-    duration: [
-      ['1/1/22','31/1/22']
-    ]
-  },
-  26897961: { 
-    title: 'Race 1 - Jan 21 - (Long)',
-    description: 'Two laps of Ross Creek, through Reid Park, around Cowboys Training Field and Stadium',
-    duration: [
-      ['1/1/22','31/1/22']
-    ]
-  }
-}
-
-const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
-const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
-
-console.log(process.env.STRAVA_ACCESS_TOKEN);
-
-const atheletes = {};
+const client_id = "92757";
+const client_secret = "95bb20df3f812fcc3cd04ca116c131ef622eed3f";
+const refresh_token = "d91b4f8d5840efe7124442a7733b01cd66ce2686";
 
 (async () => { // eslint-disable-line
+
+  var stravaConfig = {}
+  await fs.readFile(stravaConfigFile, 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    stravaConfig = JSON.parse(data);
+  });
+
+  let access_token = stravaConfig.access_token;
+
+  var timestamp = new Date().getTime();
+  if (!access_token ||!stravaConfig.expires_at || stravaConfig.expires_at > timestamp) {
+    console.log('Getting fresh access token');
+
+    stravaConfig = await getAccessToken();
+    access_token = stravaConfig.access_token;
+
+  }
+
+  console.log('using access_token:', access_token);
+  strava = new strava.client(access_token); // eslint-disable-line
+
+  const databasePath = "./database.json";
+
+  // Subscribe to Strava and get age groups and gender
+  // 3m+3f for the month & 3m+3f for year (until deadline)
+  const races = {
+    30500288: { 
+      title: 'Race 5 - October 22',
+      description: 'Two laps of The Cutheringa Track and the Goat Track',
+      duration: [
+        ['1/10/22','31/10/22'],
+        ['1/1/22','1/12/22']
+      ]
+    },
+    30561161: { 
+      title: 'Race 4 - August 22',
+      description: 'Around Castle Hill and Queens Gardens',
+      duration: [
+        ['1/8/22','31/8/22'],
+        ['1/1/22','1/12/22']
+      ]
+    },
+    30361147: { 
+      title: 'Race 3 - June 22',
+      description: 'West Ridge & Yarrawonga Hill',
+      duration: [
+        ['1/6/22','30/6/22'],
+        ['1/1/22','1/12/22']
+      ]
+    },
+    30505431: { 
+      title: 'Race 2 - March 22',
+      description: 'A lap of the Ross River, around Bicentennial Park and Townsville Golf Club',
+      duration: [
+        ['1/3/22','31/3/22'],
+        ['1/1/22','1/12/22']
+      ]
+    },
+    30354222: { 
+      title: 'Race 1 - January 22',
+      description: 'Lap of Castle Hill and the suburbs',
+      duration: [
+        ['1/1/22','31/1/22'],
+        ['1/1/22','1/12/22']
+      ]
+    },
+    28927372: { 
+      title: 'Race 3 - June 21',
+      description: 'Cutheringa and Goat tracks',
+      duration: [
+        ['1/6/22','30/6/22']
+      ]
+    },
+    27927100: { 
+      title: 'Race 2 - May 21',
+      description: 'The north end of Castle Hill loop. Yarrawonga Hill.',
+      duration: [
+        ['1/5/22','31/5/22']
+      ]
+    },
+    26897948: { 
+      title: 'Race 1 - Jan 21 (Short)',
+      description: 'A lap of Ross Creek, through Reid Park, around Cowboys Training Field and Stadium',
+      duration: [
+        ['1/1/22','31/1/22']
+      ]
+    },
+    26897961: { 
+      title: 'Race 1 - Jan 21 - (Long)',
+      description: 'Two laps of Ross Creek, through Reid Park, around Cowboys Training Field and Stadium',
+      duration: [
+        ['1/1/22','31/1/22']
+      ]
+    }
+  }
+
+  const STRAVA_EMAIL = process.env.STRAVA_EMAIL;
+  const STRAVA_PASSWORD = process.env.STRAVA_PASSWORD;
+
+  const atheletes = {};
+
+
   let browser; let database;
   if (process.argv[2] == "all") {
     console.log("Building fresh database");
@@ -292,3 +257,38 @@ const atheletes = {};
     if (browser) await browser.close();
   }
 })();
+
+
+
+function getAccessToken() {
+  return new Promise((resolve, reject) => {
+    const options = {
+      'method': 'POST',
+      'hostname': 'www.strava.com',
+      'path': `/api/v3/oauth/token?client_id=${client_id}&client_secret=${client_secret}&grant_type=refresh_token&refresh_token=${refresh_token}`,
+      'headers': {
+      },
+      'maxRedirects': 20
+    };
+    var req = https.request(options, async function (res) {
+      var chunks = [];
+
+      res.on("data", function (chunk) {
+        chunks.push(chunk);
+      });
+
+      res.on("end", function (chunk) {
+        var body = Buffer.concat(chunks);
+        stravaConfig = JSON.parse(body.toString());
+        fs.writeFileSync(stravaConfigFile, JSON.stringify(stravaConfig));
+        resolve(stravaConfig);
+      });
+
+      res.on("error", function (error) {
+        console.error(error);
+        reject(error);
+      });
+    });
+    req.end();
+  });
+}
