@@ -3,9 +3,70 @@ let strava = require('strava-v3');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const e = require('express');
+const stravaConfigFile = 'strava_config.json';
+const https = require('https');
+/*
+var stravaConfig = {};
+fs.readFile(stravaConfigFile, 'utf8', (err, data) => {
+  if (err) {
+    console.error(err);
+    return;
+  }
+  stravaConfig = JSON.parse(data);
+});
 
-// Delete me once auth is sorted out:
-strava = new strava.client('db17f78ccc1105dde0c0d73d827d996fbe8ff10b'); // eslint-disable-line
+var timestamp = new Date().getTime();
+if (!stravaConfig.expires_at || stravaConfig.expires_at > timestamp)  {
+  console.log('Getting fresh access token');
+
+  const client_id = "92757";
+  const client_secret = "95bb20df3f812fcc3cd04ca116c131ef622eed3f";
+  const refresh_token = "d91b4f8d5840efe7124442a7733b01cd66ce2686";
+  const stravaTokenUrl = "https://www.strava.com/api/v3/oauth/token";
+  const stravaOAuthCode = "5193c5aa288e96cd6f63c86d4edbeff19d98af11";
+
+  const postData = JSON.stringify({
+    client_id,
+    client_secret,
+    grant_type: 'refresh_token',
+    refresh_token
+  });
+  const options = {
+    method: 'POST',
+    headers: {
+      'method': 'POST',
+      'Content-Type': 'application/json',
+      'Content-Length': postData.length
+    }
+  };
+  let data = '';
+  const req = https.request(stravaTokenUrl, options, (res) => {
+    console.log('Status Code:', res.statusCode);
+
+    res.on('data', (chunk) => {
+      data += chunk;
+    });
+
+    res.on('end', () => {
+      console.log('Body: ', JSON.parse(data));
+    });
+
+  }).on("error", (err) => {
+    console.log("Error: ", err.message);
+  });
+
+  req.write(data);
+  req.end();
+
+  var stravaConfig = data;
+  fs.writeFileSync(stravaConfigFile, JSON.stringify(stravaConfig));
+}
+
+const access_token = stravaConfig.access_token;
+*/
+access_token = "5a663377b6d40250a43ffbd1967c68150b9f34f3";
+
+strava = new strava.client(access_token); // eslint-disable-line
 
 const databasePath = "./database.json";
 
