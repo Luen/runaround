@@ -82,13 +82,16 @@ function header(data) {
   if (!data.baseurl) {
     data.baseurl = './';
   }
+  if (!data.url) {
+    data.url = '/';
+  }
   return `<!DOCTYPE html><head>
 <title>${data.title} - RunAround</title>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="${data.description}" />
 <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-<link rel="canonical" href="https://wanderstories.space/" />
+<link rel="canonical" href="https://runaround.com.au${data.url}" />
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
 <link rel="stylesheet" href="${data.baseurl}style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
@@ -127,7 +130,7 @@ const footer = `<hr>
 
 
 app.get('/', (req, res) => {
-  res.send(`${header({title:'RunAround Home', description: 'RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. This virtual running series allows participants the flexibility that conventional races can\'t offer.'})}
+  res.send(`${header({url: '/', title:'RunAround Home', description: 'RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. This virtual running series allows participants the flexibility that conventional races can\'t offer.'})}
 <p>Active Races:<br />${a}</p>
 
 <div id="map" data-id="active"></div>
@@ -136,7 +139,7 @@ ${footer}`);
 });
 
 app.get('/races', (req, res) => {
-  res.send(`${header({title:'Virtual Running Events', description: 'We have ' + activeRaces.length + ' active virtual running races around Townsville, North Queensland, Australia.'})}
+  res.send(`${header({url: '/races', title:'Virtual Running Events', description: 'We have ' + activeRaces.length + ' active virtual running races around Townsville, North Queensland, Australia.'})}
   <br /><br />
   All Races:<br />
   ${segments.map((segment) => '<a href="./races/' + segment.id + '" title="segment.name">' + segment.title + '</a><br />\n').join('')}
@@ -159,7 +162,7 @@ app.get('/races/:id', (req, res) => {
       segment = segments[i];
     }
   })
-  res.send(`${header({title:segment.title, baseurl: '../', description: segment.description})}
+  res.send(`${header({url: '/races/'+id, title:segment.title, baseurl: '../', description: segment.description})}
   <br /><br />
   <h2>${segment.name}</h2>
   <p>${segment.description}</p>
@@ -170,7 +173,7 @@ app.get('/races/:id', (req, res) => {
 });
 
 app.get('/about', (req, res) => {
-  res.send(`${header({title:'About RunAround', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
+  res.send(`${header({url: '/about', title:'About RunAround', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
   <br />
   <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of <a href="/about/sidney-willis">Sidney Willis</a> from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
   <p>Our goal is to give Townsville runners the opportunity to regularly test themselves on different running courses. Each race will be different. Some races will be flat, others will be hilly. Some races are more like an urban trail while others are only on dirt trails. We hope that this will challenge runners to run on terrains that they are more or less adapted to. Furthermore, each race is designed by a different runner from the <a href="https://www.facebook.com/groups/723606077775909">Hungry Runner group</a>. So maybe you will discover new paths through Townville City or Castle Hill!</p>
@@ -190,7 +193,7 @@ app.get('/about', (req, res) => {
 
 
 app.get('/about/luen-warneke', (req, res) => {
-  res.send(`${header({title:'About Luen Warneke', baseurl: '../', description: ''})}
+  res.send(`${header({url: '/about/luen-warneke', title:'About Luen Warneke', baseurl: '../', description: ''})}
   <br /><br />
   <img src="https://luenwarneke.com/img/luen-warneke.jpg" alt="Luen Warneke" style="max-height:120px;" />
   <h2>Luen Warneke</h2>
@@ -203,7 +206,7 @@ app.get('/about/luen-warneke', (req, res) => {
 });
 
 app.get('/about/sidney-willis', (req, res) => {
-  res.send(`${header({title:'About Sidney Willis', baseurl: '../', description: ''})}
+  res.send(`${header({url: '/about/sidney-willis', title:'About Sidney Willis', baseurl: '../', description: ''})}
   <br /><br />
   <img src="https://static.wixstatic.com/media/62e31f_b5925d57fcfe4117a6cdceccdf9c4fff~mv2.jpg" alt="Sidney Willis" style="max-height:120px;" />
   <h2>Sidney Willis</h2>
@@ -216,7 +219,7 @@ app.get('/about/sidney-willis', (req, res) => {
 });
 
 app.get('/contact', (req, res) => {
-  res.send(`${header({title:'Contact RunAround', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
+  res.send(`${header({url: '/contact', title:'Contact RunAround', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
   <br /><br />
   <form id="contact-form" method="POST" action="send" enctype="multipart/form-data">
     <div class="form-group">
