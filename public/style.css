@@ -51,3 +51,35 @@ footer, footer a {
   color: grey;
   margin-top: 1em;
 }
+
+#instafeed {
+  height:150px;
+  text-align:center;
+  overflow:hidden;
+}
+
+#instafeed img {
+  height:150px; /* height:10em;*/
+  width:150px; /* width:10em;*/
+  object-fit:cover;
+}
+
+@media screen and (max-width: 800px) {
+  #instafeed {
+    height:250px;
+  }
+  #instafeed img {
+    height:125px;
+    width:125px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  #instafeed {
+    height:200px;
+  }
+  #instafeed img {
+    height:100px;
+    width:100px;
+  }
+}
