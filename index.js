@@ -24,7 +24,7 @@ function getSegment(segment) {
   let leaderboard;
   if (segment.leaderboard) {
     leaderboard = '<table><strong>Leaderboard</strong><br />';
-    segment.leaderboard.forEach((leader) => {
+    segment.leaderboard.forEach((leader, i) => {
       let name = leader.name;
       if (name == name.toLowerCase()) {
         // toTitleCase
@@ -37,7 +37,7 @@ function getSegment(segment) {
       }
       name = name.replace(' // www.HungryRunner.net', '');
 
-      leaderboard += `<tr><td><strong>${leader.rank}</strong></td><td><a href="${leader.effortURL}">${leader.date}</a></td><td><a href="${leader.profileURL}">${name}</a></td><td>${leader.pace}</td><td>${leader.hr}</td><td>${leader.time}</td></tr>`;
+      leaderboard += `<tr><td><strong>${i+1}</strong></td><td><a href="${leader.effortURL}">${leader.date}</a></td><td><a href="${leader.profileURL}">${name}</a></td><td>${leader.pace}</td><td>${leader.hr}</td><td>${leader.time}</td></tr>`;
     });
     leaderboard += '</table>';
   }

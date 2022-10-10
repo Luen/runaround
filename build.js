@@ -1,11 +1,10 @@
 let strava = require('strava-v3');
-//const polyline = require('@mapbox/polyline');
+// const polyline = require('@mapbox/polyline');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
-const e = require('express');
-var https = require('follow-redirects').https;
-const stravaConfigFile = 'strava_config.json';
+const { https } = require('follow-redirects');
 
+const stravaConfigFile = 'strava_config.json';
 const client_id = "92757";
 const client_secret = "95bb20df3f812fcc3cd04ca116c131ef622eed3f";
 const refresh_token = "d91b4f8d5840efe7124442a7733b01cd66ce2686";
@@ -32,7 +31,7 @@ const refresh_token = "d91b4f8d5840efe7124442a7733b01cd66ce2686";
 
   }
 
-  console.log('using access_token:', access_token);
+  console.log('Using access_token:', access_token);
   strava = new strava.client(access_token); // eslint-disable-line
 
   const databasePath = "./database.json";
@@ -194,20 +193,20 @@ const refresh_token = "d91b4f8d5840efe7124442a7733b01cd66ce2686";
         const leaderboard = await page.$$eval('.table-leaderboard tr', tr => {
           const results = [];
           tr.forEach(async (row, index) => {
-            if (row.querySelector(':first-child').textContent == "Rank") return;
+            if (row.querySelector('td:first-child').textContent == "Rank") return;
             // Jul 15, 2021
-            const date = row.querySelector(':nth-child(3)').textContent;
+            const date = row.querySelector('td:nth-child(3)').textContent;
             const rank = index + 1;
-            const name = row.querySelector(':nth-child(2)').textContent; 
-            const profileURL = row.querySelector(':nth-child(2) a[href]').href;
+            const name = row.querySelector('td:nth-child(2)').textContent; 
+            const profileURL = row.querySelector('td:nth-child(2) a[href]').href;
             const profileID = profileURL.match(/\d+/)[0];
-            const effortURL = row.querySelector(':nth-child(3) a[href]').href; // redirects to activity url
+            const effortURL = row.querySelector('td:nth-child(3) a[href]').href; // redirects to activity url
             // const effortID = effortURL.match(/\d+/)[0];
-            const pace = row.querySelector(':nth-child(4)').textContent;
-            const hr = row.querySelector(':nth-child(5)').textContent;
-            const time = row.querySelector(':nth-child(6)').textContent;
+            const pace = row.querySelector('td:nth-child(4)').textContent;
+            const hr = row.querySelector('td:nth-child(5)').textContent;
+            const time = row.querySelector('td:nth-child(6)').textContent;
             //if (date) { // if date within the segment timeframe
-              results.push({rank: rank, name: name, date, pace, hr, time, profileURL, profileID, effortURL});
+              results.push({ rank, name, date, pace, hr, time, profileURL, profileID, effortURL });
             //}
           });
           return results;
