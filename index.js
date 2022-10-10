@@ -24,7 +24,7 @@ function getSegment(segment) {
   let leaderboard;
   if (segment.leaderboard) {
     leaderboard = '<table><strong>Leaderboard</strong><br />';
-    segment.leaderboard.forEach((leader) => {
+    segment.leaderboard.forEach((leader, i) => {
       let name = leader.name;
       if (name == name.toLowerCase()) {
         // toTitleCase
@@ -37,7 +37,7 @@ function getSegment(segment) {
       }
       name = name.replace(' // www.HungryRunner.net', '');
 
-      leaderboard += `<tr><td><strong>${leader.rank}</strong></td><td><a href="${leader.effortURL}">${leader.date}</a></td><td><a href="${leader.profileURL}">${name}</a></td><td>${leader.pace}</td><td>${leader.hr}</td><td>${leader.time}</td></tr>`;
+      leaderboard += `<tr><td><strong>${i+1}</strong></td><td><a href="${leader.effortURL}">${leader.date}</a></td><td><a href="${leader.profileURL}">${name}</a></td><td>${leader.pace}</td><td>${leader.hr}</td><td>${leader.time}</td></tr>`;
     });
     leaderboard += '</table>';
   }
@@ -97,6 +97,9 @@ function header(data) {
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
 integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
 crossorigin=""/>
+
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+<script src="https://unpkg.com/instafeed.js@2.0.0/dist/instafeed.js"></script>
 <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
 integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
 crossorigin=""></script>
@@ -123,6 +126,33 @@ const footer = `<hr>
 <a href="https://www.facebook.com/RunAroundAUS">Facebook</a> <a href="https://www.instagram.com/runaroundaus/">Instagram</a><br />
 <i>Townsville, North Queensland, Australia</i>
 </div>
+<script>
+$.getJSON("https://ig.instant-tokens.com/users/1d55f8ff-2133-4175-9f7e-4e9b03aa6dea/instagram/17841455046922576/token?userSecret=ifvgxbc8ctat0l1cvha6co", function(json) {
+  var feed = new Instafeed({
+    accessToken: json.Token,
+    target: 'instafeed',
+    limit: 10,
+    success: function(array){
+      function shuffle(a) {
+        var j, x, i;
+        for (i = a.length - 1; i > 0; i--) {
+            j = Math.floor(Math.random() * (i + 1));
+            x = a[i];
+            a[i] = a[j];
+            a[j] = x;
+        }
+        return a;
+      }
+      array.data = shuffle(array.data);
+      array.data = array.data.slice(0, 50); // truncate to 50 results
+      return array;
+    },
+    template: '<a href="\{\{link\}\}"><img src="\{\{image\}\}" alt="\{\{location\}\}" loading="lazy" /></a>'
+  });
+  feed.run();
+});
+</script>
+<div id="instafeed"></div>
 <footer>Website built by <a href="/about/luen-warneke">Luen Warneke</a><br />
 <a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a> &copy; ${new Date().getFullYear()}</footer>
 </div>
@@ -177,6 +207,7 @@ app.get('/about', (req, res) => {
   <br />
   <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of <a href="/about/sidney-willis">Sidney Willis</a> from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
   <p>Our goal is to give Townsville runners the opportunity to regularly test themselves on different running courses. Each race will be different. Some races will be flat, others will be hilly. Some races are more like an urban trail while others are only on dirt trails. We hope that this will challenge runners to run on terrains that they are more or less adapted to. Furthermore, each race is designed by a different runner from the <a href="https://www.facebook.com/groups/723606077775909">Hungry Runner group</a>. So maybe you will discover new paths through Townville City or Castle Hill!</p>
+  <p>Race data is updated nightly</p>
   <p>Read more about <a href="/about/luen-warneke">Luen Warneke</a> and <a href="/about/sidney-willis">Sidney Willis</a>.</p>
   <img src="./Run-Hungry-2022-virtual-run-series.webp" alt="Run Hungry 2022 virtual run series" />
   <p>2022 will have 5 Virtual Races throughout the year as well as a general classification.</p>
@@ -211,7 +242,7 @@ app.get('/about/sidney-willis', (req, res) => {
   <img src="https://static.wixstatic.com/media/62e31f_b5925d57fcfe4117a6cdceccdf9c4fff~mv2.jpg" alt="Sidney Willis" style="max-height:120px;" />
   <h2>Sidney Willis</h2>
   <p>Head Coach</p>
-  <p>Sidney is an Australian Frenchy with a passion for endurance sports. Sidney played tennis at a national level during his childhood and later switched sports to rock climbingto enjoy amazing cliffs all over France, developing a love for mountains. He then started trail running, which has become slightly obsessive features over the years, and has performed in many road and mountain races throughout Europe and Australia - from 10km distance up to 100km ultra's.</p>
+  <p>Sidney is an Australian Frenchy with a passion for endurance sports. Sidney played tennis at a national level during his childhood and later switched sports to rock climbing to enjoy amazing cliffs all over France, developing a love for mountains. He then started trail running, which has become slightly obsessive features over the years, and has performed in many road and mountain races throughout Europe and Australia - from 10km distance up to 100km ultra's.</p>
   <p>His passion for sports and eye for detail had him start coaching fellow sport enthusiasts. Sidney's always been passionate about training and loves to help people reach their goals. He uses his skills and experience to offer personalised training programs.</p>
   <p><a href="https://hungryrunner.net/">Hungry Runner Coaching</a></p>
   <br />
@@ -221,6 +252,29 @@ app.get('/about/sidney-willis', (req, res) => {
 app.get('/contact', (req, res) => {
   res.send(`${header({url: '/contact', title:'Contact RunAround', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
   <br /><br />
+  <script>
+  document.addEventListener("DOMContentLoaded", function(event) {
+    const form = document.getElementById("contact-form"); 
+    console.log(form);
+    const formEvent = form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      let mail = new FormData(form);
+      sendMail(mail);
+    });
+    const sendMail = (mail) => {
+      fetch("/send", {
+        method: "post",
+        body: mail,
+      }).then((response) => {
+        const r = response.json()
+        console.log(r);
+        alert(r.message);
+        return response.json();
+      });
+    };
+  });
+  </script>
+  <p>Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a> if the form does not work.</p>
   <form id="contact-form" method="POST" action="send" enctype="multipart/form-data">
     <div class="form-group">
       <div class="row">
@@ -259,7 +313,7 @@ app.post("/send", (req, res) => {
     if (error) {
       console.log(error);
     } else {
-      console.log("Server is ready to take our messages");
+      console.log("Server is ready to take messages");
     }
   });
   let form = new multiparty.Form();
@@ -278,16 +332,9 @@ app.post("/send", (req, res) => {
     transporter.sendMail(mail, (err, data) => {
       if (err) {
         console.log(err);
-        res.status(500).send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
-        <br />
-        <h1>Something went wrong.</h1><br />
-        Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a>.
-        ${footer}`);
+        res.status(500).json({ success: false, message: `How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.<br /><h1>Something went wrong.</h1><br />Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a>.` });
       } else {
-        res.status(200).send(`${header({title:'Virtual Running Events', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.', extra:"<meta name=\"robots\" content=\"noindex\">"})}
-        <br>
-        <h1>Email successfully sent to recipient!</h1>
-        ${footer}`);
+        res.status(200).json({ success: true, message: 'Email successfully sent to recipient!' });
       }
     });
   });
