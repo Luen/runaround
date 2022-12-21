@@ -2,7 +2,10 @@
 
 A website of Virtual Running Races in Townsville, North Queensland, Australia and their leaderboards.
 
-# 1 Build Database
+# 1 Install
+`npm i`
+
+# 2 Build Database
 
 Then the database can be built by running build.js
 
@@ -10,9 +13,12 @@ Then the database can be built by running build.js
 or
 `node build all` to start afresh
 
-# 2 Start ExpressJS server
+# 3 Start ExpressJS server
 
 Now the server can be start (index.js)
+`node index.js`
+or
+`pm2 start index.js --name runaround`
 
 # Notes
 
