@@ -20,6 +20,13 @@ Now the server can be start (index.js)
 or
 `pm2 start index.js --name runaround`
 
+# 4 Create a cronjob
+
+set up a crontab
+'crontab e'
+then 
+'...'
+
 # Notes
 
 Use pm2 and nginx server.
