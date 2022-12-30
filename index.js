@@ -35,7 +35,7 @@ function getSegment(segment) {
           }
         );
       }
-      name = name.replace(' // www.HungryRunner.net', '');
+      name = name.replace(' // www.HungryRunner.net', ' Willis');
 
       leaderboard += `<tr><td><strong>${i+1}</strong></td><td><a href="${leader.effortURL}">${leader.date}</a></td><td><a href="${leader.profileURL}">${name}</a></td><td>${leader.pace}</td><td>${leader.hr}</td><td>${leader.time}</td></tr>`;
     });
@@ -274,7 +274,7 @@ app.get('/contact', (req, res) => {
     };
   });
   </script>
-  <p>Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a> if the form does not work.</p>
+  <p>If the form does not work, try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a> or <a href="https://wanderstories.space/contact">wanderstories.space</a>.</p>
   <form id="contact-form" method="POST" action="send" enctype="multipart/form-data">
     <div class="form-group">
       <div class="row">
