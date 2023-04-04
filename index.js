@@ -1,91 +1,108 @@
-const fs = require('fs');
-const express = require('express');
+const fs = require('fs')
+const express = require('express')
 //const cors = require("cors");
-const nodemailer = require("nodemailer");
-const multiparty = require("multiparty");
-require("dotenv").config();
+const nodemailer = require('nodemailer')
+const multiparty = require('multiparty')
+require('dotenv').config()
 
-const app = express();
-const port = process.env.PORT || 4008;
+const app = express()
+const port = process.env.PORT || 4008
 
-app.use('/', express.static(`${__dirname}/public/`));
+app.use('/', express.static(`${__dirname}/public/`))
 
-const databasePath = './database.json';
+const databasePath = './database.json'
 
-const segments = JSON.parse(fs.readFileSync(databasePath));
+const segments = JSON.parse(fs.readFileSync(databasePath))
 
-let submenu = segments.map((segment) => '<a href="./races/' + segment.id + '">' + segment.id + '</a> ').join('')
+let submenu = segments
+    .map(
+        (segment) =>
+            '<a href="./races/' + segment.id + '">' + segment.id + '</a> '
+    )
+    .join('')
 // const menu = `<a href="./">Home</a> <a href="#">Races</a> ${submenu} <a href="./about">About</a> <a href="./contact">Contact</a>`;
-const menu = (data) => `<a href="${data.baseurl}">Home</a> <a href="${data.baseurl}races">Races</a> <a href="${data.baseurl}about">About</a> <a href="${data.baseurl}contact">Contact</a>`;
+const menu = (data) =>
+    `<a href="${data.baseurl}">Home</a> <a href="${data.baseurl}races">Races</a> <a href="${data.baseurl}about">About</a> <a href="${data.baseurl}contact">Contact</a>`
 
-let html = ''; 
+let html = ''
 function getSegment(segment) {
-  const localLegend = (segment.local_legend ? `${segment.local_legend.title} with ${segment.local_legend.effort_description}` : 'N/A');
-  let leaderboard;
-  if (segment.leaderboard) {
-    leaderboard = '<table><strong>Leaderboard</strong><br />';
-    segment.leaderboard.forEach((leader, i) => {
-      let name = leader.name;
-      if (name == name.toLowerCase()) {
-        // toTitleCase
-        name = name.replace(
-          /\w\S*/g,
-          function(txt) {
-            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-          }
-        );
-      }
-      name = name.replace(' // www.HungryRunner.net', ' Willis');
+    const localLegend = segment.local_legend
+        ? `${segment.local_legend.title} with ${segment.local_legend.effort_description}`
+        : 'N/A'
+    let leaderboard
+    if (segment.leaderboard) {
+        leaderboard = '<table><strong>Leaderboard</strong><br />'
+        segment.leaderboard.forEach((leader, i) => {
+            let name = leader.name
+            if (name == name.toLowerCase()) {
+                // toTitleCase
+                name = name.replace(/\w\S*/g, function (txt) {
+                    return (
+                        txt.charAt(0).toUpperCase() +
+                        txt.substr(1).toLowerCase()
+                    )
+                })
+            }
+            name = name.replace(' // www.HungryRunner.net', ' Willis')
 
-      leaderboard += `<tr><td><strong>${i+1}</strong></td><td><a href="${leader.effortURL}">${leader.date}</a></td><td><a href="${leader.profileURL}">${name}</a></td><td>${leader.pace}</td><td>${leader.hr}</td><td>${leader.time}</td></tr>`;
-    });
-    leaderboard += '</table>';
-  }
+            leaderboard += `<tr><td><strong>${
+                i + 1
+            }</strong></td><td><a href="${leader.effortURL}">${
+                leader.date
+            }</a></td><td><a href="${leader.profileURL}">${name}</a></td><td>${
+                leader.pace
+            }</td><td>${leader.hr}</td><td>${leader.time}</td></tr>`
+        })
+        leaderboard += '</table>'
+    }
 
-  return `<div>
-  <a href="https://www.strava.com/segments/${segment.id}" target="_blank"><h1 title="${segment.name}">${segment.title}</h1></a>
+    return `<div>
+  <a href="https://www.strava.com/segments/${
+      segment.id
+  }" target="_blank"><h1 title="${segment.name}">${segment.title}</h1></a>
   <img src="${segment.elevation_profile}" alt="${segment.name} elevation plot">
   <div>Distance: ${(segment.distance / 1000).toFixed(1)}km</div>
   <div>Total elevation gain: ${Math.round(segment.total_elevation_gain)}m</div>
   <div>KOM: ${segment.xoms.kom}</div>
   <div>QOM: ${segment.xoms.qom}</div>
-  <div>${segment.effort_count} efforts by ${segment.athlete_count} athletes</div>
+  <div>${segment.effort_count} efforts by ${
+        segment.athlete_count
+    } athletes</div>
   <div>Local Legend: ${localLegend}</div>
   <div>${leaderboard}</div>
-</div>`;
+</div>`
 }
 let a = ''
-let activeRaces = [];
+let activeRaces = []
 segments.forEach((segment) => {
-  // if active 
-  active = false;
-  segment.duration.forEach((d) => {
-    var d1 = d[0].split("/"); // start
-    var d2 = d[1].split("/"); // end
-    var from = new Date('20'+d1[2], parseInt(d1[1]), d1[0]);  // -1 because months are from 0 to 11
-    var to = new Date('20'+d2[2], parseInt(d2[1]), d2[0]);
-    var now = new Date();
-     
-    //console.log(to, 'to', from, 'now:', now);
-    //console.log(now > from && now < to);
-    if (now > from && now < to && !activeRaces.includes(segment.id)) {
-      active = true;
-      activeRaces.push(segment.id);
-      html += getSegment(segment);
-      a += `<a href="./races/${segment.id}" title="${segment.name}">${segment.title}</a><br />`;
-    }
-  });
-});
+    // if active
+    active = false
+    segment.duration.forEach((d) => {
+        var d1 = d[0].split('/') // start
+        var d2 = d[1].split('/') // end
+        var from = new Date('20' + d1[2], parseInt(d1[1]), d1[0]) // -1 because months are from 0 to 11
+        var to = new Date('20' + d2[2], parseInt(d2[1]), d2[0])
+        var now = new Date()
 
+        //console.log(to, 'to', from, 'now:', now);
+        //console.log(now > from && now < to);
+        if (now > from && now < to && !activeRaces.includes(segment.id)) {
+            active = true
+            activeRaces.push(segment.id)
+            html += getSegment(segment)
+            a += `<a href="./races/${segment.id}" title="${segment.name}">${segment.title}</a><br />`
+        }
+    })
+})
 
 function header(data) {
-  if (!data.baseurl) {
-    data.baseurl = './';
-  }
-  if (!data.url) {
-    data.url = '/';
-  }
-  return `<!DOCTYPE html><head>
+    if (!data.baseurl) {
+        data.baseurl = './'
+    }
+    if (!data.url) {
+        data.url = '/'
+    }
+    return `<!DOCTYPE html><head>
 <title>${data.title} - RunAround</title>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -116,9 +133,11 @@ gtag('js', new Date());
 gtag('config', 'G-1X8FP56G6T');
 </script>
 ${data.extra ? data.extra : ''}
-</head><body><div class="wrapper"><img class="logo" src="${data.baseurl}runaround-logo.png" alt="RunAround logo - Virtual Running Events">
+</head><body><div class="wrapper"><img class="logo" src="${
+        data.baseurl
+    }runaround-logo.png" alt="RunAround logo - Virtual Running Events">
 <h1>${data.title}</h1>
-${menu({baseurl: data.baseurl})}`;
+${menu({ baseurl: data.baseurl })}`
 }
 
 const footer = `<hr>
@@ -153,57 +172,87 @@ $.getJSON("https://ig.instant-tokens.com/users/1d55f8ff-2133-4175-9f7e-4e9b03aa6
 });
 </script>
 <div id="instafeed"></div>
-<footer>Website built by <a href="/about/luen-warneke">Luen Warneke</a><br />
+<footer>Website built by <a href="https://wanderstories.space/author/luen/">Luen Warneke</a><br />
 <a href="https://wanderstories.space/">Wanderstories</a> &amp; <a href="https://www.hungryrunner.net/">Hungry Runner</a> &copy; ${new Date().getFullYear()}</footer>
 </div>
-<div></div></body></html>`;
-
+<div></div></body></html>`
 
 app.get('/', (req, res) => {
-  res.send(`${header({url: '/', title:'RunAround Home', description: 'RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. This virtual running series allows participants the flexibility that conventional races can\'t offer.'})}
+    res.send(`${header({
+        url: '/',
+        title: 'RunAround Home',
+        description:
+            "RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. This virtual running series allows participants the flexibility that conventional races can't offer.",
+    })}
 <p>Active Races:<br />${a}</p>
 
 <div id="map" data-id="active"></div>
 
-${footer}`);
-});
+${footer}`)
+})
 
 app.get('/races', (req, res) => {
-  res.send(`${header({url: '/races', title:'Virtual Running Events', description: 'We have ' + activeRaces.length + ' active virtual running races around Townsville, North Queensland, Australia.'})}
+    res.send(`${header({
+        url: '/races',
+        title: 'Virtual Running Events',
+        description:
+            'We have ' +
+            activeRaces.length +
+            ' active virtual running races around Townsville, North Queensland, Australia.',
+    })}
   <br /><br />
   All Races:<br />
-  ${segments.map((segment) => '<a href="./races/' + segment.id + '" title="segment.name">' + segment.title + '</a><br />\n').join('')}
+  ${segments
+      .map(
+          (segment) =>
+              '<a href="./races/' +
+              segment.id +
+              '" title="segment.name">' +
+              segment.title +
+              '</a><br />\n'
+      )
+      .join('')}
   <div id="map" data-id="all"></div>
   Active races:
   <div>${html}</div>
 
-  ${footer}`);
-});
+  ${footer}`)
+})
 
 app.get('/races/:id', (req, res) => {
-  const id = req.params.id;
-  if (!segments.some(segment => segment.id == id)) {
-    // If not in database
-    res.status(404).send('Not found');
-  }
-  let segment;
-  segments.forEach((s, i) => {
-    if (s.id == id) {
-      segment = segments[i];
+    const id = req.params.id
+    if (!segments.some((segment) => segment.id == id)) {
+        // If not in database
+        res.status(404).send('Not found')
     }
-  })
-  res.send(`${header({url: '/races/'+id, title:segment.title, baseurl: '../', description: segment.description})}
+    let segment
+    segments.forEach((s, i) => {
+        if (s.id == id) {
+            segment = segments[i]
+        }
+    })
+    res.send(`${header({
+        url: '/races/' + id,
+        title: segment.title,
+        baseurl: '../',
+        description: segment.description,
+    })}
   <br /><br />
   <h2>${segment.name}</h2>
   <p>${segment.description}</p>
   <div id="map" data-id="${segment.id}"></div>
   ${getSegment(segment)}
   <br />
-  ${footer}`);
-});
+  ${footer}`)
+})
 
 app.get('/about', (req, res) => {
-  res.send(`${header({url: '/about', title:'About RunAround', description: 'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.'})}
+    res.send(`${header({
+        url: '/about',
+        title: 'About RunAround',
+        description:
+            'The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching. RunAround promotes running in our community, inspire others to get outdoors, and stay connected with like-minded people.',
+    })}
   <br />
   <p>RunAround is a Townsville-based running website that aims to promote running in our community, inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual Running Series is the brainchild of <a href="/about/sidney-willis">Sidney Willis</a> from <a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series allows participants the flexibility that conventional races can't offer.</p>
   <p>Our goal is to give Townsville runners the opportunity to regularly test themselves on different running courses. Each race will be different. Some races will be flat, others will be hilly. Some races are more like an urban trail while others are only on dirt trails. We hope that this will challenge runners to run on terrains that they are more or less adapted to. Furthermore, each race is designed by a different runner from the <a href="https://www.facebook.com/groups/723606077775909">Hungry Runner group</a>. So maybe you will discover new paths through Townville City or Castle Hill!</p>
@@ -219,25 +268,35 @@ app.get('/about', (req, res) => {
   <p>For the General Classification, you can run the races any time through the year to clock your fastest time! It doesn't matter if the Virtual Race already took place. All the race maps are available below. So you can run the races at any time of the year to register a time or better your time. However, to be ranked on the General Classification, you will need to run all the courses! The deadline is December 1 2022! We will have great rewards for the first 3 males and females!</p>
   <h2>Map of Castle Hill</h2>
   <img src="./castle-hill-map.jpg" alt="Castle Hill map" style="width:100%;" />
-  ${footer}`);
-});
-
+  ${footer}`)
+})
 
 app.get('/about/luen-warneke', (req, res) => {
-  res.send(`${header({url: '/about/luen-warneke', title:'About Luen Warneke', baseurl: '../', description: ''})}
+    res.send(`${header({
+        url: '/about/luen-warneke',
+        title: 'About Luen Warneke',
+        baseurl: '../',
+        description: '',
+    })}
   <br /><br />
   <img src="https://luenwarneke.com/img/luen-warneke.jpg" alt="Luen Warneke" style="max-height:120px;" />
   <h2>Luen Warneke</h2>
   <p>Professional Adventurer</p>
   <p>Luen has been living in Townsville for most of his life and loves to explore the great outdoors. For the past several years, Luen has been writing articles for the <a href="https://wanderstories.space/">Wanderstories</a> website which documents the Townsville region's natural landscapes, such as waterfalls, lookouts, and mountains, and associated adventures, such as hiking, canyoning, rock climbing, bikepacking, and packrafting.</p>
   <p>Luen is a trip leader for the Townsville Rock Climbing Club (<a href="https://www.facebook.com/groups/jcu.rockclimbing">RANQ</a>) and the president of the <a href="https://www.townsvillebushwalkingclub.com/">Townsville Bushwalking Club</a>.</p>
-  <p><a href="https://wanderstories.space/">Wanderstories</a></p>
+  <p><a href="https://wanderstories.space/">Wanderstories.space</a></p>
+  <p><a href="https://luenwarneke.com/">LuenWarneke.com</a></p>
   <br />
-  ${footer}`);
-});
+  ${footer}`)
+})
 
 app.get('/about/sidney-willis', (req, res) => {
-  res.send(`${header({url: '/about/sidney-willis', title:'About Sidney Willis', baseurl: '../', description: ''})}
+    res.send(`${header({
+        url: '/about/sidney-willis',
+        title: 'About Sidney Willis',
+        baseurl: '../',
+        description: '',
+    })}
   <br /><br />
   <img src="https://static.wixstatic.com/media/62e31f_b5925d57fcfe4117a6cdceccdf9c4fff~mv2.jpg" alt="Sidney Willis" style="max-height:120px;" />
   <h2>Sidney Willis</h2>
@@ -246,11 +305,16 @@ app.get('/about/sidney-willis', (req, res) => {
   <p>His passion for sports and eye for detail had him start coaching fellow sport enthusiasts. Sidney's always been passionate about training and loves to help people reach their goals. He uses his skills and experience to offer personalised training programs.</p>
   <p><a href="https://hungryrunner.net/">Hungry Runner Coaching</a></p>
   <br />
-  ${footer}`);
-});
+  ${footer}`)
+})
 
 app.get('/contact', (req, res) => {
-  res.send(`${header({url: '/contact', title:'Contact RunAround', description: 'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.'})}
+    res.send(`${header({
+        url: '/contact',
+        title: 'Contact RunAround',
+        description:
+            'How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any questions you may have.',
+    })}
   <br /><br />
   <script>
   document.addEventListener("DOMContentLoaded", function(event) {
@@ -294,54 +358,60 @@ app.get('/contact', (req, res) => {
     </div>
     <button type="submit" value="submit" class="btn btn-primary">Submit</button>
   </form>
-  ${footer}`);
-});
+  ${footer}`)
+})
 
-app.post("/send", (req, res) => {
-  //const EMAIL = 'info@runaround.com.au';
-  const EMAIL = 'contact@wanderstories.space';
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.mailgun.org',
-    port: 587,
-    auth: {
-      user: process.env.EMAIL,
-      pass: process.env.PASS,
-    },
-  });
-  // verify connection configuration
-  transporter.verify(function (error, success) {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log("Server is ready to take messages");
-    }
-  });
-  let form = new multiparty.Form();
-  let data = {};
-  form.parse(req, function (err, fields) {
-    Object.keys(fields).forEach(function (property) {
-      data[property] = fields[property].toString();
-    });
-    console.log(data);
-    const mail = {
-      sender: `${data.name} <${data.email}>`,
-      to: EMAIL, // receiver email,
-      subject: data.subject,
-      text: `${data.name} <${data.email}> \n${data.message}`,
-    };
-    transporter.sendMail(mail, (err, data) => {
-      if (err) {
-        console.log(err);
-        res.status(500).json({ success: false, message: `How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any quesitons you may have.<br /><h1>Something went wrong.</h1><br />Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a>.` });
-      } else {
-        res.status(200).json({ success: true, message: 'Email successfully sent to recipient!' });
-      }
-    });
-  });
-});
+app.post('/send', (req, res) => {
+    //const EMAIL = 'info@runaround.com.au';
+    const EMAIL = 'contact@wanderstories.space'
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.mailgun.org',
+        port: 587,
+        auth: {
+            user: process.env.EMAIL,
+            pass: process.env.PASS,
+        },
+    })
+    // verify connection configuration
+    transporter.verify(function (error, success) {
+        if (error) {
+            console.log(error)
+        } else {
+            console.log('Server is ready to take messages')
+        }
+    })
+    let form = new multiparty.Form()
+    let data = {}
+    form.parse(req, function (err, fields) {
+        Object.keys(fields).forEach(function (property) {
+            data[property] = fields[property].toString()
+        })
+        console.log(data)
+        const mail = {
+            sender: `${data.name} <${data.email}>`,
+            to: EMAIL, // receiver email,
+            subject: data.subject,
+            text: `${data.name} <${data.email}> \n${data.message}`,
+        }
+        transporter.sendMail(mail, (err, data) => {
+            if (err) {
+                console.log(err)
+                res.status(500).json({
+                    success: false,
+                    message: `How to get in touch with us. We are a friendly bunch of people. Send us a message and feel free to ask any questions you may have.<br /><h1>Something went wrong.</h1><br />Try contacting us at <a href="https://hungryrunner.net/">hungryrunner.net</a>.`,
+                })
+            } else {
+                res.status(200).json({
+                    success: true,
+                    message: 'Email successfully sent to recipient!',
+                })
+            }
+        })
+    })
+})
 
 app.get('/sitemap.xml', (req, res) => {
-  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://runaround.com.au/</loc>
@@ -349,7 +419,14 @@ app.get('/sitemap.xml', (req, res) => {
   <url>
     <loc>https://runaround.com.au/races</loc>
   </url>
-${segments.map((segment) => '  <url>\n    <loc>https://runaround.com.au/races/' + segment.id + '</loc>\n  </url>\n').join('')}   <url>
+${segments
+    .map(
+        (segment) =>
+            '  <url>\n    <loc>https://runaround.com.au/races/' +
+            segment.id +
+            '</loc>\n  </url>\n'
+    )
+    .join('')}   <url>
     <loc>https://runaround.com.au/about</loc>
   </url>
   <url>
@@ -361,9 +438,9 @@ ${segments.map((segment) => '  <url>\n    <loc>https://runaround.com.au/races/' 
   <url>
     <loc>https://runaround.com.au/contact</loc>
   </url>
-</urlset>`);
-});
+</urlset>`)
+})
 
 app.listen(port, () => {
-  console.log(`RunAround listening on port ${port}`);
-});
+    console.log(`RunAround listening on port ${port}`)
+})
