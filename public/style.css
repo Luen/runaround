@@ -12,22 +12,26 @@ div.wrapper {
   width: 40%;
   margin: auto;
 }
+
 @media only screen and (max-width: 1600px) {
   div.wrapper {
     width: 60%;
   }
 }
+
 @media only screen and (max-width: 1300px) {
   div.wrapper {
     width: 80%;
   }
 }
+
 @media only screen and (max-width: 600px) {
   div.wrapper {
     width: 100%;
     font-size: large;
   }
 }
+
 div.wrapper p {
   text-align: center;
 }
@@ -42,44 +46,54 @@ div.wrapper p {
 table {
   margin: auto;
 }
+
 td:last-child {
   text-align: right;
 }
 
-footer, footer a {
+footer,
+footer a {
   font-size: small;
   color: grey;
   margin-top: 1em;
 }
 
 #instafeed {
-  height:150px;
-  text-align:center;
-  overflow:hidden;
+  height: 150px;
+  text-align: center;
+  overflow: hidden;
 }
 
 #instafeed img {
-  height:150px; /* height:10em;*/
-  width:150px; /* width:10em;*/
-  object-fit:cover;
+  height: 150px;
+  /* height:10em;*/
+  width: 150px;
+  /* width:10em;*/
+  object-fit: cover;
+}
+
+#instafeed img:hover {
+  filter: grayscale(100%);
 }
 
 @media screen and (max-width: 800px) {
   #instafeed {
-    height:250px;
+    height: 250px;
   }
+
   #instafeed img {
-    height:125px;
-    width:125px;
+    height: 125px;
+    width: 125px;
   }
 }
 
 @media screen and (max-width: 600px) {
   #instafeed {
-    height:200px;
+    height: 200px;
   }
+
   #instafeed img {
-    height:100px;
-    width:100px;
+    height: 100px;
+    width: 100px;
   }
 }
