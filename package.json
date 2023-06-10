@@ -30,7 +30,7 @@
     "multiparty": "^4.2.3",
     "nodemailer": "^6.9.1",
     "puppeteer": "^16.2.0",
-    "strava-v3": "^2.1.0",
+    "strava-v3": "^2.2.0",
     "yargs": "^17.7.1"
   },
   "devDependencies": {
