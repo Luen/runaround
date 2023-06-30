@@ -28,10 +28,10 @@
     "follow-redirects": "^1.15.2",
     "inquirer": "^8.2.5",
     "multiparty": "^4.2.3",
-    "nodemailer": "^6.9.1",
+    "nodemailer": "^6.9.3",
     "puppeteer": "^16.2.0",
     "strava-v3": "^2.2.0",
-    "yargs": "^17.7.1"
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "eslint": "^8.23.0",
