@@ -21,7 +21,7 @@
   "author": "Luen Warneke",
   "license": "ISC",
   "dependencies": {
-    "@mapbox/polyline": "^1.2.0",
+    "@mapbox/polyline": "^1.2.1",
     "axios": "^0.27.2",
     "dotenv": "^16.1.4",
     "express": "^4.18.2",
