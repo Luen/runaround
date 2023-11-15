@@ -28,7 +28,7 @@
     "follow-redirects": "^1.15.3",
     "inquirer": "^8.2.6",
     "multiparty": "^4.2.3",
-    "nodemailer": "^6.9.6",
+    "nodemailer": "^6.9.7",
     "puppeteer": "^16.2.0",
     "strava-v3": "^2.2.0",
     "yargs": "^17.7.2"
