@@ -22,7 +22,7 @@
   "license": "ISC",
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
-    "axios": "^1.6.2",
+    "axios": "^1.6.3",
     "dotenv": "^16.1.4",
     "express": "^4.18.2",
     "follow-redirects": "^1.15.3",
