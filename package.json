@@ -16,7 +16,8 @@
     "runner",
     "running",
     "jogging",
-    "walking"
+    "walking",
+    "ultra"
   ],
   "author": "Luen Warneke",
   "license": "ISC",
