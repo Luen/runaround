@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 
-const login = 'anygis0000+1@gmail.com';
-const password = 'AnyG15server';
+const login = process.env.STRAVA_EMAIL;
+const password = process.env.STRAVA_PASSWORD;
 
 const races = [30354222, 30505431, 30361147, 30561161, 30500288];
 

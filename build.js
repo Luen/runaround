@@ -5,9 +5,9 @@ const fs = require('fs');
 const { https } = require('follow-redirects');
 
 const stravaConfigFile = 'strava_config.json';
-const client_id = "92757";
-const client_secret = "95bb20df3f812fcc3cd04ca116c131ef622eed3f";
-const refresh_token = "d91b4f8d5840efe7124442a7733b01cd66ce2686";
+const client_id = process.env.STRAVA_CLIENT_ID;
+const client_secret = process.env.STRAVA_CLIENT_SECRET;
+const refresh_token = process.env.STRAVA_REFRESH_TOKEN;
 
 (async () => { // eslint-disable-line
 
