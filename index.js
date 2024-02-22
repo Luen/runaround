@@ -132,6 +132,7 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-1X8FP56G6T');
 </script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8551069968505753" crossorigin="anonymous"></script>
 ${data.extra ? data.extra : ''}
 </head><body><div class="wrapper"><img class="logo" src="${
         data.baseurl
