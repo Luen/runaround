@@ -26,7 +26,7 @@
     "axios": "^1.6.7",
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
-    "follow-redirects": "^1.15.5",
+    "follow-redirects": "^1.15.6",
     "inquirer": "^9.2.15",
     "multiparty": "^4.2.3",
     "nodemailer": "^6.9.11",
