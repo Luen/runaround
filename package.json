@@ -30,7 +30,7 @@
     "inquirer": "^9.2.23",
     "multiparty": "^4.2.3",
     "nodemailer": "^6.9.14",
-    "puppeteer": "^22.11.2",
+    "puppeteer": "^22.12.1",
     "strava-v3": "^2.2.0",
     "yargs": "^17.7.2"
   },
