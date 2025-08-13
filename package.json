@@ -23,14 +23,14 @@
   "license": "ISC",
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
-    "axios": "^1.7.8",
+    "axios": "^1.8.3",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "follow-redirects": "^1.15.9",
-    "inquirer": "^9.3.6",
+    "inquirer": "^10.0.0",
     "multiparty": "^4.2.3",
     "nodemailer": "^6.9.14",
-    "puppeteer": "^22.15.0",
+    "puppeteer": "^24.9.0",
     "strava-v3": "^2.2.1",
     "yargs": "^17.7.2"
   },
