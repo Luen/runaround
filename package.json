@@ -29,13 +29,10 @@
     "follow-redirects": "^1.15.9",
     "inquirer": "^12.9.2",
     "multiparty": "^4.2.3",
-    "nodemailer": "^6.9.14",
+    "nodemailer": "^7.0.11",
     "puppeteer": "^24.15.0",
-    "strava-v3": "^2.2.1",
+    "strava-v3": "^3.1.0",
     "yargs": "^17.7.2"
-  },
-  "overrides": {
-    "tough-cookie": "^4.1.3"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
