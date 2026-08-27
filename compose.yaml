@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgis/postgis:16-3.5
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: runaround
+      POSTGRES_PASSWORD: runaround
+      POSTGRES_DB: runaround
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U runaround']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - 4008:3000
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://runaround:runaround@db:5432/runaround
+      ORIGIN: ${ORIGIN:-http://localhost:4008}
+    command: sh -c "npx drizzle-kit migrate && node build"
+    depends_on:
+      db:
+        condition: service_healthy
+  worker:
+    build: .
+    restart: unless-stopped
+    command: npx tsx src/worker/index.ts
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://runaround:runaround@db:5432/runaround
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  pgdata:
