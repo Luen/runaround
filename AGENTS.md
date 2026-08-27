@@ -40,4 +40,5 @@ Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`.
 
 ## Git
 
-Do not commit unless the user asks. Do not force-push `main`. Do not merge PRs unless asked. Conventional, why-focused commit messages.
+- `main` is production. `develop` is staging and the default branch. Feature PRs target `develop`; promote to production with a PR from `develop` into `main`.
+- Do not commit unless the user asks. Do not force-push `main` or `develop`. Do not merge PRs unless asked. Conventional, why-focused commit messages.

@@ -23,6 +23,10 @@ Webhook: `{ORIGIN}/api/strava/webhook`
 
 `docker compose up --build` starts `db`, `web` (port 4008), and `worker`.
 
+## Branches
+
+`develop` is staging (PRs merge here). `main` is production (promote with a PR from `develop`).
+
 ## Product
 
 - Admins publish Road or Trail races with a GPX course.
