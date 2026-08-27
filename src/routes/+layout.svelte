@@ -7,6 +7,9 @@
 
 <svelte:head>
 	<link rel="icon" href="/favicon.ico" />
+	<link rel="describedby" href="/llms.txt" />
+	<link rel="author" href="/humans.txt" />
+	<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 	<meta name="theme-color" content="#14532d" />
 </svelte:head>
 

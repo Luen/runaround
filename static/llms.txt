@@ -1,0 +1,29 @@
+# RunAround
+
+> Virtual running races in Townsville, North Queensland. Runners log in with Strava, GPS-match published Road or Trail courses, and appear on race-window and overall leaderboards.
+
+RunAround is a free community site. Admins publish courses with a GPX file. Matching uses GPS coverage (and an optional Strava segment on older races). Emails go out when a runner gains a place, and when a race window closes.
+
+Canonical race URLs are `/races/:id` (legacy segment ids still work as slugs). Private areas (`/admin`, `/me`, `/login`, `/onboarding`) are not for crawlers.
+
+## Pages
+
+- [Home](https://runaround.com.au/): Live and upcoming races
+- [Races](https://runaround.com.au/races): All published Road and Trail boards
+- [About](https://runaround.com.au/about): What RunAround is and how to enter
+- [Contact](https://runaround.com.au/contact): How to get in touch
+- [Luen Warneke](https://runaround.com.au/about/luen-warneke): Site builder
+- [Sidney Willis](https://runaround.com.au/about/sidney-willis): Series founder (Hungry Runner Coaching)
+
+## Crawler files
+
+- [robots.txt](https://runaround.com.au/robots.txt): Crawl policy
+- [sitemap.xml](https://runaround.com.au/sitemap.xml): Indexable URLs
+- [humans.txt](https://runaround.com.au/humans.txt): Credits
+
+## Optional
+
+- [Facebook](https://www.facebook.com/RunAroundAUS)
+- [Instagram](https://www.instagram.com/runaroundaus/)
+- [Hungry Runner Coaching](https://www.hungryrunner.net/)
+- [Wanderstories](https://wanderstories.space/)

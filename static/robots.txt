@@ -1,3 +1,10 @@
-# allow crawling everything by default
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin
+Disallow: /me
+Disallow: /login
+Disallow: /logout
+Disallow: /onboarding
+Disallow: /api/
+
+Sitemap: https://runaround.com.au/sitemap.xml
