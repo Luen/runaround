@@ -6,7 +6,7 @@ Living instructions for coding agents working on this repository. Not a human RE
 
 ## Project
 
-Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript, `@sveltejs/adapter-node`, Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth generic OAuth (Strava), MapLibre, Zod, Vitest, Playwright. App and worker share `src/lib/server` except the worker must not import `$app/*`.
+Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node`, Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7 generic OAuth (Strava; `account.issuer` is `local:oauth:strava`), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`npx sv migrate` is major-version only).
 
 Product: admins create Road/Trail races with GPX; runners log in with Strava; GPS (+ optional Strava segment) matching; **race-window** and **overall** leaderboards; Cloudflare Email Sending from the **worker** only (rank improvement, not drops; race-end place). Canonical race URLs: `/races/:id` (legacy segment ids).
 

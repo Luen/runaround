@@ -37,6 +37,7 @@ export const auth = betterAuth({
 				{
 					providerId: 'strava',
 					name: 'Strava',
+					accountIssuer: 'local:oauth:strava',
 					clientId: process.env.STRAVA_CLIENT_ID ?? '',
 					clientSecret: process.env.STRAVA_CLIENT_SECRET ?? '',
 					authorizationUrl: 'https://www.strava.com/oauth/authorize',
