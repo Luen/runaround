@@ -1,36 +1,33 @@
 # RunAround
 
-A website of Virtual Running Races in Townsville, North Queensland, Australia and their leaderboards.
+Virtual running races in Townsville, North Queensland. This is a SvelteKit rebuild of the original Express + Strava scrape site ([#106](https://github.com/Luen/runaround/issues/106)).
 
-# 1 Install
-`npm i`
+## Stack
 
-# 2 Build Database
+SvelteKit (adapter-node), PostgreSQL/PostGIS, Drizzle, Better Auth (Strava), MapLibre, Tailwind, Cloudflare Email Sending, Docker Compose.
 
-Then the database can be built by running build.js
+## Local setup
 
-`node build`
-or
-`node build all` to start afresh
+1. Copy `.env.template` (or `.env.example`) to `.env` and fill Strava, Better Auth, and Cloudflare values. Do not commit `.env` or `strava_config.json`.
+2. Start Postgres: `npm run db:start`
+3. Apply schema: `npm run db:migrate`
+4. Import 2021–2022 races: `npm run migrate:legacy`
+5. App: `npm run dev`
+6. Worker (sync, matching, email): `npm run worker`
 
-# 3 Start ExpressJS server
+Strava OAuth callback: `{ORIGIN}/api/auth/callback/strava`
 
-Now the server can be start (index.js)
-`node index.js`
-or
-`pm2 start index.js --name runaround`
+Webhook: `{ORIGIN}/api/strava/webhook`
 
-# 4 Create a cronjob
+## Docker
 
-set up a crontab
-'crontab e'
-then 
-'...'
+`docker compose up --build` starts `db`, `web` (port 4008), and `worker`.
 
-# Notes
+## Product
 
-Use pm2 and nginx server.
-Setup cron (update.sh).
+- Admins publish Road or Trail races with a GPX course.
+- Runners log in with Strava. Activities are GPS-matched to the course (and to a Strava segment on migrated races).
+- Each race has a **race window** leaderboard and an **overall** all-time board.
+- Emails go out via Cloudflare Email Sending when a runner gains a place, and when the race window closes.
 
-old:
-0 0 1 \* \* node /var/www/runaround/build.js >/dev/null 2>&1
+Deferred: Garmin / GPX upload ([#107](https://github.com/Luen/runaround/issues/107)), gender/age groups ([#1](https://github.com/Luen/runaround/issues/1)), Instagram ([#108](https://github.com/Luen/runaround/issues/108)).

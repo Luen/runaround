@@ -1,0 +1,100 @@
+import { describe, expect, it } from 'vitest';
+import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString } from '$lib/geo';
+import {
+	courseCoverage,
+	matchActivityToCourse,
+	rankImproved,
+	inRaceWindow,
+	computeRaceStatus,
+	ROAD_BUFFER_M
+} from '$lib/matching';
+
+describe('polyline and time helpers', () => {
+	it('decodes a short polyline', () => {
+		const pts = decodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@');
+		expect(pts.length).toBeGreaterThan(1);
+		expect(pts[0].lat).toBeCloseTo(38.5, 1);
+	});
+
+	it('parses race clock strings', () => {
+		expect(parseClockToMs('14:06')).toBe((14 * 60 + 6) * 1000);
+		expect(parseClockToMs('1:02:32')).toBe((1 * 3600 + 2 * 60 + 32) * 1000);
+		expect(formatDuration(14 * 60 * 1000 + 6 * 1000)).toBe('14:06');
+	});
+
+	it('parses D/M/YY windows', () => {
+		const d = parseDmy('1/10/22');
+		expect(d.getUTCFullYear()).toBe(2022);
+		expect(d.getUTCMonth()).toBe(9);
+		expect(d.getUTCDate()).toBe(1);
+	});
+
+	it('parses a minimal GPX track', () => {
+		const gpx = `<?xml version="1.0"?><gpx><trk><trkseg>
+			<trkpt lat="-19.26" lon="146.81"></trkpt>
+			<trkpt lat="-19.27" lon="146.82"></trkpt>
+		</trkseg></trk></gpx>`;
+		const line = parseGpxToLineString(gpx);
+		expect(line.coordinates).toHaveLength(2);
+		expect(line.coordinates[0][0]).toBe(146.81);
+	});
+});
+
+describe('course matching', () => {
+	const course = [
+		{ lng: 146.81, lat: -19.26 },
+		{ lng: 146.811, lat: -19.261 },
+		{ lng: 146.812, lat: -19.262 }
+	];
+
+	it('requires coverage of the course', () => {
+		const activity = course.map((p) => ({ ...p }));
+		expect(courseCoverage(course, activity, ROAD_BUFFER_M)).toBe(1);
+		expect(courseCoverage(course, [{ lng: 0, lat: 0 }], ROAD_BUFFER_M)).toBe(0);
+	});
+
+	it('computes time on course when the GPS follows the route', () => {
+		const match = matchActivityToCourse({
+			course,
+			activity: course.map((point, i) => ({ point, t: i * 10 })),
+			surface: 'road'
+		});
+		expect(match.ok).toBe(true);
+		if (match.ok) expect(match.timeMs).toBe(20_000);
+	});
+
+	it('rejects a trace that misses the course', () => {
+		const match = matchActivityToCourse({
+			course,
+			activity: [
+				{ point: { lng: 0, lat: 0 }, t: 0 },
+				{ point: { lng: 0.01, lat: 0.01 }, t: 30 }
+			],
+			surface: 'road'
+		});
+		expect(match.ok).toBe(false);
+	});
+});
+
+describe('leaderboard rules', () => {
+	it('treats a lower place number as an improvement, not a first appearance', () => {
+		expect(rankImproved(5, 3)).toBe(true);
+		expect(rankImproved(2, 4)).toBe(false);
+		expect(rankImproved(null, 8)).toBe(false);
+	});
+
+	it('counts race-board times only inside the window', () => {
+		const start = new Date('2022-01-01T00:00:00Z');
+		const end = new Date('2022-01-31T23:59:59Z');
+		expect(inRaceWindow(new Date('2022-01-15T00:00:00Z'), start, end)).toBe(true);
+		expect(inRaceWindow(new Date('2022-03-01T00:00:00Z'), start, end)).toBe(false);
+	});
+
+	it('derives upcoming / live / closed from the window', () => {
+		const start = new Date('2022-01-10T00:00:00Z');
+		const end = new Date('2022-01-20T00:00:00Z');
+		expect(computeRaceStatus(start, end, new Date('2022-01-01T00:00:00Z'))).toBe('upcoming');
+		expect(computeRaceStatus(start, end, new Date('2022-01-15T00:00:00Z'))).toBe('live');
+		expect(computeRaceStatus(start, end, new Date('2022-02-01T00:00:00Z'))).toBe('closed');
+	});
+});

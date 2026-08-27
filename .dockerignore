@@ -1,0 +1,10 @@
+node_modules
+.svelte-kit
+.git
+.env
+.env.*
+!.env.example
+test-results
+build
+*.md
+agent-transcripts

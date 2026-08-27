@@ -1,0 +1,22 @@
+import { redirect } from '@sveltejs/kit';
+import { db } from '$lib/server/db';
+import { attempts, races } from '$lib/server/db/schema';
+import { desc, eq } from 'drizzle-orm';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	if (!locals.user) throw redirect(302, '/login');
+	const mine = await db
+		.select({
+			timeMs: attempts.timeMs,
+			startedAt: attempts.startedAt,
+			title: races.title,
+			slug: races.slug,
+			source: attempts.source
+		})
+		.from(attempts)
+		.innerJoin(races, eq(attempts.raceId, races.id))
+		.where(eq(attempts.userId, locals.user.id))
+		.orderBy(desc(attempts.startedAt));
+	return { mine };
+};
