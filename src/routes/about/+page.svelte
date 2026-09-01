@@ -1,13 +1,14 @@
 <script lang="ts">
+	import Seo from '$lib/components/Seo.svelte';
+	import { page } from '$app/state';
 </script>
 
-<svelte:head>
-	<title>About RunAround</title>
-	<meta
-		name="description"
-		content="The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching."
-	/>
-</svelte:head>
+<Seo
+	title="About RunAround"
+	description="The Townsville Virtual Running Series is the brainchild of Sidney Willis from Hungry Runner Coaching."
+	origin={page.data.origin}
+	path="/about"
+/>
 
 <h1>About RunAround</h1>
 <p>

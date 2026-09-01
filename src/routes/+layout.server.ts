@@ -1,7 +1,9 @@
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, url }) => {
+	const origin = process.env.ORIGIN ?? url.origin;
 	return {
+		origin,
 		user: locals.user
 			? {
 					id: locals.user.id,

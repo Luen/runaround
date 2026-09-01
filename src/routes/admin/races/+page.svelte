@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import Seo from '$lib/components/Seo.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
 
-<svelte:head>
-	<title>Admin races — RunAround</title>
-</svelte:head>
+<Seo
+	title="Admin races — RunAround"
+	description="Manage RunAround virtual races — publish road and trail courses for Townsville runners."
+	origin={data.origin}
+	path="/admin/races"
+	noindex
+/>
 
 <h1 class="text-3xl font-bold">Races</h1>
 <p class="mt-2 text-stone-600">Publish Road or Trail courses. Runners cannot create races.</p>

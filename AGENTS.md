@@ -32,6 +32,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - `git mv` when relocating tracked assets so history is preserved; do not copy-then-delete binaries.
 - Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec. 
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
+- SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
 
 ## Security
