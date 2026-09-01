@@ -11,6 +11,9 @@ for (const [key, value] of Object.entries(loaded)) {
 }
 
 export default defineConfig({
+	optimizeDeps: {
+		exclude: ['maplibre-gl']
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({
