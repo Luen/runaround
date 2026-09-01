@@ -23,7 +23,7 @@
 
 <h1 class="text-3xl font-bold">Edit race</h1>
 <div class="mt-4">
-	<RaceMap focus={data.race.courseGeojson} />
+	<RaceMap focus={data.race.courseGeojson} gpxHref="/races/{data.race.slug}/gpx" />
 </div>
 <form method="post" action="?/update" enctype="multipart/form-data" class="mt-6 space-y-3" use:enhance>
 	<label class="block text-sm">Title
