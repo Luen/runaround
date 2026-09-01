@@ -2,18 +2,28 @@ import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
+import { building } from '$app/environment';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
 import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { enqueueJob } from './jobs';
 
-const origin = process.env.ORIGIN ?? 'http://localhost:5173';
+const origin = process.env.ORIGIN ?? process.env.BETTER_AUTH_URL ?? 'http://localhost:5173';
+const devSecret = 'dev-only-insecure-secret-change-me-32';
+const buildSecret = 'build-time-placeholder-not-for-production!!';
 const placeholderEmail = (athleteId: string) => `strava-${athleteId}@users.runaround.invalid`;
+
+function authSecret(): string {
+	if (building) return buildSecret;
+	const secret = process.env.BETTER_AUTH_SECRET;
+	if (secret && secret !== devSecret) return secret;
+	return devSecret;
+}
 
 export const auth = betterAuth({
 	baseURL: origin,
-	secret: process.env.BETTER_AUTH_SECRET ?? 'dev-only-insecure-secret-change-me-32',
+	secret: authSecret(),
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		schema: {
