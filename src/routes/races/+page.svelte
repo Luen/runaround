@@ -1,14 +1,17 @@
 <script lang="ts">
 	import RaceMap from '$lib/components/RaceMap.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 </script>
 
-<svelte:head>
-	<title>Races — RunAround</title>
-	<meta name="description" content="Road and trail virtual races around Townsville, North Queensland." />
-</svelte:head>
+<Seo
+	title="Races — RunAround"
+	description="Road and trail virtual races around Townsville, North Queensland."
+	origin={data.origin}
+	path="/races"
+/>
 
 <h1 class="text-3xl font-bold">Races</h1>
 <p class="mt-2 text-stone-600">Filter by surface. Every course has a race-window board and an overall board.</p>

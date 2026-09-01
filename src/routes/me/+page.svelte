@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { formatDuration } from '$lib/geo';
+	import Seo from '$lib/components/Seo.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 </script>
 
-<svelte:head>
-	<title>My results — RunAround</title>
-</svelte:head>
+<Seo
+	title="My results — RunAround"
+	description="View your matched Strava runs and personal bests on RunAround's Townsville virtual race courses."
+	origin={data.origin}
+	path="/me"
+	noindex
+/>
 
 <h1 class="text-3xl font-bold">My results</h1>
 <p class="mt-2 text-stone-600">

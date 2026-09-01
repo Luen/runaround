@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
+	import Seo from '$lib/components/Seo.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -18,9 +19,13 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Log in — RunAround</title>
-</svelte:head>
+<Seo
+	title="Log in — RunAround"
+	description="Sign in to RunAround with Strava to match your runs to Townsville virtual race courses and climb the leaderboards."
+	origin={data.origin}
+	path="/login"
+	noindex
+/>
 
 <h1 class="text-3xl font-bold">Log in with Strava</h1>
 <p class="mt-3 max-w-xl text-stone-700">

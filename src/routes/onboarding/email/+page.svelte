@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import Seo from '$lib/components/Seo.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
 
-<svelte:head>
-	<title>Your email — RunAround</title>
-</svelte:head>
+<Seo
+	title="Your email — RunAround"
+	description="Add your email to RunAround so we can notify you about leaderboard changes and race results."
+	origin={data.origin}
+	path="/onboarding/email"
+	noindex
+/>
 
 <h1 class="text-3xl font-bold">Where should we email you?</h1>
 <p class="mt-3 max-w-xl text-stone-700">
