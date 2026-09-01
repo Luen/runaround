@@ -27,6 +27,14 @@ Webhook: `{ORIGIN}/api/strava/webhook`
 
 `develop` is staging (PRs merge here). `main` is production (promote with a PR from `develop`).
 
+## Vercel + Cloudflare
+
+Production web runs on **Vercel** (`adapter-vercel` when `VERCEL=1`); Docker still uses `adapter-node`.
+
+DNS for `runaround.com.au` is proxied through **Cloudflare**. Set Cloudflare **SSL/TLS encryption mode** to **Full (strict)** — not Flexible. Flexible makes Cloudflare call Vercel over HTTP while Vercel redirects to HTTPS, causing `ERR_TOO_MANY_REDIRECTS`.
+
+Cloudflare DNS should CNAME `@` and `www` to `cname.vercel-dns.com` (proxied orange cloud is fine once SSL mode is Full strict). Set `ORIGIN=https://runaround.com.au` on Vercel.
+
 ## Product
 
 - Admins publish Road or Trail races with a GPX course.
