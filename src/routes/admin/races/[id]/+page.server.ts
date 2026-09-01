@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { parseGpxToLineString, geojsonToGpx } from '$lib/geo';
+import { parseGpxToLineString, geojsonToGpx, endOfLocalDay } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -30,7 +30,7 @@ export const actions: Actions = {
 		const parsed = schema.safeParse(Object.fromEntries(form));
 		if (!parsed.success) return fail(400, { message: 'Check the race details' });
 		const startsAt = new Date(parsed.data.startsAt);
-		const endsAt = new Date(parsed.data.endsAt);
+		const endsAt = endOfLocalDay(new Date(parsed.data.endsAt));
 		let courseGeojson = race.courseGeojson;
 		let gpx = race.gpx;
 		const file = form.get('gpx');

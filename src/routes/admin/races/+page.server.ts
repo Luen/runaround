@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { parseGpxToLineString, geojsonToGpx, pointsFromLineString, type LineString } from '$lib/geo';
+import { parseGpxToLineString, geojsonToGpx, pointsFromLineString, endOfLocalDay, type LineString } from '$lib/geo';
 import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
 import type { Actions, PageServerLoad } from './$types';
@@ -53,7 +53,7 @@ export const actions: Actions = {
 			return fail(400, { message: err instanceof Error ? err.message : 'Invalid GPX' });
 		}
 		const startsAt = new Date(parsed.data.startsAt);
-		const endsAt = new Date(parsed.data.endsAt);
+		const endsAt = endOfLocalDay(new Date(parsed.data.endsAt));
 		const slugBase = slugify(parsed.data.title) || 'race';
 		const slug = `${slugBase}-${Date.now().toString(36)}`;
 		await db.insert(races).values({

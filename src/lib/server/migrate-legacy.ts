@@ -5,11 +5,13 @@ import { db } from './db';
 import { attempts, races } from './db/schema';
 import {
 	decodePolyline,
+	endOfUtcDay,
 	lineStringGeoJSON,
 	parseClockToMs,
 	parseDmy,
 	parseLegacyDate,
-	geojsonToGpx
+	geojsonToGpx,
+	startOfUtcDay
 } from '../geo';
 import { computeRaceStatus } from '../matching';
 import { legacySurface } from '../legacy';
@@ -34,6 +36,45 @@ type LegacyRace = {
 	}[];
 };
 
+/** Expand a race window so imported attempts fall inside the race-window leaderboard. */
+export async function alignRaceWindowWithAttempts(raceId: string) {
+	const [race] = await db.select().from(races).where(eq(races.id, raceId)).limit(1);
+	if (!race) return;
+
+	const rows = await db
+		.select({ startedAt: attempts.startedAt })
+		.from(attempts)
+		.where(eq(attempts.raceId, raceId));
+	if (rows.length === 0) return;
+
+	let startsAt = race.startsAt;
+	let endsAt = race.endsAt;
+	for (const row of rows) {
+		if (row.startedAt < startsAt) startsAt = startOfUtcDay(row.startedAt);
+		if (row.startedAt > endsAt) endsAt = endOfUtcDay(row.startedAt);
+	}
+
+	if (startsAt.getTime() === race.startsAt.getTime() && endsAt.getTime() === race.endsAt.getTime()) {
+		return;
+	}
+
+	await db
+		.update(races)
+		.set({
+			startsAt,
+			endsAt,
+			status: computeRaceStatus(startsAt, endsAt)
+		})
+		.where(eq(races.id, raceId));
+}
+
+export async function repairRaceWindows() {
+	const all = await db.select({ id: races.id }).from(races);
+	for (const { id } of all) {
+		await alignRaceWindowWithAttempts(id);
+	}
+}
+
 export async function migrateLegacy(pathToJson?: string) {
 	const here = dirname(fileURLToPath(import.meta.url));
 	const file = pathToJson ?? resolve(here, '../../../data/legacy/database.json');
@@ -44,8 +85,7 @@ export async function migrateLegacy(pathToJson?: string) {
 		const [existing] = await db.select().from(races).where(eq(races.slug, slug)).limit(1);
 		const window = race.duration?.[0] ?? ['1/1/22', '31/12/22'];
 		const startsAt = parseDmy(window[0]);
-		const endsAt = parseDmy(window[1]);
-		endsAt.setUTCHours(23, 59, 59, 999);
+		const endsAt = endOfUtcDay(parseDmy(window[1]));
 		const points = race.map?.polyline ? decodePolyline(race.map.polyline) : [];
 		if (points.length < 2) {
 			console.warn(`Skipping ${slug}: no polyline`);
@@ -104,6 +144,10 @@ export async function migrateLegacy(pathToJson?: string) {
 				effortUrl: row.effortURL ?? null
 			});
 		}
+
+		if (raceId) await alignRaceWindowWithAttempts(raceId);
 	}
+
+	await repairRaceWindows();
 }
 
