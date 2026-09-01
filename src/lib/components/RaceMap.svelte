@@ -28,7 +28,6 @@
 	}
 
 	function attachMap(node: HTMLDivElement) {
-		const tiles = mapTiles();
 		const map = new maplibregl.Map({
 			container: node,
 			style: {
@@ -36,7 +35,7 @@
 				sources: {
 					osm: {
 						type: 'raster',
-						tiles: [tiles],
+						tiles: [mapTiles()],
 						tileSize: 256,
 						attribution: '© OpenStreetMap'
 					}
@@ -48,33 +47,43 @@
 		});
 		map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-		const draw = () => {
-			const features = races.map((r) => ({
-				type: 'Feature' as const,
-				properties: { title: r.title, id: r.id },
-				geometry: r.geojson
-			}));
-			if (focus) {
-				features.push({
-					type: 'Feature',
-					properties: { title: 'Course', id: 'focus' },
-					geometry: focus
+		const sourceId = 'courses';
+		const layerId = 'courses-line';
+		let ready = false;
+
+		const ensureSource = () => {
+			if (!map.getSource(sourceId)) {
+				map.addSource(sourceId, {
+					type: 'geojson',
+					data: { type: 'FeatureCollection', features: [] }
 				});
-			}
-			const sourceId = 'courses';
-			const existing = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
-			const data = { type: 'FeatureCollection' as const, features };
-			if (existing) existing.setData(data);
-			else if (map.isStyleLoaded()) {
-				map.addSource(sourceId, { type: 'geojson', data });
 				map.addLayer({
-					id: 'courses-line',
+					id: layerId,
 					type: 'line',
 					source: sourceId,
 					paint: { 'line-color': '#166534', 'line-width': 4 }
 				});
 			}
-			const geos = [...races.map((r) => r.geojson), ...(focus ? [focus] : [])];
+		};
+
+		const draw = (overlayRaces: RaceOverlay[], focusLine: LineString | null) => {
+			if (!ready) return;
+			ensureSource();
+			const features = overlayRaces.map((r) => ({
+				type: 'Feature' as const,
+				properties: { title: r.title, id: r.id },
+				geometry: r.geojson
+			}));
+			if (focusLine) {
+				features.push({
+					type: 'Feature',
+					properties: { title: 'Course', id: 'focus' },
+					geometry: focusLine
+				});
+			}
+			const source = map.getSource(sourceId) as maplibregl.GeoJSONSource;
+			source.setData({ type: 'FeatureCollection', features });
+			const geos = [...overlayRaces.map((r) => r.geojson), ...(focusLine ? [focusLine] : [])];
 			if (geos.length) {
 				const b = new maplibregl.LngLatBounds();
 				for (const g of geos) {
@@ -84,8 +93,14 @@
 			}
 		};
 
-		if (map.loaded()) draw();
-		else map.once('load', draw);
+		map.once('load', () => {
+			ready = true;
+			draw(races, focus);
+		});
+
+		$effect(() => {
+			draw(races, focus);
+		});
 
 		return () => map.remove();
 	}

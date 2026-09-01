@@ -26,7 +26,11 @@
 </p>
 
 <div class="mt-4 flex flex-wrap gap-3">
-	<a class="rounded-full bg-green-800 px-4 py-2 text-white" href="/races/{data.race.slug}/gpx">Download GPX</a>
+	<a
+		class="rounded-full bg-green-800 px-4 py-2 text-white"
+		href="/races/{data.race.slug}/gpx"
+		data-sveltekit-reload>Download GPX</a
+	>
 	{#if data.race.stravaSegmentId}
 		<a
 			class="rounded-full border border-stone-300 px-4 py-2"
