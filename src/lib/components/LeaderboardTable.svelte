@@ -21,24 +21,24 @@
 			<table class="min-w-full text-left text-sm">
 				<thead>
 					<tr class="border-b border-stone-200">
-						<th class="py-2 pr-3">Place</th>
-						<th class="py-2 pr-3">Runner</th>
-						<th class="py-2 pr-3">Time</th>
-						<th class="py-2 pr-3">Date</th>
+						<th class="py-3 pr-4">Place</th>
+						<th class="py-3 pr-4">Runner</th>
+						<th class="py-3 pr-4">Time</th>
+						<th class="py-3 pr-4">Date</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each rows as row (row.rank + row.name)}
 						<tr class="border-b border-stone-100">
-							<td class="py-2 pr-3 font-semibold">{row.rank}</td>
-							<td class="py-2 pr-3">
+							<td class="py-3 pr-4 font-semibold">{row.rank}</td>
+							<td class="py-3 pr-4">
 								{row.name}
 								{#if row.source === 'strava_import'}
 									<span class="text-xs text-stone-400">imported</span>
 								{/if}
 							</td>
-							<td class="py-2 pr-3">{formatDuration(row.timeMs)}</td>
-							<td class="py-2 pr-3">{new Date(row.startedAt).toLocaleDateString()}</td>
+							<td class="py-3 pr-4">{formatDuration(row.timeMs)}</td>
+							<td class="py-3 pr-4">{new Date(row.startedAt).toLocaleDateString()}</td>
 						</tr>
 					{/each}
 				</tbody>

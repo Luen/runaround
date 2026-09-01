@@ -20,22 +20,24 @@
 				<img src="/runaround-logo.png" alt="RunAround" class="h-10 w-auto" />
 				<span class="text-lg font-semibold tracking-tight">RunAround</span>
 			</a>
-			<nav class="flex flex-wrap items-center gap-4 text-sm font-medium">
-				<a href="/races" class="hover:text-green-800">Races</a>
-				<a href="/about" class="hover:text-green-800">About</a>
-				<a href="/contact" class="hover:text-green-800">Contact</a>
+			<nav class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium">
+				<a href="/races" class="inline-flex min-h-11 items-center py-2 hover:text-green-800">Races</a>
+				<a href="/about" class="inline-flex min-h-11 items-center py-2 hover:text-green-800">About</a>
+				<a href="/contact" class="inline-flex min-h-11 items-center py-2 hover:text-green-800">Contact</a>
 				{#if data.user}
-					<a href="/me" class="hover:text-green-800">My results</a>
+					<a href="/me" class="inline-flex min-h-11 items-center py-2 hover:text-green-800">My results</a>
 					{#if data.user.isAdmin}
-						<a href="/admin/races" class="hover:text-green-800">Admin</a>
+						<a href="/admin/races" class="inline-flex min-h-11 items-center py-2 hover:text-green-800">Admin</a>
 					{/if}
 					<form method="post" action="/logout">
-						<button type="submit" class="hover:text-green-800">Log out</button>
+						<button type="submit" class="inline-flex min-h-11 items-center py-2 hover:text-green-800"
+							>Log out</button
+						>
 					</form>
 				{:else}
 					<a
 						href="/login"
-						class="rounded-full bg-green-800 px-3 py-1.5 text-white hover:bg-green-900"
+						class="inline-flex min-h-11 items-center rounded-full bg-green-800 px-4 py-2 text-white hover:bg-green-900"
 						>Log in with Strava</a
 					>
 				{/if}
