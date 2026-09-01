@@ -42,7 +42,7 @@
 </div>
 
 <div class="mt-6">
-	<RaceMap focus={data.race.courseGeojson} />
+	<RaceMap focus={data.race.courseGeojson} gpxHref="/races/{data.race.slug}/gpx" />
 </div>
 
 <div class="mt-8 flex gap-3">
