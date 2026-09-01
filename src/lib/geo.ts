@@ -107,6 +107,24 @@ export function parseDmy(value: string): Date {
 	return new Date(Date.UTC(year, m - 1, d));
 }
 
+export function startOfUtcDay(date: Date): Date {
+	const d = new Date(date);
+	d.setUTCHours(0, 0, 0, 0);
+	return d;
+}
+
+export function endOfUtcDay(date: Date): Date {
+	const d = new Date(date);
+	d.setUTCHours(23, 59, 59, 999);
+	return d;
+}
+
+export function endOfLocalDay(date: Date): Date {
+	const d = new Date(date);
+	d.setHours(23, 59, 59, 999);
+	return d;
+}
+
 export function geojsonToGpx(name: string, geojson: LineString): string {
 	const pts = geojson.coordinates
 		.map(([lng, lat]) => `      <trkpt lat="${lat}" lon="${lng}"></trkpt>`)
