@@ -26,8 +26,19 @@ function applyDotEnv() {
 
 applyDotEnv();
 
-const url =
-	process.env.DATABASE_URL ?? 'postgres://runaround:runaround@127.0.0.1:5432/runaround';
+const localDatabaseUrl = 'postgres://runaround:runaround@127.0.0.1:5432/runaround';
 
-export const postgresClient = postgres(url);
+function databaseUrl(): string {
+	// Bracket access avoids Vite replacing env reads at build time.
+	const fromEnv = process.env['DATABASE_URL']?.trim();
+	if (fromEnv) return fromEnv;
+
+	if (process.env['VERCEL'] === '1' || process.env['NODE_ENV'] === 'production') {
+		throw new Error('DATABASE_URL is not set');
+	}
+
+	return localDatabaseUrl;
+}
+
+export const postgresClient = postgres(databaseUrl());
 export const db = drizzle(postgresClient, { schema });
