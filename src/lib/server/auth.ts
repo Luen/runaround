@@ -9,14 +9,15 @@ import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { enqueueJob } from './jobs';
 
-const origin = process.env.ORIGIN ?? process.env.BETTER_AUTH_URL ?? 'http://localhost:5173';
+const origin =
+	process.env['ORIGIN'] ?? process.env['BETTER_AUTH_URL'] ?? 'http://localhost:5173';
 const devSecret = 'dev-only-insecure-secret-change-me-32';
 const buildSecret = 'build-time-placeholder-not-for-production!!';
 const placeholderEmail = (athleteId: string) => `strava-${athleteId}@users.runaround.invalid`;
 
 function authSecret(): string {
 	if (building) return buildSecret;
-	const secret = process.env.BETTER_AUTH_SECRET;
+	const secret = process.env['BETTER_AUTH_SECRET'];
 	if (secret && secret !== devSecret) return secret;
 	return devSecret;
 }
