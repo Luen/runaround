@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { building } from '$app/environment';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
@@ -32,6 +33,9 @@ function databaseUrl(): string {
 	// Bracket access avoids Vite replacing env reads at build time.
 	const fromEnv = process.env['DATABASE_URL']?.trim();
 	if (fromEnv) return fromEnv;
+
+	// SvelteKit postbuild analysis runs on Vercel without runtime env vars.
+	if (building) return localDatabaseUrl;
 
 	if (process.env['VERCEL'] === '1' || process.env['NODE_ENV'] === 'production') {
 		throw new Error('DATABASE_URL is not set');
