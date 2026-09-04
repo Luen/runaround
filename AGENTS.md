@@ -6,7 +6,7 @@ Living instructions for coding agents working on this repository. Not a human RE
 
 ## Project
 
-Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node` (Docker) or `@sveltejs/adapter-vercel` when `VERCEL=1`, Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7 generic OAuth (Strava; `account.issuer` is `local:oauth:strava`), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`npx sv migrate` is major-version only).
+Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node` (Docker) or `@sveltejs/adapter-vercel` when `VERCEL=1`, Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7 generic OAuth (Strava; `account.issuer` is `local:oauth:strava`), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`pnpm exec sv migrate` is major-version only).
 
 Product: admins create Road/Trail races with GPX; runners log in with Strava; GPS (+ optional Strava segment) matching; **race-window** and **overall** leaderboards; Cloudflare Email Sending from the **worker** only (rank improvement, not drops; race-end place). Canonical race URLs: `/races/:id` (legacy segment ids).
 
@@ -14,14 +14,14 @@ Product: admins create Road/Trail races with GPX; runners log in with Strava; GP
 
 ```bash
 cp .env.template .env   # then fill values; never commit .env
-npm run db:start
-npm run db:migrate
-npm run migrate:legacy  # idempotent; needs data/legacy/database.json
-npm run dev             # web
-npm run worker          # sync, match, email
-npm run check
-npm run test:unit -- --run
-npx playwright test     # builds + preview
+pnpm run db:start
+pnpm run db:migrate
+pnpm run migrate:legacy  # idempotent; needs data/legacy/database.json
+pnpm run dev             # web
+pnpm run worker          # sync, match, email
+pnpm run check
+pnpm run test:unit -- --run
+pnpm exec playwright test     # builds + preview
 ```
 
 Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
@@ -43,3 +43,12 @@ Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`.
 
 - `main` is production. `develop` is staging and the default branch. Feature PRs target `develop`; promote to production with a PR from `develop` into `main`.
 - Do not commit unless the user asks. Do not force-push `main` or `develop`. Do not merge PRs unless asked. Conventional, why-focused commit messages.
+
+## Package manager
+
+This repo uses **pnpm** (`packageManager` in `package.json`).
+
+- Install: `pnpm install` (do not use npm/yarn for installs in this repo).
+- Scripts: `pnpm run <script>` / `pnpm exec <bin>`.
+- Lockfile: `pnpm-lock.yaml` only â€” do not commit `package-lock.json` or `yarn.lock`.
+- Local disk: pnpm's content-addressable store shares package contents across checkouts on the same machine.

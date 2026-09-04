@@ -9,11 +9,11 @@ SvelteKit (adapter-node), PostgreSQL/PostGIS, Drizzle, Better Auth (Strava), Map
 ## Local setup
 
 1. Copy `.env.template` to `.env` and fill Strava, Better Auth, and Cloudflare values. Do not commit `.env` or `strava_config.json`.
-2. Start Postgres: `npm run db:start`
-3. Apply schema: `npm run db:migrate`
-4. Import 2021–2022 races: `npm run migrate:legacy`
-5. App: `npm run dev`
-6. Worker (sync, matching, email): `npm run worker`
+2. Start Postgres: `pnpm run db:start`
+3. Apply schema: `pnpm run db:migrate`
+4. Import 2021–2022 races: `pnpm run migrate:legacy`
+5. App: `pnpm run dev`
+6. Worker (sync, matching, email): `pnpm run worker`
 
 Strava OAuth callback: `{ORIGIN}/api/auth/callback/strava`
 
