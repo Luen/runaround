@@ -63,11 +63,11 @@
     "tsx": "^4.23.12",
     "zod": "^4.4.3"
   },
-  "overrides": {
-    "cookie": "0.7.2",
-    "esbuild": "^0.28.2",
-    "@tailwindcss/typography": {
-      "postcss-selector-parser": "6.1.4"
+  "pnpm": {
+    "overrides": {
+      "cookie": "0.7.2",
+      "esbuild": "^0.28.2",
+      "@tailwindcss/typography>postcss-selector-parser": "6.1.4"
     }
   },
   "packageManager": "pnpm@10.33.0"
