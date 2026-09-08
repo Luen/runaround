@@ -1,0 +1,23 @@
+/* TEAM */
+
+	Founder: Sidney Willis
+	Site: https://www.hungryrunner.net/
+	From: Townsville, North Queensland, Australia
+
+	Website: Luen Warneke
+	Site: https://luenwarneke.com/
+	Location: Townsville, North Queensland, Australia
+
+/* THANKS */
+
+	Hungry Runner Coaching
+	Wanderstories
+	Strava
+
+/* SITE */
+
+	Last update: 2026/08/27
+	Language: English
+	Standards: HTML5, CSS
+	Components: SvelteKit, PostgreSQL, Drizzle, Better Auth, MapLibre, Tailwind
+	Software: Node.js

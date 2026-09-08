@@ -1,9 +1,27 @@
 <script lang="ts">
+	import Seo from '$lib/components/Seo.svelte';
+	import { personJsonLd } from '$lib/seo';
+	import { page } from '$app/state';
+
+	const description =
+		'Luen Warneke builds RunAround, writes Wanderstories about North Queensland adventures, and leads outdoor clubs in Townsville.';
 </script>
 
-<svelte:head>
-	<title>About Luen Warneke — RunAround</title>
-</svelte:head>
+<Seo
+	title="About Luen Warneke — RunAround"
+	{description}
+	origin={page.data.origin}
+	path="/about/luen-warneke"
+	type="profile"
+	image="https://luenwarneke.com/img/luen-warneke.jpg"
+	jsonLd={personJsonLd(page.data.origin, {
+		name: 'Luen Warneke',
+		description,
+		path: '/about/luen-warneke',
+		image: 'https://luenwarneke.com/img/luen-warneke.jpg',
+		sameAs: ['https://luenwarneke.com/', 'https://wanderstories.space/']
+	})}
+/>
 
 <img
 	src="https://luenwarneke.com/img/luen-warneke.jpg"

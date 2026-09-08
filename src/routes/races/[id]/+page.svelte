@@ -1,17 +1,21 @@
 <script lang="ts">
 	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
 	import RaceMap from '$lib/components/RaceMap.svelte';
+	import Seo from '$lib/components/Seo.svelte';
+	import { sportsEventJsonLd } from '$lib/seo';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 	let tab = $state<'race' | 'overall'>('race');
 </script>
 
-<svelte:head>
-	<title>{data.race.title} — RunAround</title>
-	<meta name="description" content={data.race.description} />
-	<link rel="canonical" href="https://runaround.com.au/races/{data.race.slug}" />
-</svelte:head>
+<Seo
+	title={`${data.race.title} — RunAround`}
+	description={data.race.description}
+	origin={data.origin}
+	path="/races/{data.race.slug}"
+	jsonLd={sportsEventJsonLd(data.origin, data.race)}
+/>
 
 <p class="text-sm capitalize text-green-800">{data.race.surface} · {data.race.status}</p>
 <h1 class="text-3xl font-bold">{data.race.title}</h1>
@@ -22,7 +26,11 @@
 </p>
 
 <div class="mt-4 flex flex-wrap gap-3">
-	<a class="rounded-full bg-green-800 px-4 py-2 text-white" href="/races/{data.race.slug}/gpx">Download GPX</a>
+	<a
+		class="rounded-full bg-green-800 px-4 py-2 text-white"
+		href="/races/{data.race.slug}/gpx"
+		data-sveltekit-reload>Download GPX</a
+	>
 	{#if data.race.stravaSegmentId}
 		<a
 			class="rounded-full border border-stone-300 px-4 py-2"
@@ -34,7 +42,7 @@
 </div>
 
 <div class="mt-6">
-	<RaceMap focus={data.race.courseGeojson} />
+	<RaceMap focus={data.race.courseGeojson} gpxHref="/races/{data.race.slug}/gpx" />
 </div>
 
 <div class="mt-8 flex gap-3">

@@ -1,18 +1,22 @@
 <script lang="ts">
 	import RaceMap from '$lib/components/RaceMap.svelte';
+	import Seo from '$lib/components/Seo.svelte';
+	import { websiteJsonLd } from '$lib/seo';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	const description =
+		'RunAround is a Townsville virtual running series. Connect Strava, run published road and trail courses, and race the leaderboards.';
 </script>
 
-<svelte:head>
-	<title>RunAround — Virtual races in Townsville</title>
-	<meta
-		name="description"
-		content="RunAround is a Townsville virtual running series. Connect Strava, run published road and trail courses, and race the leaderboards."
-	/>
-	<link rel="canonical" href="https://runaround.com.au/" />
-</svelte:head>
+<Seo
+	title="RunAround — Virtual races in Townsville"
+	{description}
+	origin={data.origin}
+	path="/"
+	jsonLd={websiteJsonLd(data.origin, description)}
+/>
 
 <section class="space-y-6">
 	<p class="text-sm uppercase tracking-wide text-green-800">Townsville virtual running</p>

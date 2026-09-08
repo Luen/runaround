@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import RaceMap from '$lib/components/RaceMap.svelte';
+	import Seo from '$lib/components/Seo.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -12,13 +13,17 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Edit {data.race.title}</title>
-</svelte:head>
+<Seo
+	title="Edit {data.race.title} — RunAround"
+	description="Edit race details, course GPX, and race window for {data.race.title} on RunAround."
+	origin={data.origin}
+	path="/admin/races/{data.race.id}"
+	noindex
+/>
 
 <h1 class="text-3xl font-bold">Edit race</h1>
 <div class="mt-4">
-	<RaceMap focus={data.race.courseGeojson} />
+	<RaceMap focus={data.race.courseGeojson} gpxHref="/races/{data.race.slug}/gpx" />
 </div>
 <form method="post" action="?/update" enctype="multipart/form-data" class="mt-6 space-y-3" use:enhance>
 	<label class="block text-sm">Title
