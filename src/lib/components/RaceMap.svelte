@@ -1,7 +1,6 @@
 <script lang="ts">
-	import * as maplibregl from 'maplibre-gl';
-	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { env } from '$env/dynamic/public';
+	import { GeoJSONSource, LngLatBounds, Map, NavigationControl } from '$lib/maplibre';
 	import {
 		courseOverlayFeatureCollection,
 		isJsonLikeContentType,
@@ -31,7 +30,7 @@
 
 	let shell = $state<HTMLDivElement | null>(null);
 	let isFullscreen = $state(false);
-	let mapRef = $state<maplibregl.Map | null>(null);
+	let mapRef = $state<Map | null>(null);
 	let mapReady = $state(false);
 	/** LineString extracted from a successful `courseUrl` fetch. */
 	let fetchedFocus = $state<LineString | null>(null);
@@ -63,7 +62,7 @@
 	}
 
 	function ensureCourseLayers(
-		map: maplibregl.Map,
+		map: Map,
 		initialData?: CourseFeatureCollection
 	) {
 		if (!map.getSource(SOURCE_ID)) {
@@ -101,18 +100,18 @@
 		}
 	}
 
-	function drawCourses(map: maplibregl.Map, overlayRaces: RaceOverlay[], focusLine: LineString | null) {
+	function drawCourses(map: Map, overlayRaces: RaceOverlay[], focusLine: LineString | null) {
 		const collection = courseOverlayFeatureCollection(overlayRaces, focusLine);
 		// Belt-and-suspenders: second plain clone before setData (MapLibre + Svelte Proxies).
 		const plain = JSON.parse(JSON.stringify(collection)) as CourseFeatureCollection;
 		ensureCourseLayers(map, plain);
-		const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource;
+		const source = map.getSource(SOURCE_ID) as GeoJSONSource;
 		source.setData(plain);
 		map.triggerRepaint();
 
 		const geos = [...overlayRaces.map((r) => r.geojson), ...(focusLine ? [focusLine] : [])];
 		if (geos.length) {
-			const b = new maplibregl.LngLatBounds();
+			const b = new LngLatBounds();
 			for (const g of geos) {
 				for (const [lng, lat] of g.coordinates) b.extend([lng, lat]);
 			}
@@ -121,7 +120,7 @@
 	}
 
 	function attachMap(node: HTMLDivElement) {
-		const map = new maplibregl.Map({
+		const map = new Map({
 			container: node,
 			style: {
 				version: 8,
@@ -138,7 +137,7 @@
 			center: [146.81, -19.26],
 			zoom: 11
 		});
-		map.addControl(new maplibregl.NavigationControl(), 'top-right');
+		map.addControl(new NavigationControl(), 'top-right');
 		mapRef = map;
 
 		const onFullscreen = () => {
