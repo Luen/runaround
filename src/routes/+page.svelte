@@ -8,6 +8,21 @@
 
 	const description =
 		'RunAround is a Townsville virtual running series. Connect Strava, run published road and trail courses, and race the leaderboards.';
+
+	/** null = use default (on when no active/upcoming); set once the user toggles. */
+	let pastToggle = $state<boolean | null>(null);
+	const showPastRaces = $derived(pastToggle ?? data.races.length === 0);
+
+	const mapRaces = $derived(
+		[
+			...data.races,
+			...(showPastRaces ? data.pastRaces : [])
+		].map((r) => ({
+			id: r.slug,
+			title: r.title,
+			geojson: r.courseGeojson
+		}))
+	);
 </script>
 
 <Seo
@@ -36,7 +51,9 @@
 <section class="mt-10 space-y-4">
 	<h2 class="text-xl font-semibold">Active and upcoming</h2>
 	{#if data.races.length === 0}
-		<p class="text-stone-600">No live races right now. Browse the overall boards on past courses.</p>
+		<p class="text-stone-600">
+			No live races right now. Browse the overall boards on past courses{#if data.pastRaces.length > 0}, or show past courses on the map below{/if}.
+		</p>
 	{:else}
 		<ul class="space-y-2">
 			{#each data.races as race (race.id)}
@@ -47,11 +64,18 @@
 			{/each}
 		</ul>
 	{/if}
-	<RaceMap
-		races={data.races.map((r) => ({
-			id: r.slug,
-			title: r.title,
-			geojson: r.courseGeojson
-		}))}
-	/>
+	{#if data.pastRaces.length > 0}
+		<label class="flex items-center gap-2 text-sm text-stone-700">
+			<input
+				type="checkbox"
+				class="size-4 rounded border-stone-300 text-green-800 focus:ring-green-800"
+				checked={showPastRaces}
+				onchange={(e) => {
+					pastToggle = e.currentTarget.checked;
+				}}
+			/>
+			Show past races on the map
+		</label>
+	{/if}
+	<RaceMap races={mapRaces} />
 </section>

@@ -41,6 +41,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - Course overlay paint uses high-contrast orange (`#ea580c`) with a near-white casing (`#fff7ed`) so the line stays visible on green OSM / park tiles (dark green was easy to miss).
 - Race detail / admin maps load the course overlay from `/races/:slug/course.json` (`RaceMap` `courseUrl`); listing maps still pass `races`/`focus` SSR props. A Vercel Draft Mode `HEAD` to the HTML race URL (`x-vercel-draft-status`) is unrelated to map fetches — do not treat it as a missing GPX/GeoJSON bug.
 - GPX download links use `data-sveltekit-preload-data="off"` (and `data-sveltekit-reload` where needed) so the client router does not treat `/races/:slug/gpx` as a page navigation.
+- Homepage (`src/routes/+page`): map can overlay closed races via a “Show past races” checkbox (default on when no live/upcoming); the “Active and upcoming” list stays active-only.
 - Leaderboards: `attempts.effortUrl` flows through `rankedLeaderboard` (`src/lib/boards.ts`); `LeaderboardTable` links the time when `safeHttpUrl` accepts http(s).
 
 ## Security
