@@ -31,7 +31,7 @@ Webhook: `{ORIGIN}/api/strava/webhook`
 
 Production web runs on **Vercel** (`adapter-vercel` when `VERCEL=1`); Docker still uses `adapter-node`.
 
-On Vercel Production (and Preview), set **`POSTGRES_URL`** to the Supabase pooled connection string (Supabase/Vercel inject this name by default). Optional: `POSTGRES_URL_NON_POOLING` for direct connections/migrations. The app no longer reads `DATABASE_URL`.
+On Vercel Production (and Preview), set **`POSTGRES_URL`** to the Supabase pooled connection string (Supabase/Vercel inject this name by default). Optional: `POSTGRES_URL_NON_POOLING` for direct connections/migrations.
 
 DNS for `runaround.com.au` is proxied through **Cloudflare**. Set Cloudflare **SSL/TLS encryption mode** to **Full (strict)** — not Flexible. Flexible makes Cloudflare call Vercel over HTTP while Vercel redirects to HTTPS, causing `ERR_TOO_MANY_REDIRECTS`.
 
