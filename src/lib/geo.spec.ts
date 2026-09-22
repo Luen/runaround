@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection, raceCourseJsonUrl } from '$lib/geo';
+import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection, raceCourseJsonUrl, isJsonLikeContentType, lineFromCoursePayload } from '$lib/geo';
 import {
 	courseCoverage,
 	matchActivityToCourse,
@@ -137,5 +137,51 @@ describe('raceCourseJsonUrl', () => {
 
 	it('encodes special characters in the slug', () => {
 		expect(raceCourseJsonUrl('a/b')).toBe('/races/a%2Fb/course.json');
+	});
+});
+
+describe('isJsonLikeContentType', () => {
+	it('accepts JSON and GeoJSON content types', () => {
+		expect(isJsonLikeContentType('application/json')).toBe(true);
+		expect(isJsonLikeContentType('application/geo+json')).toBe(true);
+		expect(isJsonLikeContentType('application/json; charset=utf-8')).toBe(true);
+	});
+
+	it('rejects HTML login / opaque responses', () => {
+		expect(isJsonLikeContentType('text/html')).toBe(false);
+		expect(isJsonLikeContentType('text/html; charset=utf-8')).toBe(false);
+		expect(isJsonLikeContentType('')).toBe(false);
+	});
+});
+
+describe('lineFromCoursePayload', () => {
+	const line: import('$lib/geo').LineString = {
+		type: 'LineString',
+		coordinates: [
+			[146.81, -19.26],
+			[146.82, -19.27]
+		]
+	};
+
+	it('accepts a bare LineString', () => {
+		expect(lineFromCoursePayload(line)).toEqual(line);
+	});
+
+	it('unwraps Feature and FeatureCollection', () => {
+		expect(
+			lineFromCoursePayload({ type: 'Feature', properties: {}, geometry: line })
+		).toEqual(line);
+		expect(
+			lineFromCoursePayload({
+				type: 'FeatureCollection',
+				features: [{ type: 'Feature', properties: { id: 'x', title: 't' }, geometry: line }]
+			})
+		).toEqual(line);
+	});
+
+	it('returns null for non-course payloads', () => {
+		expect(lineFromCoursePayload(null)).toBeNull();
+		expect(lineFromCoursePayload({ type: 'Point', coordinates: [1, 2] })).toBeNull();
+		expect(lineFromCoursePayload({ type: 'FeatureCollection', features: [] })).toBeNull();
 	});
 });

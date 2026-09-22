@@ -25,6 +25,7 @@
 <h1 class="text-3xl font-bold">Edit race</h1>
 <div class="mt-4">
 	<RaceMap
+		focus={data.race.courseGeojson}
 		courseUrl={raceCourseJsonUrl(data.race.slug)}
 		gpxHref="/races/{data.race.slug}/gpx"
 	/>

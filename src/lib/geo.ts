@@ -169,6 +169,17 @@ function escapeXml(value: string): string {
 }
 
 
+/** True when a response Content-Type looks like JSON / GeoJSON (not HTML login pages). */
+export function isJsonLikeContentType(contentType: string): boolean {
+	const ct = contentType.split(';')[0]?.trim().toLowerCase() ?? '';
+	return (
+		ct === 'application/json' ||
+		ct === 'application/geo+json' ||
+		ct.endsWith('+json') ||
+		ct === 'text/json'
+	);
+}
+
 /** Public path for a race course GeoJSON overlay (`application/geo+json`). */
 export function raceCourseJsonUrl(slug: string): string {
 	return `/races/${encodeURIComponent(slug)}/course.json`;
@@ -183,6 +194,26 @@ export type CourseFeatureCollection = {
 		geometry: LineString;
 	}>;
 };
+
+
+/** Extract a LineString from GeoJSON LineString / Feature / FeatureCollection payloads. */
+export function lineFromCoursePayload(data: unknown): LineString | null {
+	if (!data || typeof data !== 'object') return null;
+	const obj = data as Record<string, unknown>;
+	if (obj.type === 'LineString' && Array.isArray(obj.coordinates)) {
+		return data as LineString;
+	}
+	if (obj.type === 'Feature') {
+		const geom = (obj as { geometry?: unknown }).geometry;
+		return lineFromCoursePayload(geom);
+	}
+	if (obj.type === 'FeatureCollection') {
+		const features = (obj as CourseFeatureCollection).features;
+		const first = features?.[0]?.geometry;
+		return first?.type === 'LineString' ? first : null;
+	}
+	return null;
+}
 
 type CourseOverlayInput = {
 	id: string;

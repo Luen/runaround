@@ -4,7 +4,8 @@
 	import { env } from '$env/dynamic/public';
 	import {
 		courseOverlayFeatureCollection,
-		type CourseFeatureCollection,
+		isJsonLikeContentType,
+		lineFromCoursePayload,
 		type LineString
 	} from '$lib/geo';
 
@@ -94,23 +95,6 @@
 		}
 	}
 
-	function lineFromCoursePayload(data: unknown): LineString | null {
-		if (!data || typeof data !== 'object') return null;
-		const obj = data as Record<string, unknown>;
-		if (obj.type === 'LineString' && Array.isArray(obj.coordinates)) {
-			return data as LineString;
-		}
-		if (obj.type === 'Feature') {
-			const geom = (obj as { geometry?: unknown }).geometry;
-			return lineFromCoursePayload(geom);
-		}
-		if (obj.type === 'FeatureCollection') {
-			const features = (obj as CourseFeatureCollection).features;
-			const first = features?.[0]?.geometry;
-			return first?.type === 'LineString' ? first : null;
-		}
-		return null;
-	}
 
 	function drawCourses(map: maplibregl.Map, overlayRaces: RaceOverlay[], focusLine: LineString | null) {
 		ensureCourseLayers(map);
@@ -156,6 +140,8 @@
 
 		map.once('load', () => {
 			mapReady = true;
+			// Belt-and-suspenders: paint SSR focus immediately on load.
+			drawCourses(map, races, fetchedFocus ?? focus);
 		});
 
 		document.addEventListener('fullscreenchange', onFullscreen);
@@ -177,13 +163,18 @@
 		let cancelled = false;
 		(async () => {
 			try {
-				const res = await fetch(url);
-				if (!res.ok || cancelled) return;
+				const res = await fetch(url, { credentials: 'same-origin' });
+				if (cancelled) return;
+				// Auth HTML / errors must not clear SSR focus: leave fetchedFocus null.
+				if (!res.ok) return;
+				const contentType = res.headers.get('content-type') ?? '';
+				if (!isJsonLikeContentType(contentType)) return;
 				const data: unknown = await res.json();
 				const line = lineFromCoursePayload(data);
-				if (!cancelled) fetchedFocus = line;
+				// Only upgrade when a LineString parses; otherwise keep SSR focus via ??.
+				if (!cancelled && line) fetchedFocus = line;
 			} catch {
-				if (!cancelled) fetchedFocus = null;
+				// Swallow — keep fetchedFocus null so fetchedFocus ?? focus uses SSR data.
 			}
 		})();
 		return () => {
@@ -194,9 +185,8 @@
 	$effect(() => {
 		const map = mapRef;
 		if (!map || !mapReady) return;
-		// Prefer fetched course.json when courseUrl is set; fall back to focus while loading / on lists.
-		const focusLine = courseUrl ? (fetchedFocus ?? focus) : focus;
-		drawCourses(map, races, focusLine);
+		// SSR focus paints immediately; successful course.json fetch upgrades the overlay.
+		drawCourses(map, races, fetchedFocus ?? focus);
 	});
 </script>
 

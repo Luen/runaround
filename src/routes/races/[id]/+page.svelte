@@ -45,6 +45,7 @@
 
 <div class="mt-6">
 	<RaceMap
+		focus={data.race.courseGeojson}
 		courseUrl={raceCourseJsonUrl(data.race.slug)}
 		gpxHref="/races/{data.race.slug}/gpx"
 	/>
