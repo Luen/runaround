@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
+	import { resolveBasemapStyle } from '$lib/basemaps';
 	import { GeoJSONSource, LngLatBounds, Map, NavigationControl } from '$lib/maplibre';
 	import {
 		courseOverlayFeatureCollection,
@@ -38,15 +39,6 @@
 	const SOURCE_ID = 'courses';
 	const CASING_LAYER_ID = 'courses-casing';
 	const LINE_LAYER_ID = 'courses-line';
-
-	function mapTiles(): string {
-		if (env.PUBLIC_MAP_TILES) return env.PUBLIC_MAP_TILES;
-		const key = env.PUBLIC_THUNDERFOREST_API_KEY;
-		if (key) {
-			return `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${key}`;
-		}
-		return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-	}
 
 	function syncFullscreen() {
 		isFullscreen = document.fullscreenElement === shell;
@@ -122,18 +114,7 @@
 	function attachMap(node: HTMLDivElement) {
 		const map = new Map({
 			container: node,
-			style: {
-				version: 8,
-				sources: {
-					osm: {
-						type: 'raster',
-						tiles: [mapTiles()],
-						tileSize: 256,
-						attribution: '© OpenStreetMap'
-					}
-				},
-				layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
-			},
+			style: resolveBasemapStyle(env),
 			center: [146.81, -19.26],
 			zoom: 11
 		});
@@ -145,10 +126,20 @@
 			map.resize();
 		};
 
+		const paintOverlay = () => {
+			drawCourses(map, races, fetchedFocus ?? focus);
+		};
+
 		map.once('load', () => {
 			mapReady = true;
 			// Belt-and-suspenders: paint SSR focus immediately on load.
-			drawCourses(map, races, fetchedFocus ?? focus);
+			paintOverlay();
+		});
+
+		// Vector (and any later setStyle) drops custom sources/layers; re-apply on style.load.
+		map.on('style.load', () => {
+			if (!mapReady) return;
+			paintOverlay();
 		});
 
 		document.addEventListener('fullscreenchange', onFullscreen);

@@ -37,6 +37,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Vercel Web Analytics + Speed Insights: both `injectAnalytics` / `injectSpeedInsights` live in `src/routes/+layout.ts` (no keys needed for basic setup).
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
+- RaceMap Outdoors basemap: `resolveBasemapStyle` in `src/lib/basemaps.ts` — `PUBLIC_MAP_TILES` (raster XYZ) → else `PUBLIC_MAPTILER_API_KEY` (MapTiler `outdoor-v4` style URL) → else OSM raster. Re-add course layers after `style.load` / `setStyle`.
 - MapLibre: pass plain deep-cloned GeoJSON to `GeoJSONSource.setData` (see `courseOverlayFeatureCollection` in `src/lib/geo.ts`) — Svelte 5 Proxies often fail to render while `fitBounds` still works. RaceMap also re-clones before `setData`, seeds the source with that collection on first add, and calls `triggerRepaint()`.
 - MapLibre v6 + Vite/SvelteKit: import via `$lib/maplibre` which calls `setWorkerUrl` with `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` before any `Map` is created. Without this, GeoJSON overlays silently fail to render in production builds while raster tiles still work.
 - Course overlay paint uses high-contrast orange (`#ea580c`) with a near-white casing (`#fff7ed`) so the line stays visible on green OSM / park tiles (dark green was easy to miss).
@@ -47,7 +48,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 
 ## Security
 
-Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`. Do not hardcode Strava, Thunderforest, Cloudflare, or other keys; use env (`PUBLIC_MAP_TILES` / `PUBLIC_THUNDERFOREST_API_KEY` for maps). If a secret appears in git, stop, rotate it, and do not repeat the value in chat or commits.
+Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`. Do not hardcode Strava, MapTiler, Cloudflare, or other keys; use env (`PUBLIC_MAPTILER_API_KEY` for MapTiler Outdoor vector, optional `PUBLIC_MAP_TILES` for a custom raster XYZ). If a secret appears in git, stop, rotate it, and do not repeat the value in chat or commits.
 
 ## Vercel env (Sensitive / Secret)
 
