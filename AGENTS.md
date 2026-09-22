@@ -36,6 +36,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
+- MapLibre: pass plain deep-cloned GeoJSON to `GeoJSONSource.setData` (see `courseOverlayFeatureCollection` in `src/lib/geo.ts`) — Svelte 5 Proxies often fail to render while `fitBounds` still works.
 
 ## Security
 

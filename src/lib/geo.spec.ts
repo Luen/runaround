@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString } from '$lib/geo';
+import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection } from '$lib/geo';
 import {
 	courseCoverage,
 	matchActivityToCourse,
@@ -96,5 +96,36 @@ describe('leaderboard rules', () => {
 		expect(computeRaceStatus(start, end, new Date('2022-01-01T00:00:00Z'))).toBe('upcoming');
 		expect(computeRaceStatus(start, end, new Date('2022-01-15T00:00:00Z'))).toBe('live');
 		expect(computeRaceStatus(start, end, new Date('2022-02-01T00:00:00Z'))).toBe('closed');
+	});
+});
+
+describe('courseOverlayFeatureCollection', () => {
+	const line: import('$lib/geo').LineString = {
+		type: 'LineString',
+		coordinates: [
+			[146.81, -19.26],
+			[146.82, -19.27]
+		]
+	};
+
+	it('returns a deep-cloned plain FeatureCollection for MapLibre', () => {
+		const proxiedLine = new Proxy(line, {}) as import('$lib/geo').LineString;
+		const races = [{ id: 'r1', title: 'Demo', geojson: proxiedLine }];
+		const fc = courseOverlayFeatureCollection(races, proxiedLine);
+
+		expect(fc.type).toBe('FeatureCollection');
+		expect(fc.features).toHaveLength(2);
+		expect(fc.features[0].geometry).not.toBe(proxiedLine);
+		expect(fc.features[0].geometry).not.toBe(line);
+		expect(fc.features[0].geometry.coordinates).toEqual(line.coordinates);
+		expect(fc.features[1].properties.id).toBe('focus');
+		// JSON round-trip strips Proxy wrappers
+		expect(Object.getPrototypeOf(fc)).toBe(Object.prototype);
+		expect(Object.getPrototypeOf(fc.features[0].geometry)).toBe(Object.prototype);
+	});
+
+	it('handles empty overlays', () => {
+		const fc = courseOverlayFeatureCollection([]);
+		expect(fc.features).toEqual([]);
 	});
 });

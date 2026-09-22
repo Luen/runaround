@@ -167,3 +167,45 @@ function escapeXml(value: string): string {
 		.replaceAll('>', '&gt;')
 		.replaceAll('"', '&quot;');
 }
+
+/** GeoJSON FeatureCollection for MapLibre course overlays. */
+export type CourseFeatureCollection = {
+	type: 'FeatureCollection';
+	features: Array<{
+		type: 'Feature';
+		properties: { title: string; id: string };
+		geometry: LineString;
+	}>;
+};
+
+type CourseOverlayInput = {
+	id: string;
+	title: string;
+	geojson: LineString;
+};
+
+/**
+ * Build a plain (non-Proxy) FeatureCollection for MapLibre GeoJSONSource.setData.
+ * Svelte 5 reactive objects are Proxies; MapLibre often fails to render them
+ * while still reading coordinates for fitBounds. Prefer JSON round-trip over
+ * structuredClone — the latter throws DataCloneError on Proxies.
+ */
+export function courseOverlayFeatureCollection(
+	races: CourseOverlayInput[],
+	focus: LineString | null = null
+): CourseFeatureCollection {
+	const features: CourseFeatureCollection['features'] = races.map((r) => ({
+		type: 'Feature',
+		properties: { title: r.title, id: r.id },
+		geometry: r.geojson
+	}));
+	if (focus) {
+		features.push({
+			type: 'Feature',
+			properties: { title: 'Course', id: 'focus' },
+			geometry: focus
+		});
+	}
+	// JSON round-trip unwraps Svelte 5 Proxies; structuredClone throws DataCloneError on them.
+	return JSON.parse(JSON.stringify({ type: 'FeatureCollection', features })) as CourseFeatureCollection;
+}
