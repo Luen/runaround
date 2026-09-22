@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
-import { inArray } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -9,9 +9,14 @@ export const load: PageServerLoad = async () => {
 			.select()
 			.from(races)
 			.where(inArray(races.status, ['live', 'upcoming']));
-		return { races: active };
+		const pastRaces = await db
+			.select()
+			.from(races)
+			.where(eq(races.status, 'closed'))
+			.orderBy(desc(races.startsAt));
+		return { races: active, pastRaces };
 	} catch (err) {
 		console.error(err);
-		return { races: [] };
+		return { races: [], pastRaces: [] };
 	}
 };
