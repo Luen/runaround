@@ -8,6 +8,8 @@ Living instructions for coding agents working on this repository. Not a human RE
 
 Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node` (Docker) or `@sveltejs/adapter-vercel` when `VERCEL=1`, Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7 generic OAuth (Strava; `account.issuer` is `local:oauth:strava`), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`pnpm exec sv migrate` is major-version only).
 
+**DB URL:** Production (Vercel/Supabase) must set `POSTGRES_URL` (pooled). Optional fallback `POSTGRES_URL_NON_POOLING` for direct/migrate. Resolution lives in `src/lib/server/db/postgres-url.ts` (used by runtime and `drizzle.config.ts`). Do not use `DATABASE_URL`.
+
 Product: admins create Road/Trail races with GPX; runners log in with Strava; GPS (+ optional Strava segment) matching; **race-window** and **overall** leaderboards; Cloudflare Email Sending from the **worker** only (rank improvement, not drops; race-end place). Canonical race URLs: `/races/:id` (legacy segment ids).
 
 ## Commands
@@ -30,7 +32,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 
 - Svelte 5 runes only. Validate `.svelte` with the Svelte MCP autofixer before finishing UI work.
 - `git mv` when relocating tracked assets so history is preserved; do not copy-then-delete binaries.
-- Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec. 
+- Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec.
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).

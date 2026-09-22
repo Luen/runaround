@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { building } from '$app/environment';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { resolvePostgresUrl } from './postgres-url';
 import * as schema from './schema';
 
 function applyDotEnv() {
@@ -30,15 +31,15 @@ applyDotEnv();
 const localDatabaseUrl = 'postgres://runaround:runaround@127.0.0.1:5432/runaround';
 
 function databaseUrl(): string {
-	// Bracket access avoids Vite replacing env reads at build time.
-	const fromEnv = process.env['DATABASE_URL']?.trim();
+	// Bracket access inside resolvePostgresUrl avoids Vite replacing env reads at build time.
+	const fromEnv = resolvePostgresUrl();
 	if (fromEnv) return fromEnv;
 
 	// SvelteKit postbuild analysis runs on Vercel without runtime env vars.
 	if (building) return localDatabaseUrl;
 
 	if (process.env['VERCEL'] === '1' || process.env['NODE_ENV'] === 'production') {
-		throw new Error('DATABASE_URL is not set');
+		throw new Error('POSTGRES_URL is not set');
 	}
 
 	return localDatabaseUrl;
