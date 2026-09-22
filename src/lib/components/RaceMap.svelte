@@ -6,6 +6,7 @@
 		courseOverlayFeatureCollection,
 		isJsonLikeContentType,
 		lineFromCoursePayload,
+		type CourseFeatureCollection,
 		type LineString
 	} from '$lib/geo';
 
@@ -61,11 +62,15 @@
 		}
 	}
 
-	function ensureCourseLayers(map: maplibregl.Map) {
+	function ensureCourseLayers(
+		map: maplibregl.Map,
+		initialData?: CourseFeatureCollection
+	) {
 		if (!map.getSource(SOURCE_ID)) {
 			map.addSource(SOURCE_ID, {
 				type: 'geojson',
-				data: { type: 'FeatureCollection', features: [] }
+				// Seed with known course data when available to avoid empty-then-set race.
+				data: initialData ?? { type: 'FeatureCollection', features: [] }
 			});
 		}
 		if (!map.getLayer(CASING_LAYER_ID)) {
@@ -75,9 +80,10 @@
 				source: SOURCE_ID,
 				layout: { 'line-join': 'round', 'line-cap': 'round' },
 				paint: {
-					'line-color': '#052e16',
-					'line-width': 7,
-					'line-opacity': 0.9
+					// Near-white casing so the line reads on green OSM park tiles.
+					'line-color': '#fff7ed',
+					'line-width': 10,
+					'line-opacity': 0.95
 				}
 			});
 		}
@@ -88,19 +94,21 @@
 				source: SOURCE_ID,
 				layout: { 'line-join': 'round', 'line-cap': 'round' },
 				paint: {
-					'line-color': '#14532d',
-					'line-width': 4.5
+					'line-color': '#ea580c',
+					'line-width': 5.5
 				}
 			});
 		}
 	}
 
-
 	function drawCourses(map: maplibregl.Map, overlayRaces: RaceOverlay[], focusLine: LineString | null) {
-		ensureCourseLayers(map);
 		const collection = courseOverlayFeatureCollection(overlayRaces, focusLine);
+		// Belt-and-suspenders: second plain clone before setData (MapLibre + Svelte Proxies).
+		const plain = JSON.parse(JSON.stringify(collection)) as CourseFeatureCollection;
+		ensureCourseLayers(map, plain);
 		const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource;
-		source.setData(collection);
+		source.setData(plain);
+		map.triggerRepaint();
 
 		const geos = [...overlayRaces.map((r) => r.geojson), ...(focusLine ? [focusLine] : [])];
 		if (geos.length) {
