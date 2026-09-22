@@ -1,5 +1,11 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
+	import {
+		BASEMAP_OPTIONS,
+		DEFAULT_BASEMAP,
+		styleForBasemap,
+		type BasemapId
+	} from '$lib/basemaps';
 	import { GeoJSONSource, LngLatBounds, Map, NavigationControl } from '$lib/maplibre';
 	import {
 		courseOverlayFeatureCollection,
@@ -34,6 +40,9 @@
 	let mapReady = $state(false);
 	/** LineString extracted from a successful `courseUrl` fetch. */
 	let fetchedFocus = $state<LineString | null>(null);
+	let basemap = $state<BasemapId>(DEFAULT_BASEMAP);
+	/** Bumps on each setStyle so stale style.load handlers no-op. */
+	let styleEpoch = 0;
 
 	const SOURCE_ID = 'courses';
 	const CASING_LAYER_ID = 'courses-casing';
@@ -61,10 +70,7 @@
 		}
 	}
 
-	function ensureCourseLayers(
-		map: Map,
-		initialData?: CourseFeatureCollection
-	) {
+	function ensureCourseLayers(map: Map, initialData?: CourseFeatureCollection) {
 		if (!map.getSource(SOURCE_ID)) {
 			map.addSource(SOURCE_ID, {
 				type: 'geojson',
@@ -100,7 +106,13 @@
 		}
 	}
 
-	function drawCourses(map: Map, overlayRaces: RaceOverlay[], focusLine: LineString | null) {
+	function drawCourses(
+		map: Map,
+		overlayRaces: RaceOverlay[],
+		focusLine: LineString | null,
+		options: { fit?: boolean } = {}
+	) {
+		const { fit = true } = options;
 		const collection = courseOverlayFeatureCollection(overlayRaces, focusLine);
 		// Belt-and-suspenders: second plain clone before setData (MapLibre + Svelte Proxies).
 		const plain = JSON.parse(JSON.stringify(collection)) as CourseFeatureCollection;
@@ -109,6 +121,7 @@
 		source.setData(plain);
 		map.triggerRepaint();
 
+		if (!fit) return;
 		const geos = [...overlayRaces.map((r) => r.geojson), ...(focusLine ? [focusLine] : [])];
 		if (geos.length) {
 			const b = new LngLatBounds();
@@ -119,26 +132,43 @@
 		}
 	}
 
+	function currentFocus(): LineString | null {
+		return fetchedFocus ?? focus;
+	}
+
+	function repaintCourses(map: Map, fit: boolean) {
+		drawCourses(map, races, currentFocus(), { fit });
+	}
+
+	function applyBasemap(map: Map, id: BasemapId, fitAfter: boolean) {
+		const epoch = ++styleEpoch;
+		map.setStyle(styleForBasemap(id, mapTiles()));
+		map.once('style.load', () => {
+			if (epoch !== styleEpoch || mapRef !== map) return;
+			// Full style swap drops custom GeoJSON sources/layers — re-add then paint.
+			repaintCourses(map, fitAfter);
+		});
+	}
+
+	function setBasemap(id: BasemapId) {
+		if (id === basemap) return;
+		basemap = id;
+		const map = mapRef;
+		if (!map || !mapReady) return;
+		// Keep camera when the user switches basemap.
+		applyBasemap(map, id, false);
+	}
+
 	function attachMap(node: HTMLDivElement) {
 		const map = new Map({
 			container: node,
-			style: {
-				version: 8,
-				sources: {
-					osm: {
-						type: 'raster',
-						tiles: [mapTiles()],
-						tileSize: 256,
-						attribution: '© OpenStreetMap'
-					}
-				},
-				layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
-			},
+			style: styleForBasemap(DEFAULT_BASEMAP, mapTiles()),
 			center: [146.81, -19.26],
 			zoom: 11
 		});
 		map.addControl(new NavigationControl(), 'top-right');
 		mapRef = map;
+		basemap = DEFAULT_BASEMAP;
 
 		const onFullscreen = () => {
 			syncFullscreen();
@@ -148,13 +178,14 @@
 		map.once('load', () => {
 			mapReady = true;
 			// Belt-and-suspenders: paint SSR focus immediately on load.
-			drawCourses(map, races, fetchedFocus ?? focus);
+			repaintCourses(map, true);
 		});
 
 		document.addEventListener('fullscreenchange', onFullscreen);
 
 		return () => {
 			document.removeEventListener('fullscreenchange', onFullscreen);
+			styleEpoch += 1;
 			mapReady = false;
 			mapRef = null;
 			map.remove();
@@ -192,8 +223,14 @@
 	$effect(() => {
 		const map = mapRef;
 		if (!map || !mapReady) return;
+		// Track races / focus / fetchedFocus so overlays update after style swaps too.
+		races;
+		focus;
+		fetchedFocus;
+		// During setStyle, sources are gone until style.load re-adds them.
+		if (!map.isStyleLoaded()) return;
 		// SSR focus paints immediately; successful course.json fetch upgrades the overlay.
-		drawCourses(map, races, fetchedFocus ?? focus);
+		repaintCourses(map, true);
 	});
 </script>
 
@@ -205,7 +242,7 @@
 	]}
 >
 	<div class="h-full w-full" {@attach attachMap}></div>
-	<div class="absolute left-2 top-2 z-10 flex gap-2">
+	<div class="absolute left-2 top-2 z-10 flex flex-wrap items-center gap-2">
 		{#if gpxHref}
 			<a
 				class="rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200 hover:bg-white"
@@ -222,6 +259,27 @@
 		>
 			{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
 		</button>
+		<div
+			role="group"
+			aria-label="Basemap"
+			class="flex overflow-hidden rounded-md bg-white/95 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200"
+		>
+			{#each BASEMAP_OPTIONS as opt (opt.id)}
+				<button
+					type="button"
+					aria-pressed={basemap === opt.id}
+					class={[
+						'px-2.5 py-1.5 hover:bg-white',
+						basemap === opt.id
+							? 'bg-green-800 text-white hover:bg-green-800'
+							: 'bg-transparent'
+					]}
+					onclick={() => setBasemap(opt.id)}
+				>
+					{opt.label}
+				</button>
+			{/each}
+		</div>
 	</div>
 </div>
 
