@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatDuration } from '$lib/geo';
+	import { safeHttpUrl } from '$lib/boards';
 
 	type Row = {
 		rank: number;
@@ -7,6 +8,7 @@
 		timeMs: number;
 		startedAt: Date | string;
 		source: string;
+		effortUrl?: string | null;
 	};
 
 	let { title, rows }: { title: string; rows: Row[] } = $props();
@@ -29,6 +31,7 @@
 				</thead>
 				<tbody>
 					{#each rows as row (row.rank + row.name)}
+						{@const effortHref = safeHttpUrl(row.effortUrl)}
 						<tr class="border-b border-stone-100">
 							<td class="py-3 pr-4 font-semibold">{row.rank}</td>
 							<td class="py-3 pr-4">
@@ -37,7 +40,19 @@
 									<span class="text-xs text-stone-400">imported</span>
 								{/if}
 							</td>
-							<td class="py-3 pr-4">{formatDuration(row.timeMs)}</td>
+							<td class="py-3 pr-4">
+								{#if effortHref}
+									<a
+										class="font-medium text-green-900 underline"
+										href={effortHref}
+										target="_blank"
+										rel="noreferrer"
+										title="Open on Strava">{formatDuration(row.timeMs)}</a
+									>
+								{:else}
+									{formatDuration(row.timeMs)}
+								{/if}
+							</td>
 							<td class="py-3 pr-4">{new Date(row.startedAt).toLocaleDateString()}</td>
 						</tr>
 					{/each}
