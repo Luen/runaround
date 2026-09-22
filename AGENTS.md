@@ -35,6 +35,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec.
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
+- Vercel Web Analytics + Speed Insights: both `injectAnalytics` / `injectSpeedInsights` live in `src/routes/+layout.ts` (no keys needed for basic setup).
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
 - MapLibre: pass plain deep-cloned GeoJSON to `GeoJSONSource.setData` (see `courseOverlayFeatureCollection` in `src/lib/geo.ts`) — Svelte 5 Proxies often fail to render while `fitBounds` still works. RaceMap also re-clones before `setData`, seeds the source with that collection on first add, and calls `triggerRepaint()`.
 - MapLibre v6 + Vite/SvelteKit: import via `$lib/maplibre` which calls `setWorkerUrl` with `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` before any `Map` is created. Without this, GeoJSON overlays silently fail to render in production builds while raster tiles still work.
