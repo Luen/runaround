@@ -36,7 +36,11 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
-- MapLibre: pass plain deep-cloned GeoJSON to `GeoJSONSource.setData` (see `courseOverlayFeatureCollection` in `src/lib/geo.ts`) — Svelte 5 Proxies often fail to render while `fitBounds` still works.
+- MapLibre: pass plain deep-cloned GeoJSON to `GeoJSONSource.setData` (see `courseOverlayFeatureCollection` in `src/lib/geo.ts`) — Svelte 5 Proxies often fail to render while `fitBounds` still works. RaceMap also re-clones before `setData`, seeds the source with that collection on first add, and calls `triggerRepaint()`.
+- MapLibre v6 + Vite/SvelteKit: import via `$lib/maplibre` which calls `setWorkerUrl` with `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` before any `Map` is created. Without this, GeoJSON overlays silently fail to render in production builds while raster tiles still work.
+- Course overlay paint uses high-contrast orange (`#ea580c`) with a near-white casing (`#fff7ed`) so the line stays visible on green OSM / park tiles (dark green was easy to miss).
+- Race detail / admin maps load the course overlay from `/races/:slug/course.json` (`RaceMap` `courseUrl`); listing maps still pass `races`/`focus` SSR props. A Vercel Draft Mode `HEAD` to the HTML race URL (`x-vercel-draft-status`) is unrelated to map fetches — do not treat it as a missing GPX/GeoJSON bug.
+- GPX download links use `data-sveltekit-preload-data="off"` (and `data-sveltekit-reload` where needed) so the client router does not treat `/races/:slug/gpx` as a page navigation.
 - Leaderboards: `attempts.effortUrl` flows through `rankedLeaderboard` (`src/lib/boards.ts`); `LeaderboardTable` links the time when `safeHttpUrl` accepts http(s).
 
 ## Security
