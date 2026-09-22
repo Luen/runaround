@@ -22,7 +22,7 @@ services:
       - 4008:3000
     env_file: .env
     environment:
-      DATABASE_URL: postgres://runaround:runaround@db:5432/runaround
+      POSTGRES_URL: postgres://runaround:runaround@db:5432/runaround
       ORIGIN: ${ORIGIN:-http://localhost:4008}
     command: sh -c "pnpm exec drizzle-kit migrate && node build"
     depends_on:
@@ -34,7 +34,7 @@ services:
     command: pnpm exec tsx src/worker/index.ts
     env_file: .env
     environment:
-      DATABASE_URL: postgres://runaround:runaround@db:5432/runaround
+      POSTGRES_URL: postgres://runaround:runaround@db:5432/runaround
     depends_on:
       db:
         condition: service_healthy
