@@ -2,7 +2,7 @@
 	import * as maplibregl from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { env } from '$env/dynamic/public';
-	import type { LineString } from '$lib/geo';
+	import { courseOverlayFeatureCollection, type LineString } from '$lib/geo';
 
 	type RaceOverlay = {
 		id: string;
@@ -22,6 +22,12 @@
 
 	let shell = $state<HTMLDivElement | null>(null);
 	let isFullscreen = $state(false);
+	let mapRef = $state<maplibregl.Map | null>(null);
+	let mapReady = $state(false);
+
+	const SOURCE_ID = 'courses';
+	const CASING_LAYER_ID = 'courses-casing';
+	const LINE_LAYER_ID = 'courses-line';
 
 	function mapTiles(): string {
 		if (env.PUBLIC_MAP_TILES) return env.PUBLIC_MAP_TILES;
@@ -45,6 +51,56 @@
 		}
 	}
 
+	function ensureCourseLayers(map: maplibregl.Map) {
+		if (!map.getSource(SOURCE_ID)) {
+			map.addSource(SOURCE_ID, {
+				type: 'geojson',
+				data: { type: 'FeatureCollection', features: [] }
+			});
+		}
+		if (!map.getLayer(CASING_LAYER_ID)) {
+			map.addLayer({
+				id: CASING_LAYER_ID,
+				type: 'line',
+				source: SOURCE_ID,
+				layout: { 'line-join': 'round', 'line-cap': 'round' },
+				paint: {
+					'line-color': '#052e16',
+					'line-width': 7,
+					'line-opacity': 0.9
+				}
+			});
+		}
+		if (!map.getLayer(LINE_LAYER_ID)) {
+			map.addLayer({
+				id: LINE_LAYER_ID,
+				type: 'line',
+				source: SOURCE_ID,
+				layout: { 'line-join': 'round', 'line-cap': 'round' },
+				paint: {
+					'line-color': '#14532d',
+					'line-width': 4.5
+				}
+			});
+		}
+	}
+
+	function drawCourses(map: maplibregl.Map, overlayRaces: RaceOverlay[], focusLine: LineString | null) {
+		ensureCourseLayers(map);
+		const collection = courseOverlayFeatureCollection(overlayRaces, focusLine);
+		const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource;
+		source.setData(collection);
+
+		const geos = [...overlayRaces.map((r) => r.geojson), ...(focusLine ? [focusLine] : [])];
+		if (geos.length) {
+			const b = new maplibregl.LngLatBounds();
+			for (const g of geos) {
+				for (const [lng, lat] of g.coordinates) b.extend([lng, lat]);
+			}
+			map.fitBounds(b, { padding: 40, maxZoom: 14 });
+		}
+	}
+
 	function attachMap(node: HTMLDivElement) {
 		const map = new maplibregl.Map({
 			container: node,
@@ -64,52 +120,7 @@
 			zoom: 11
 		});
 		map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-		const sourceId = 'courses';
-		const layerId = 'courses-line';
-		let ready = false;
-
-		const ensureSource = () => {
-			if (!map.getSource(sourceId)) {
-				map.addSource(sourceId, {
-					type: 'geojson',
-					data: { type: 'FeatureCollection', features: [] }
-				});
-				map.addLayer({
-					id: layerId,
-					type: 'line',
-					source: sourceId,
-					paint: { 'line-color': '#166534', 'line-width': 4 }
-				});
-			}
-		};
-
-		const draw = (overlayRaces: RaceOverlay[], focusLine: LineString | null) => {
-			if (!ready) return;
-			ensureSource();
-			const features = overlayRaces.map((r) => ({
-				type: 'Feature' as const,
-				properties: { title: r.title, id: r.id },
-				geometry: r.geojson
-			}));
-			if (focusLine) {
-				features.push({
-					type: 'Feature',
-					properties: { title: 'Course', id: 'focus' },
-					geometry: focusLine
-				});
-			}
-			const source = map.getSource(sourceId) as maplibregl.GeoJSONSource;
-			source.setData({ type: 'FeatureCollection', features });
-			const geos = [...overlayRaces.map((r) => r.geojson), ...(focusLine ? [focusLine] : [])];
-			if (geos.length) {
-				const b = new maplibregl.LngLatBounds();
-				for (const g of geos) {
-					for (const [lng, lat] of g.coordinates) b.extend([lng, lat]);
-				}
-				map.fitBounds(b, { padding: 40, maxZoom: 14 });
-			}
-		};
+		mapRef = map;
 
 		const onFullscreen = () => {
 			syncFullscreen();
@@ -117,21 +128,24 @@
 		};
 
 		map.once('load', () => {
-			ready = true;
-			draw(races, focus);
-		});
-
-		$effect(() => {
-			draw(races, focus);
+			mapReady = true;
 		});
 
 		document.addEventListener('fullscreenchange', onFullscreen);
 
 		return () => {
 			document.removeEventListener('fullscreenchange', onFullscreen);
+			mapReady = false;
+			mapRef = null;
 			map.remove();
 		};
 	}
+
+	$effect(() => {
+		const map = mapRef;
+		if (!map || !mapReady) return;
+		drawCourses(map, races, focus);
+	});
 </script>
 
 <div
