@@ -37,6 +37,8 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
 - MapLibre: pass plain deep-cloned GeoJSON to `GeoJSONSource.setData` (see `courseOverlayFeatureCollection` in `src/lib/geo.ts`) — Svelte 5 Proxies often fail to render while `fitBounds` still works.
+- Race detail / admin maps load the course overlay from `/races/:slug/course.json` (`RaceMap` `courseUrl`); listing maps still pass `races`/`focus` SSR props. A Vercel Draft Mode `HEAD` to the HTML race URL (`x-vercel-draft-status`) is unrelated to map fetches — do not treat it as a missing GPX/GeoJSON bug.
+- GPX download links use `data-sveltekit-preload-data="off"` (and `data-sveltekit-reload` where needed) so the client router does not treat `/races/:slug/gpx` as a page navigation.
 - Leaderboards: `attempts.effortUrl` flows through `rankedLeaderboard` (`src/lib/boards.ts`); `LeaderboardTable` links the time when `safeHttpUrl` accepts http(s).
 
 ## Security

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection } from '$lib/geo';
+import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection, raceCourseJsonUrl } from '$lib/geo';
 import {
 	courseCoverage,
 	matchActivityToCourse,
@@ -127,5 +127,15 @@ describe('courseOverlayFeatureCollection', () => {
 	it('handles empty overlays', () => {
 		const fc = courseOverlayFeatureCollection([]);
 		expect(fc.features).toEqual([]);
+	});
+});
+
+describe('raceCourseJsonUrl', () => {
+	it('builds the public course.json path for a race slug', () => {
+		expect(raceCourseJsonUrl('28927372')).toBe('/races/28927372/course.json');
+	});
+
+	it('encodes special characters in the slug', () => {
+		expect(raceCourseJsonUrl('a/b')).toBe('/races/a%2Fb/course.json');
 	});
 });

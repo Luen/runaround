@@ -2,6 +2,7 @@
 	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
+	import { raceCourseJsonUrl } from '$lib/geo';
 	import { sportsEventJsonLd } from '$lib/seo';
 	import type { PageData } from './$types';
 
@@ -29,7 +30,8 @@
 	<a
 		class="rounded-full bg-green-800 px-4 py-2 text-white"
 		href="/races/{data.race.slug}/gpx"
-		data-sveltekit-reload>Download GPX</a
+		data-sveltekit-reload
+		data-sveltekit-preload-data="off">Download GPX</a
 	>
 	{#if data.race.stravaSegmentId}
 		<a
@@ -42,7 +44,10 @@
 </div>
 
 <div class="mt-6">
-	<RaceMap focus={data.race.courseGeojson} gpxHref="/races/{data.race.slug}/gpx" />
+	<RaceMap
+		courseUrl={raceCourseJsonUrl(data.race.slug)}
+		gpxHref="/races/{data.race.slug}/gpx"
+	/>
 </div>
 
 <div class="mt-8 flex gap-3">

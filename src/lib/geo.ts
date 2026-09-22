@@ -168,6 +168,12 @@ function escapeXml(value: string): string {
 		.replaceAll('"', '&quot;');
 }
 
+
+/** Public path for a race course GeoJSON overlay (`application/geo+json`). */
+export function raceCourseJsonUrl(slug: string): string {
+	return `/races/${encodeURIComponent(slug)}/course.json`;
+}
+
 /** GeoJSON FeatureCollection for MapLibre course overlays. */
 export type CourseFeatureCollection = {
 	type: 'FeatureCollection';

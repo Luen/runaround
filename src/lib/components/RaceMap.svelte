@@ -2,7 +2,11 @@
 	import * as maplibregl from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { env } from '$env/dynamic/public';
-	import { courseOverlayFeatureCollection, type LineString } from '$lib/geo';
+	import {
+		courseOverlayFeatureCollection,
+		type CourseFeatureCollection,
+		type LineString
+	} from '$lib/geo';
 
 	type RaceOverlay = {
 		id: string;
@@ -13,17 +17,22 @@
 	let {
 		races = [],
 		focus = null,
-		gpxHref = null
+		gpxHref = null,
+		courseUrl = null
 	}: {
 		races?: RaceOverlay[];
 		focus?: LineString | null;
 		gpxHref?: string | null;
+		/** When set, fetch course GeoJSON from this URL (primary overlay on race detail). */
+		courseUrl?: string | null;
 	} = $props();
 
 	let shell = $state<HTMLDivElement | null>(null);
 	let isFullscreen = $state(false);
 	let mapRef = $state<maplibregl.Map | null>(null);
 	let mapReady = $state(false);
+	/** LineString extracted from a successful `courseUrl` fetch. */
+	let fetchedFocus = $state<LineString | null>(null);
 
 	const SOURCE_ID = 'courses';
 	const CASING_LAYER_ID = 'courses-casing';
@@ -85,6 +94,24 @@
 		}
 	}
 
+	function lineFromCoursePayload(data: unknown): LineString | null {
+		if (!data || typeof data !== 'object') return null;
+		const obj = data as Record<string, unknown>;
+		if (obj.type === 'LineString' && Array.isArray(obj.coordinates)) {
+			return data as LineString;
+		}
+		if (obj.type === 'Feature') {
+			const geom = (obj as { geometry?: unknown }).geometry;
+			return lineFromCoursePayload(geom);
+		}
+		if (obj.type === 'FeatureCollection') {
+			const features = (obj as CourseFeatureCollection).features;
+			const first = features?.[0]?.geometry;
+			return first?.type === 'LineString' ? first : null;
+		}
+		return null;
+	}
+
 	function drawCourses(map: maplibregl.Map, overlayRaces: RaceOverlay[], focusLine: LineString | null) {
 		ensureCourseLayers(map);
 		const collection = courseOverlayFeatureCollection(overlayRaces, focusLine);
@@ -142,9 +169,34 @@
 	}
 
 	$effect(() => {
+		const url = courseUrl;
+		if (!url) {
+			fetchedFocus = null;
+			return;
+		}
+		let cancelled = false;
+		(async () => {
+			try {
+				const res = await fetch(url);
+				if (!res.ok || cancelled) return;
+				const data: unknown = await res.json();
+				const line = lineFromCoursePayload(data);
+				if (!cancelled) fetchedFocus = line;
+			} catch {
+				if (!cancelled) fetchedFocus = null;
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	$effect(() => {
 		const map = mapRef;
 		if (!map || !mapReady) return;
-		drawCourses(map, races, focus);
+		// Prefer fetched course.json when courseUrl is set; fall back to focus while loading / on lists.
+		const focusLine = courseUrl ? (fetchedFocus ?? focus) : focus;
+		drawCourses(map, races, focusLine);
 	});
 </script>
 
@@ -162,6 +214,7 @@
 				class="rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200 hover:bg-white"
 				href={gpxHref}
 				data-sveltekit-reload
+				data-sveltekit-preload-data="off"
 				download>GPX</a
 			>
 		{/if}
