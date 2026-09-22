@@ -29,9 +29,11 @@ Webhook: `{ORIGIN}/api/strava/webhook`
 
 ## Vercel + Cloudflare
 
-Production web runs on **Vercel** (`adapter-vercel` when `VERCEL=1`); Docker still uses `adapter-node`.
+Production web runs on **Vercel** (`adapter-vercel` when `VERCEL=1`); Docker still uses `adapter-node`. Kit config (including `kit.env.publicPrefix: 'PUBLIC_'`) lives in `svelte.config.js`.
 
 On Vercel Production (and Preview), set **`POSTGRES_URL`** to the Supabase pooled connection string (Supabase/Vercel inject this name by default). Optional: `POSTGRES_URL_NON_POOLING` for direct connections/migrations.
+
+Server-only secrets (`BETTER_AUTH_SECRET`, `STRAVA_CLIENT_SECRET`, `STRAVA_VERIFY_TOKEN`, and similar) should be added as **Sensitive** in Vercel → Settings → Environment Variables. Do not prefix them with `PUBLIC_` or `NEXT_PUBLIC_` (Supabase may suggest Next-style public prefixes — ignore those for this app). If Sensitive verification still fails after a deploy that includes `svelte.config.js`, use **Encrypted** instead; it is fine for server-only vars.
 
 DNS for `runaround.com.au` is proxied through **Cloudflare**. Set Cloudflare **SSL/TLS encryption mode** to **Full (strict)** — not Flexible. Flexible makes Cloudflare call Vercel over HTTP while Vercel redirects to HTTPS, causing `ERR_TOO_MANY_REDIRECTS`.
 

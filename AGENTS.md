@@ -6,7 +6,7 @@ Living instructions for coding agents working on this repository. Not a human RE
 
 ## Project
 
-Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node` (Docker) or `@sveltejs/adapter-vercel` when `VERCEL=1`, Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7 generic OAuth (Strava; `account.issuer` is `local:oauth:strava`), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`pnpm exec sv migrate` is major-version only).
+Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node` (Docker) or `@sveltejs/adapter-vercel` when `VERCEL=1` (selected in `svelte.config.js`), Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7 generic OAuth (Strava; `account.issuer` is `local:oauth:strava`), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`pnpm exec sv migrate` is major-version only).
 
 **DB URL:** Production (Vercel/Supabase) must set `POSTGRES_URL` (pooled). Optional fallback `POSTGRES_URL_NON_POOLING` for direct/migrate. Resolution lives in `src/lib/server/db/postgres-url.ts` (used by runtime and `drizzle.config.ts`). Do not use `DATABASE_URL`.
 
@@ -40,6 +40,10 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 ## Security
 
 Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`. Do not hardcode Strava, Thunderforest, Cloudflare, or other keys; use env (`PUBLIC_MAP_TILES` / `PUBLIC_THUNDERFOREST_API_KEY` for maps). If a secret appears in git, stop, rotate it, and do not repeat the value in chat or commits.
+
+## Vercel env (Sensitive / Secret)
+
+Kit options live in `svelte.config.js` (`kit.env.publicPrefix: 'PUBLIC_'`, adapter selection). Vercel’s Sensitive env UI needs that file so it can verify the public prefix. Server-only secrets (`BETTER_AUTH_SECRET`, `STRAVA_CLIENT_SECRET`, `STRAVA_VERIFY_TOKEN`, etc.) must **not** use `PUBLIC_` or `NEXT_PUBLIC_` — do not keep Supabase/`NEXT_PUBLIC_*` public prefixes for app secrets. After deploy of this config: add those as **Sensitive** in Vercel → Settings → Environment Variables. If the UI still flakes, **Encrypted** (non-Sensitive) still works for server-only vars.
 
 ## Git
 
