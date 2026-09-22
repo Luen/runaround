@@ -57,6 +57,18 @@
 		return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 	}
 
+	/** Non-empty MapTiler key for optional satellite basemap; null hides Satellite in UI. */
+	function maptilerKey(): string | null {
+		const key = env.PUBLIC_MAPTILER_API_KEY?.trim();
+		return key ? key : null;
+	}
+
+	const visibleBasemapOptions = $derived(
+		maptilerKey()
+			? BASEMAP_OPTIONS
+			: BASEMAP_OPTIONS.filter((o) => o.id !== 'satellite')
+	);
+
 	function syncFullscreen() {
 		isFullscreen = document.fullscreenElement === shell;
 	}
@@ -142,7 +154,7 @@
 
 	function applyBasemap(map: Map, id: BasemapId, fitAfter: boolean) {
 		const epoch = ++styleEpoch;
-		map.setStyle(styleForBasemap(id, mapTiles()));
+		map.setStyle(styleForBasemap(id, mapTiles(), maptilerKey()));
 		map.once('style.load', () => {
 			if (epoch !== styleEpoch || mapRef !== map) return;
 			// Full style swap drops custom GeoJSON sources/layers — re-add then paint.
@@ -162,7 +174,7 @@
 	function attachMap(node: HTMLDivElement) {
 		const map = new Map({
 			container: node,
-			style: styleForBasemap(DEFAULT_BASEMAP, mapTiles()),
+			style: styleForBasemap(DEFAULT_BASEMAP, mapTiles(), maptilerKey()),
 			center: [146.81, -19.26],
 			zoom: 11
 		});
@@ -264,7 +276,7 @@
 			aria-label="Basemap"
 			class="flex overflow-hidden rounded-md bg-white/95 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200"
 		>
-			{#each BASEMAP_OPTIONS as opt (opt.id)}
+			{#each visibleBasemapOptions as opt (opt.id)}
 				<button
 					type="button"
 					aria-pressed={basemap === opt.id}

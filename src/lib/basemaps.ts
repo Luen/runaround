@@ -1,33 +1,28 @@
 /**
- * Basemap styles for RaceMap. Free/no-key options only (except optional
- * Thunderforest outdoors via PUBLIC_* env, resolved by the caller).
+ * Basemap styles for RaceMap. Outdoors via PUBLIC_MAP_TILES / Thunderforest / OSM;
+ * optional MapTiler satellite via PUBLIC_MAPTILER_API_KEY (caller resolves env).
  */
 import type { StyleSpecification } from 'maplibre-gl';
 
-export type BasemapId = 'outdoors' | 'liberty' | 'satellite';
+export type BasemapId = 'outdoors' | 'satellite';
 
 export const BASEMAP_OPTIONS: { id: BasemapId; label: string }[] = [
 	{ id: 'outdoors', label: 'Outdoors' },
-	{ id: 'liberty', label: 'Liberty' },
 	{ id: 'satellite', label: 'Satellite' }
 ];
 
 export const DEFAULT_BASEMAP: BasemapId = 'outdoors';
 
-/** OpenFreeMap Liberty vector style (no API key). Attribution comes from the style. */
-export const LIBERTY_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-
-/**
- * EOX Sentinel-2 cloudless 2020 WMTS (EPSG:3857 Google-compatible matrix).
- * Path order is {z}/{y}/{x} per EOX / MapLibre docs.
- */
-export const SATELLITE_TILE_URL =
-	'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg';
-
-export const SATELLITE_ATTRIBUTION =
-	'<a href="https://cloudless.eox.at/">EOxCloudless</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2020)';
-
 export const OUTDOORS_ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+/** Fallback attribution when TileJSON is unavailable; MapTiler TileJSON usually supplies its own. */
+export const SATELLITE_ATTRIBUTION =
+	'© <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>';
+
+/** MapTiler satellite-v2 TileJSON URL (includes API key query param). */
+export function maptilerSatelliteTileUrl(key: string): string {
+	return `https://api.maptiler.com/tiles/satellite-v2/tiles.json?key=${encodeURIComponent(key)}`;
+}
 
 /** Minimal raster style used for Outdoors (PUBLIC_MAP_TILES / Thunderforest / OSM). */
 export function outdoorsStyle(tileUrl: string): StyleSpecification {
@@ -45,33 +40,37 @@ export function outdoorsStyle(tileUrl: string): StyleSpecification {
 	};
 }
 
-/** Minimal raster-only style for EOX Sentinel-2 cloudless. */
-export function satelliteStyle(): StyleSpecification {
+/** Minimal raster style for MapTiler satellite (TileJSON `url` on the source). */
+export function satelliteStyle(apiKey: string): StyleSpecification {
 	return {
 		version: 8,
 		sources: {
 			satellite: {
 				type: 'raster',
-				tiles: [SATELLITE_TILE_URL],
+				url: maptilerSatelliteTileUrl(apiKey),
 				tileSize: 256,
-				attribution: SATELLITE_ATTRIBUTION,
-				maxzoom: 14
+				attribution: SATELLITE_ATTRIBUTION
 			}
 		},
 		layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }]
 	};
 }
 
-/** MapLibre `setStyle` argument for a basemap id. */
+/**
+ * MapLibre `setStyle` argument for a basemap id.
+ * Satellite requires a non-empty MapTiler key; otherwise falls back to outdoors.
+ */
 export function styleForBasemap(
 	id: BasemapId,
-	outdoorsTileUrl: string
-): string | StyleSpecification {
-	if (id === 'liberty') return LIBERTY_STYLE_URL;
-	if (id === 'satellite') return satelliteStyle();
+	outdoorsTileUrl: string,
+	maptilerKey: string | null
+): StyleSpecification {
+	if (id === 'satellite' && maptilerKey) {
+		return satelliteStyle(maptilerKey);
+	}
 	return outdoorsStyle(outdoorsTileUrl);
 }
 
 export function isBasemapId(value: string): value is BasemapId {
-	return value === 'outdoors' || value === 'liberty' || value === 'satellite';
+	return value === 'outdoors' || value === 'satellite';
 }
