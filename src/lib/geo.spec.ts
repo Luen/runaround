@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection, raceCourseJsonUrl, isJsonLikeContentType, lineFromCoursePayload } from '$lib/geo';
+import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection, colorForRaceId, raceCourseJsonUrl, isJsonLikeContentType, lineFromCoursePayload } from '$lib/geo';
 import {
 	courseCoverage,
 	matchActivityToCourse,
@@ -110,7 +110,17 @@ describe('courseOverlayFeatureCollection', () => {
 
 	it('returns a deep-cloned plain FeatureCollection for MapLibre', () => {
 		const proxiedLine = new Proxy(line, {}) as import('$lib/geo').LineString;
-		const races = [{ id: 'r1', title: 'Demo', geojson: proxiedLine }];
+		const races = [
+			{
+				id: 'r1',
+				title: 'Demo',
+				geojson: proxiedLine,
+				href: '/races/r1',
+				surface: 'road',
+				status: 'live',
+				distanceM: 5200
+			}
+		];
 		const fc = courseOverlayFeatureCollection(races, proxiedLine);
 
 		expect(fc.type).toBe('FeatureCollection');
@@ -118,7 +128,12 @@ describe('courseOverlayFeatureCollection', () => {
 		expect(fc.features[0].geometry).not.toBe(proxiedLine);
 		expect(fc.features[0].geometry).not.toBe(line);
 		expect(fc.features[0].geometry.coordinates).toEqual(line.coordinates);
+		expect(fc.features[0].properties.href).toBe('/races/r1');
+		expect(fc.features[0].properties.surface).toBe('road');
+		expect(fc.features[0].properties.distanceM).toBe(5200);
+		expect(fc.features[0].properties.color).toBe(colorForRaceId('r1'));
 		expect(fc.features[1].properties.id).toBe('focus');
+		expect(fc.features[1].properties.color).toBe('#ea580c');
 		// JSON round-trip strips Proxy wrappers
 		expect(Object.getPrototypeOf(fc)).toBe(Object.prototype);
 		expect(Object.getPrototypeOf(fc.features[0].geometry)).toBe(Object.prototype);
@@ -183,5 +198,16 @@ describe('lineFromCoursePayload', () => {
 		expect(lineFromCoursePayload(null)).toBeNull();
 		expect(lineFromCoursePayload({ type: 'Point', coordinates: [1, 2] })).toBeNull();
 		expect(lineFromCoursePayload({ type: 'FeatureCollection', features: [] })).toBeNull();
+	});
+});
+
+describe('colorForRaceId', () => {
+	it('returns a stable hsl colour for the same id', () => {
+		expect(colorForRaceId('castle-hill')).toBe(colorForRaceId('castle-hill'));
+		expect(colorForRaceId('castle-hill')).toMatch(/^hsl\(\d+ 72% 42%\)$/);
+	});
+
+	it('varies by id', () => {
+		expect(colorForRaceId('a')).not.toBe(colorForRaceId('b'));
 	});
 });
