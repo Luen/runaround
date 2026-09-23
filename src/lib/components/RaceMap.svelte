@@ -40,7 +40,6 @@
 	const LINE_LAYER_ID = 'courses-line';
 
 	function mapTiles(): string {
-		if (env.PUBLIC_MAP_TILES) return env.PUBLIC_MAP_TILES;
 		const key = env.PUBLIC_THUNDERFOREST_API_KEY;
 		if (key) {
 			return `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${key}`;
