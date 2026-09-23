@@ -34,6 +34,14 @@
 
 <div class="mt-8">
 	<RaceMap
-		races={data.races.map((r) => ({ id: r.slug, title: r.title, geojson: r.courseGeojson }))}
+		races={data.races.map((r) => ({
+			id: r.slug,
+			title: r.title,
+			geojson: r.courseGeojson,
+			href: `/races/${r.slug}`,
+			surface: r.surface,
+			status: r.status,
+			distanceM: r.distanceM
+		}))}
 	/>
 </div>
