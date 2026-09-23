@@ -167,3 +167,82 @@ function escapeXml(value: string): string {
 		.replaceAll('>', '&gt;')
 		.replaceAll('"', '&quot;');
 }
+
+
+/** True when a response Content-Type looks like JSON / GeoJSON (not HTML login pages). */
+export function isJsonLikeContentType(contentType: string): boolean {
+	const ct = contentType.split(';')[0]?.trim().toLowerCase() ?? '';
+	return (
+		ct === 'application/json' ||
+		ct === 'application/geo+json' ||
+		ct.endsWith('+json') ||
+		ct === 'text/json'
+	);
+}
+
+/** Public path for a race course GeoJSON overlay (`application/geo+json`). */
+export function raceCourseJsonUrl(slug: string): string {
+	return `/races/${encodeURIComponent(slug)}/course.json`;
+}
+
+/** GeoJSON FeatureCollection for MapLibre course overlays. */
+export type CourseFeatureCollection = {
+	type: 'FeatureCollection';
+	features: Array<{
+		type: 'Feature';
+		properties: { title: string; id: string };
+		geometry: LineString;
+	}>;
+};
+
+
+/** Extract a LineString from GeoJSON LineString / Feature / FeatureCollection payloads. */
+export function lineFromCoursePayload(data: unknown): LineString | null {
+	if (!data || typeof data !== 'object') return null;
+	const obj = data as Record<string, unknown>;
+	if (obj.type === 'LineString' && Array.isArray(obj.coordinates)) {
+		return data as LineString;
+	}
+	if (obj.type === 'Feature') {
+		const geom = (obj as { geometry?: unknown }).geometry;
+		return lineFromCoursePayload(geom);
+	}
+	if (obj.type === 'FeatureCollection') {
+		const features = (obj as CourseFeatureCollection).features;
+		const first = features?.[0]?.geometry;
+		return first?.type === 'LineString' ? first : null;
+	}
+	return null;
+}
+
+type CourseOverlayInput = {
+	id: string;
+	title: string;
+	geojson: LineString;
+};
+
+/**
+ * Build a plain (non-Proxy) FeatureCollection for MapLibre GeoJSONSource.setData.
+ * Svelte 5 reactive objects are Proxies; MapLibre often fails to render them
+ * while still reading coordinates for fitBounds. Prefer JSON round-trip over
+ * structuredClone — the latter throws DataCloneError on Proxies.
+ */
+export function courseOverlayFeatureCollection(
+	races: CourseOverlayInput[],
+	focus: LineString | null = null
+): CourseFeatureCollection {
+	const features: CourseFeatureCollection['features'] = races.map((r) => ({
+		type: 'Feature',
+		properties: { title: r.title, id: r.id },
+		geometry: r.geojson
+	}));
+	if (focus) {
+		features.push({
+			type: 'Feature',
+			properties: { title: 'Course', id: 'focus' },
+			geometry: focus
+		});
+	}
+	// JSON round-trip unwraps Svelte 5 Proxies; structuredClone throws DataCloneError on them.
+	return JSON.parse(JSON.stringify({ type: 'FeatureCollection', features })) as CourseFeatureCollection;
+}

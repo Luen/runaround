@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
+	import { raceCourseJsonUrl } from '$lib/geo';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -23,7 +24,11 @@
 
 <h1 class="text-3xl font-bold">Edit race</h1>
 <div class="mt-4">
-	<RaceMap focus={data.race.courseGeojson} gpxHref="/races/{data.race.slug}/gpx" />
+	<RaceMap
+		focus={data.race.courseGeojson}
+		courseUrl={raceCourseJsonUrl(data.race.slug)}
+		gpxHref="/races/{data.race.slug}/gpx"
+	/>
 </div>
 <form method="post" action="?/update" enctype="multipart/form-data" class="mt-6 space-y-3" use:enhance>
 	<label class="block text-sm">Title

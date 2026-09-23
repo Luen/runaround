@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString } from '$lib/geo';
+import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection, raceCourseJsonUrl, isJsonLikeContentType, lineFromCoursePayload } from '$lib/geo';
 import {
 	courseCoverage,
 	matchActivityToCourse,
@@ -96,5 +96,92 @@ describe('leaderboard rules', () => {
 		expect(computeRaceStatus(start, end, new Date('2022-01-01T00:00:00Z'))).toBe('upcoming');
 		expect(computeRaceStatus(start, end, new Date('2022-01-15T00:00:00Z'))).toBe('live');
 		expect(computeRaceStatus(start, end, new Date('2022-02-01T00:00:00Z'))).toBe('closed');
+	});
+});
+
+describe('courseOverlayFeatureCollection', () => {
+	const line: import('$lib/geo').LineString = {
+		type: 'LineString',
+		coordinates: [
+			[146.81, -19.26],
+			[146.82, -19.27]
+		]
+	};
+
+	it('returns a deep-cloned plain FeatureCollection for MapLibre', () => {
+		const proxiedLine = new Proxy(line, {}) as import('$lib/geo').LineString;
+		const races = [{ id: 'r1', title: 'Demo', geojson: proxiedLine }];
+		const fc = courseOverlayFeatureCollection(races, proxiedLine);
+
+		expect(fc.type).toBe('FeatureCollection');
+		expect(fc.features).toHaveLength(2);
+		expect(fc.features[0].geometry).not.toBe(proxiedLine);
+		expect(fc.features[0].geometry).not.toBe(line);
+		expect(fc.features[0].geometry.coordinates).toEqual(line.coordinates);
+		expect(fc.features[1].properties.id).toBe('focus');
+		// JSON round-trip strips Proxy wrappers
+		expect(Object.getPrototypeOf(fc)).toBe(Object.prototype);
+		expect(Object.getPrototypeOf(fc.features[0].geometry)).toBe(Object.prototype);
+	});
+
+	it('handles empty overlays', () => {
+		const fc = courseOverlayFeatureCollection([]);
+		expect(fc.features).toEqual([]);
+	});
+});
+
+describe('raceCourseJsonUrl', () => {
+	it('builds the public course.json path for a race slug', () => {
+		expect(raceCourseJsonUrl('28927372')).toBe('/races/28927372/course.json');
+	});
+
+	it('encodes special characters in the slug', () => {
+		expect(raceCourseJsonUrl('a/b')).toBe('/races/a%2Fb/course.json');
+	});
+});
+
+describe('isJsonLikeContentType', () => {
+	it('accepts JSON and GeoJSON content types', () => {
+		expect(isJsonLikeContentType('application/json')).toBe(true);
+		expect(isJsonLikeContentType('application/geo+json')).toBe(true);
+		expect(isJsonLikeContentType('application/json; charset=utf-8')).toBe(true);
+	});
+
+	it('rejects HTML login / opaque responses', () => {
+		expect(isJsonLikeContentType('text/html')).toBe(false);
+		expect(isJsonLikeContentType('text/html; charset=utf-8')).toBe(false);
+		expect(isJsonLikeContentType('')).toBe(false);
+	});
+});
+
+describe('lineFromCoursePayload', () => {
+	const line: import('$lib/geo').LineString = {
+		type: 'LineString',
+		coordinates: [
+			[146.81, -19.26],
+			[146.82, -19.27]
+		]
+	};
+
+	it('accepts a bare LineString', () => {
+		expect(lineFromCoursePayload(line)).toEqual(line);
+	});
+
+	it('unwraps Feature and FeatureCollection', () => {
+		expect(
+			lineFromCoursePayload({ type: 'Feature', properties: {}, geometry: line })
+		).toEqual(line);
+		expect(
+			lineFromCoursePayload({
+				type: 'FeatureCollection',
+				features: [{ type: 'Feature', properties: { id: 'x', title: 't' }, geometry: line }]
+			})
+		).toEqual(line);
+	});
+
+	it('returns null for non-course payloads', () => {
+		expect(lineFromCoursePayload(null)).toBeNull();
+		expect(lineFromCoursePayload({ type: 'Point', coordinates: [1, 2] })).toBeNull();
+		expect(lineFromCoursePayload({ type: 'FeatureCollection', features: [] })).toBeNull();
 	});
 });

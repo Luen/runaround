@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { rankedLeaderboard, filterRaceWindow } from './boards';
+import { rankedLeaderboard, filterRaceWindow, safeHttpUrl } from './boards';
 import { legacySurface } from './legacy';
 
 describe('legacy seed shape', () => {
@@ -40,7 +40,8 @@ describe('leaderboard ranking', () => {
 				timeMs: 900_000,
 				startedAt: new Date('2022-01-10T00:00:00Z'),
 				importedName: 'Ann',
-				source: 'live'
+				source: 'live',
+				effortUrl: 'https://www.strava.com/activities/1'
 			},
 			{
 				id: '2',
@@ -49,7 +50,8 @@ describe('leaderboard ranking', () => {
 				timeMs: 800_000,
 				startedAt: new Date('2022-06-01T00:00:00Z'),
 				importedName: 'Ann',
-				source: 'live'
+				source: 'live',
+				effortUrl: 'https://www.strava.com/activities/2'
 			},
 			{
 				id: '3',
@@ -58,16 +60,35 @@ describe('leaderboard ranking', () => {
 				timeMs: 850_000,
 				startedAt: new Date('2022-01-12T00:00:00Z'),
 				importedName: 'Bob',
-				source: 'strava_import'
+				source: 'strava_import',
+				effortUrl: null
 			}
 		];
 
 		const overall = rankedLeaderboard(rows);
 		expect(overall.map((r) => r.name)).toEqual(['Ann', 'Bob']);
 		expect(overall[0].timeMs).toBe(800_000);
+		expect(overall[0].effortUrl).toBe('https://www.strava.com/activities/2');
+		expect(overall[1].effortUrl).toBeNull();
 
 		const raceBoard = rankedLeaderboard(filterRaceWindow(rows, windowStart, windowEnd));
 		expect(raceBoard.map((r) => r.name)).toEqual(['Bob', 'Ann']);
 		expect(raceBoard[1].timeMs).toBe(900_000);
+		expect(raceBoard[1].effortUrl).toBe('https://www.strava.com/activities/1');
+	});
+});
+
+describe('safeHttpUrl', () => {
+	it('allows http(s) and rejects unsafe schemes', () => {
+		expect(safeHttpUrl('https://www.strava.com/activities/1')).toBe(
+			'https://www.strava.com/activities/1'
+		);
+		expect(safeHttpUrl('http://example.com/x')).toBe('http://example.com/x');
+		expect(safeHttpUrl('javascript:alert(1)')).toBeNull();
+		expect(safeHttpUrl('data:text/html,hi')).toBeNull();
+		expect(safeHttpUrl('/relative')).toBeNull();
+		expect(safeHttpUrl(null)).toBeNull();
+		expect(safeHttpUrl('')).toBeNull();
+		expect(safeHttpUrl('  ')).toBeNull();
 	});
 });

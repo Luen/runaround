@@ -35,11 +35,20 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec.
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
+- Vercel Web Analytics + Speed Insights: both `injectAnalytics` / `injectSpeedInsights` live in `src/routes/+layout.ts` (no keys needed for basic setup).
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
+- MapLibre: pass plain deep-cloned GeoJSON to `GeoJSONSource.setData` (see `courseOverlayFeatureCollection` in `src/lib/geo.ts`) — Svelte 5 Proxies often fail to render while `fitBounds` still works. RaceMap also re-clones before `setData`, seeds the source with that collection on first add, and calls `triggerRepaint()`.
+- MapLibre v6 + Vite/SvelteKit: import via `$lib/maplibre` which calls `setWorkerUrl` with `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` before any `Map` is created. Without this, GeoJSON overlays silently fail to render in production builds while raster tiles still work.
+- RaceMap basemap switcher (Outdoors | optional Satellite): default Outdoors (Thunderforest **Landscape** vector style URL via Vector Styles API when `PUBLIC_THUNDERFOREST_API_KEY` is set, else OSM raster); Satellite uses MapTiler `satellite-v2` via `PUBLIC_MAPTILER_API_KEY` (client public env; Satellite option only shown when key is set). Do not reintroduce `PUBLIC_MAP_TILES`. After `map.setStyle(...)` (remote style URL or inline Spec), re-add course GeoJSON sources/layers on `style.load` (listener before `setStyle`, `diff: false`) then call `drawCourses` — see `$lib/basemaps` and `RaceMap.svelte`.
+- Course overlay paint uses high-contrast orange (`#ea580c`) with a near-white casing (`#fff7ed`) so the line stays visible on green OSM / park tiles (dark green was easy to miss).
+- Race detail / admin maps load the course overlay from `/races/:slug/course.json` (`RaceMap` `courseUrl`); listing maps still pass `races`/`focus` SSR props. A Vercel Draft Mode `HEAD` to the HTML race URL (`x-vercel-draft-status`) is unrelated to map fetches — do not treat it as a missing GPX/GeoJSON bug.
+- GPX download links use `data-sveltekit-preload-data="off"` (and `data-sveltekit-reload` where needed) so the client router does not treat `/races/:slug/gpx` as a page navigation.
+- Homepage (`src/routes/+page`): map can overlay closed races via a “Show past races” checkbox (default on when no live/upcoming); the “Active and upcoming” list stays active-only.
+- Leaderboards: `attempts.effortUrl` flows through `rankedLeaderboard` (`src/lib/boards.ts`); `LeaderboardTable` links the time when `safeHttpUrl` accepts http(s).
 
 ## Security
 
-Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`. Do not hardcode Strava, Thunderforest, Cloudflare, or other keys; use env (`PUBLIC_MAP_TILES` / `PUBLIC_THUNDERFOREST_API_KEY` for maps). If a secret appears in git, stop, rotate it, and do not repeat the value in chat or commits.
+Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`. Do not hardcode Strava, Thunderforest, MapTiler, Cloudflare, or other keys; use env (`PUBLIC_THUNDERFOREST_API_KEY` / `PUBLIC_MAPTILER_API_KEY` for maps). If a secret appears in git, stop, rotate it, and do not repeat the value in chat or commits.
 
 ## Vercel env (Sensitive / Secret)
 
