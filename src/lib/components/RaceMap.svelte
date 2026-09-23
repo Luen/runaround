@@ -54,12 +54,10 @@
 	const CASING_LAYER_ID = 'courses-casing';
 	const LINE_LAYER_ID = 'courses-line';
 
-	function mapTiles(): string {
-		const key = env.PUBLIC_THUNDERFOREST_API_KEY;
-		if (key) {
-			return `https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${key}`;
-		}
-		return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+	/** Non-empty Thunderforest key for Landscape vector Outdoors; null uses OSM raster. */
+	function thunderforestKey(): string | null {
+		const key = env.PUBLIC_THUNDERFOREST_API_KEY?.trim();
+		return key ? key : null;
 	}
 
 	/** Non-empty MapTiler key for optional satellite basemap; null hides Satellite in UI. */
@@ -173,10 +171,10 @@
 				});
 			}
 		};
-		// Register BEFORE setStyle: MapLibre often fires style.load synchronously for
-		// inline StyleSpecification objects (outdoors tiles[] / satellite TileJSON url).
+		// Register BEFORE setStyle: MapLibre may fire style.load sync for inline
+		// StyleSpecification (OSM/satellite) or async for remote Thunderforest style URLs.
 		map.once('style.load', onStyleReady);
-		map.setStyle(styleForBasemap(id, mapTiles(), maptilerKey()), { diff: false });
+		map.setStyle(styleForBasemap(id, thunderforestKey(), maptilerKey()), { diff: false });
 	}
 
 	function setBasemap(id: BasemapId) {
@@ -191,7 +189,7 @@
 	function attachMap(node: HTMLDivElement) {
 		const map = new Map({
 			container: node,
-			style: styleForBasemap(DEFAULT_BASEMAP, mapTiles(), maptilerKey()),
+			style: styleForBasemap(DEFAULT_BASEMAP, thunderforestKey(), maptilerKey()),
 			center: [146.81, -19.26],
 			zoom: 11
 		});

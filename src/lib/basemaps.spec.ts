@@ -4,11 +4,13 @@ import {
 	DEFAULT_BASEMAP,
 	isBasemapId,
 	maptilerSatelliteTileUrl,
+	osmRasterStyle,
 	OUTDOORS_ATTRIBUTION,
 	outdoorsStyle,
 	SATELLITE_ATTRIBUTION,
 	satelliteStyle,
-	styleForBasemap
+	styleForBasemap,
+	thunderforestLandscapeStyleUrl
 } from './basemaps';
 
 describe('basemaps', () => {
@@ -17,16 +19,44 @@ describe('basemaps', () => {
 		expect(BASEMAP_OPTIONS.map((o) => o.id)).toEqual(['outdoors', 'satellite']);
 	});
 
-	it('builds outdoors raster style from the caller tile URL', () => {
-		const style = outdoorsStyle('https://example.test/{z}/{x}/{y}.png');
+	it('builds Thunderforest Landscape vector style URL including the key', () => {
+		const url = thunderforestLandscapeStyleUrl('test-tf-key');
+		expect(url).toBe(
+			'https://api.thunderforest.com/styles/landscape/style.json?apikey=test-tf-key'
+		);
+		expect(url).toContain('apikey=test-tf-key');
+		expect(url).toContain('/styles/landscape/style.json');
+		expect(url).not.toContain('outdoors');
+		expect(url).not.toContain('.png');
+	});
+
+	it('encodes special characters in the Thunderforest API key', () => {
+		expect(thunderforestLandscapeStyleUrl('a+b/c')).toBe(
+			'https://api.thunderforest.com/styles/landscape/style.json?apikey=a%2Bb%2Fc'
+		);
+	});
+
+	it('returns Landscape style URL when Thunderforest key is set', () => {
+		const style = outdoorsStyle('test-tf-key');
+		expect(typeof style).toBe('string');
+		expect(style).toBe(thunderforestLandscapeStyleUrl('test-tf-key'));
+		expect(styleForBasemap('outdoors', 'test-tf-key', null)).toBe(style);
+	});
+
+	it('falls back to OSM raster StyleSpecification without Thunderforest key', () => {
+		const style = osmRasterStyle();
 		expect(style.version).toBe(8);
 		expect(style.sources.outdoors).toMatchObject({
 			type: 'raster',
-			tiles: ['https://example.test/{z}/{x}/{y}.png'],
+			tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
 			tileSize: 256
 		});
 		expect(style.layers).toEqual([{ id: 'outdoors', type: 'raster', source: 'outdoors' }]);
 		expect(OUTDOORS_ATTRIBUTION).toContain('OpenStreetMap');
+		expect(outdoorsStyle(null)).toEqual(style);
+		expect(outdoorsStyle('')).toEqual(style);
+		expect(styleForBasemap('outdoors', null, null)).toEqual(style);
+		expect(styleForBasemap('outdoors', '', 'unused-maptiler')).toEqual(style);
 	});
 
 	it('builds MapTiler satellite TileJSON URL including the key', () => {
@@ -46,17 +76,16 @@ describe('basemaps', () => {
 			tileSize: 256
 		});
 		expect(SATELLITE_ATTRIBUTION).toContain('MapTiler');
-		expect(styleForBasemap('satellite', 'unused', 'test-key')).toEqual(style);
+		expect(styleForBasemap('satellite', null, 'test-key')).toEqual(style);
+		expect(styleForBasemap('satellite', 'tf-key', 'test-key')).toEqual(style);
 	});
 
 	it('falls back to outdoors when satellite requested without MapTiler key', () => {
-		const outdoors = outdoorsStyle('https://example.test/{z}/{x}/{y}.png');
-		expect(styleForBasemap('satellite', 'https://example.test/{z}/{x}/{y}.png', null)).toEqual(
-			outdoors
+		expect(styleForBasemap('satellite', 'tf-key', null)).toBe(
+			thunderforestLandscapeStyleUrl('tf-key')
 		);
-		expect(styleForBasemap('satellite', 'https://example.test/{z}/{x}/{y}.png', '')).toEqual(
-			outdoors
-		);
+		expect(styleForBasemap('satellite', null, null)).toEqual(osmRasterStyle());
+		expect(styleForBasemap('satellite', null, '')).toEqual(osmRasterStyle());
 	});
 
 	it('narrows basemap ids', () => {
