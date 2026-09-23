@@ -4,13 +4,14 @@ import {
 	DEFAULT_BASEMAP,
 	isBasemapId,
 	maptilerSatelliteTileUrl,
+	maptilerWanderstoriesStyleUrl,
 	osmRasterStyle,
 	OUTDOORS_ATTRIBUTION,
+	WANDERSTORIES_ATTRIBUTION,
 	outdoorsStyle,
 	SATELLITE_ATTRIBUTION,
 	satelliteStyle,
-	styleForBasemap,
-	thunderforestLandscapeStyleUrl
+	styleForBasemap
 } from './basemaps';
 
 describe('basemaps', () => {
@@ -19,31 +20,31 @@ describe('basemaps', () => {
 		expect(BASEMAP_OPTIONS.map((o) => o.id)).toEqual(['outdoors', 'satellite']);
 	});
 
-	it('builds Thunderforest Landscape vector style URL including the key', () => {
-		const url = thunderforestLandscapeStyleUrl('test-tf-key');
+	it('builds MapTiler Wanderstories vector style URL including the key', () => {
+		const url = maptilerWanderstoriesStyleUrl('test-key');
 		expect(url).toBe(
-			'https://api.thunderforest.com/styles/landscape/style.json?apikey=test-tf-key'
+			'https://api.maptiler.com/maps/01a0cba0-48c0-7218-9f6b-cd21102c27a7/style.json?key=test-key'
 		);
-		expect(url).toContain('apikey=test-tf-key');
-		expect(url).toContain('/styles/landscape/style.json');
-		expect(url).not.toContain('outdoors');
+		expect(url).toContain('key=test-key');
+		expect(url).toContain('/maps/01a0cba0-48c0-7218-9f6b-cd21102c27a7/style.json');
+		expect(url).not.toContain('thunderforest');
 		expect(url).not.toContain('.png');
 	});
 
-	it('encodes special characters in the Thunderforest API key', () => {
-		expect(thunderforestLandscapeStyleUrl('a+b/c')).toBe(
-			'https://api.thunderforest.com/styles/landscape/style.json?apikey=a%2Bb%2Fc'
+	it('encodes special characters in the MapTiler API key', () => {
+		expect(maptilerWanderstoriesStyleUrl('a+b/c')).toBe(
+			'https://api.maptiler.com/maps/01a0cba0-48c0-7218-9f6b-cd21102c27a7/style.json?key=a%2Bb%2Fc'
 		);
 	});
 
-	it('returns Landscape style URL when Thunderforest key is set', () => {
-		const style = outdoorsStyle('test-tf-key');
+	it('returns Wanderstories style URL when MapTiler key is set', () => {
+		const style = outdoorsStyle('test-key');
 		expect(typeof style).toBe('string');
-		expect(style).toBe(thunderforestLandscapeStyleUrl('test-tf-key'));
-		expect(styleForBasemap('outdoors', 'test-tf-key', null)).toBe(style);
+		expect(style).toBe(maptilerWanderstoriesStyleUrl('test-key'));
+		expect(styleForBasemap('outdoors', 'test-key')).toBe(style);
 	});
 
-	it('falls back to OSM raster StyleSpecification without Thunderforest key', () => {
+	it('falls back to OSM raster StyleSpecification without MapTiler key', () => {
 		const style = osmRasterStyle();
 		expect(style.version).toBe(8);
 		expect(style.sources.outdoors).toMatchObject({
@@ -55,8 +56,8 @@ describe('basemaps', () => {
 		expect(OUTDOORS_ATTRIBUTION).toContain('OpenStreetMap');
 		expect(outdoorsStyle(null)).toEqual(style);
 		expect(outdoorsStyle('')).toEqual(style);
-		expect(styleForBasemap('outdoors', null, null)).toEqual(style);
-		expect(styleForBasemap('outdoors', '', 'unused-maptiler')).toEqual(style);
+		expect(styleForBasemap('outdoors', null)).toEqual(style);
+		expect(styleForBasemap('outdoors', '')).toEqual(style);
 	});
 
 	it('builds MapTiler satellite TileJSON URL including the key', () => {
@@ -76,16 +77,25 @@ describe('basemaps', () => {
 			tileSize: 256
 		});
 		expect(SATELLITE_ATTRIBUTION).toContain('MapTiler');
-		expect(styleForBasemap('satellite', null, 'test-key')).toEqual(style);
-		expect(styleForBasemap('satellite', 'tf-key', 'test-key')).toEqual(style);
+		expect(styleForBasemap('satellite', 'test-key')).toEqual(style);
 	});
 
 	it('falls back to outdoors when satellite requested without MapTiler key', () => {
-		expect(styleForBasemap('satellite', 'tf-key', null)).toBe(
-			thunderforestLandscapeStyleUrl('tf-key')
+		expect(styleForBasemap('satellite', null)).toEqual(osmRasterStyle());
+		expect(styleForBasemap('satellite', '')).toEqual(osmRasterStyle());
+	});
+
+	it('uses Wanderstories for outdoors and satellite style when MapTiler key is set', () => {
+		expect(styleForBasemap('outdoors', 'test-key')).toBe(
+			maptilerWanderstoriesStyleUrl('test-key')
 		);
-		expect(styleForBasemap('satellite', null, null)).toEqual(osmRasterStyle());
-		expect(styleForBasemap('satellite', null, '')).toEqual(osmRasterStyle());
+		expect(styleForBasemap('satellite', 'test-key')).toEqual(satelliteStyle('test-key'));
+	});
+
+	it('exports Wanderstories attribution with maps link', () => {
+		expect(WANDERSTORIES_ATTRIBUTION).toContain('wanderstories.space/maps');
+		expect(WANDERSTORIES_ATTRIBUTION).toContain('Wanderstories');
+		expect(WANDERSTORIES_ATTRIBUTION).toContain('rel="noopener"');
 	});
 
 	it('narrows basemap ids', () => {
