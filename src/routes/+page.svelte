@@ -20,7 +20,11 @@
 		].map((r) => ({
 			id: r.slug,
 			title: r.title,
-			geojson: r.courseGeojson
+			geojson: r.courseGeojson,
+			href: `/races/${r.slug}`,
+			surface: r.surface,
+			status: r.status,
+			distanceM: r.distanceM
 		}))
 	);
 </script>

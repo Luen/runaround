@@ -185,12 +185,38 @@ export function raceCourseJsonUrl(slug: string): string {
 	return `/races/${encodeURIComponent(slug)}/course.json`;
 }
 
+
+/** Stable HSL colour from a race id/slug (same id → same colour every load). */
+export function colorForRaceId(id: string): string {
+	let h = 2166136261;
+	for (let i = 0; i < id.length; i++) {
+		h ^= id.charCodeAt(i);
+		h = Math.imul(h, 16777619);
+	}
+	const hue = (h >>> 0) % 360;
+	// Fixed S/L so courses stay readable on outdoors + satellite.
+	return `hsl(${hue} 72% 42%)`;
+}
+
+/** GeoJSON FeatureCollection for MapLibre course overlays. */
+export type CourseFeatureProperties = {
+	title: string;
+	id: string;
+	/** CSS colour for the course line (data-driven paint). */
+	color: string;
+	/** Race page path when the line is clickable on the homepage map. */
+	href: string;
+	surface: string;
+	status: string;
+	distanceM: number;
+};
+
 /** GeoJSON FeatureCollection for MapLibre course overlays. */
 export type CourseFeatureCollection = {
 	type: 'FeatureCollection';
 	features: Array<{
 		type: 'Feature';
-		properties: { title: string; id: string };
+		properties: CourseFeatureProperties;
 		geometry: LineString;
 	}>;
 };
@@ -219,6 +245,11 @@ type CourseOverlayInput = {
 	id: string;
 	title: string;
 	geojson: LineString;
+	href?: string | null;
+	surface?: string | null;
+	status?: string | null;
+	distanceM?: number | null;
+	color?: string | null;
 };
 
 /**
@@ -233,13 +264,29 @@ export function courseOverlayFeatureCollection(
 ): CourseFeatureCollection {
 	const features: CourseFeatureCollection['features'] = races.map((r) => ({
 		type: 'Feature',
-		properties: { title: r.title, id: r.id },
+		properties: {
+			title: r.title,
+			id: r.id,
+			color: r.color?.trim() || colorForRaceId(r.id),
+			href: r.href ?? '',
+			surface: r.surface ?? '',
+			status: r.status ?? '',
+			distanceM: typeof r.distanceM === 'number' && Number.isFinite(r.distanceM) ? r.distanceM : 0
+		},
 		geometry: r.geojson
 	}));
 	if (focus) {
 		features.push({
 			type: 'Feature',
-			properties: { title: 'Course', id: 'focus' },
+			properties: {
+				title: 'Course',
+				id: 'focus',
+				color: '#ea580c',
+				href: '',
+				surface: '',
+				status: '',
+				distanceM: 0
+			},
 			geometry: focus
 		});
 	}

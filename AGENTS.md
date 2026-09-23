@@ -57,6 +57,7 @@ Kit options live in `svelte.config.js` (`kit.env.publicPrefix: 'PUBLIC_'`, adapt
 ## Git
 
 - `main` is production. `develop` is staging and the default branch. Feature PRs target `develop`; promote to production with a PR from `develop` into `main`.
+- **Never open a PR with `main` as the head branch** (including “sync main into develop”). This repo’s GitHub setting **automatically deletes the head branch when a PR is merged**, so a `main`→`develop` sync PR deletes `main` on merge. If `develop` needs the release merge commit, recreate/`git merge` without using `main` as the PR head, or leave `develop` one merge-commit behind until the next promote.
 - Do not commit unless the user asks. Do not force-push `main` or `develop`. Do not merge PRs unless asked. Conventional, why-focused commit messages.
 
 ## Package manager

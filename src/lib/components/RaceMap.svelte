@@ -7,7 +7,7 @@
 		WANDERSTORIES_ATTRIBUTION,
 		type BasemapId
 	} from '$lib/basemaps';
-	import { GeoJSONSource, LngLatBounds, Map, NavigationControl } from '$lib/maplibre';
+	import { GeoJSONSource, LngLatBounds, Map, NavigationControl, Popup } from '$lib/maplibre';
 	import {
 		courseOverlayFeatureCollection,
 		isJsonLikeContentType,
@@ -20,6 +20,11 @@
 		id: string;
 		title: string;
 		geojson: LineString;
+		href?: string | null;
+		surface?: string | null;
+		status?: string | null;
+		distanceM?: number | null;
+		color?: string | null;
 	};
 
 	let {
@@ -54,6 +59,50 @@
 	const SOURCE_ID = 'courses';
 	const CASING_LAYER_ID = 'courses-casing';
 	const LINE_LAYER_ID = 'courses-line';
+	const HIT_LAYER_ID = 'courses-hit';
+	const DEFAULT_LINE_COLOR = '#ea580c';
+
+	let coursePopup: Popup | null = null;
+
+	function escapeHtml(value: string): string {
+		return value
+			.replaceAll('&', '&amp;')
+			.replaceAll('<', '&lt;')
+			.replaceAll('>', '&gt;')
+			.replaceAll('"', '&quot;');
+	}
+
+	function racePopupHtml(props: Record<string, unknown>): string {
+		const title = String(props.title ?? 'Race');
+		const href = String(props.href ?? '');
+		const surface = String(props.surface ?? '');
+		const status = String(props.status ?? '');
+		const distanceM = Number(props.distanceM ?? 0);
+		const bits = [surface, status].filter(Boolean);
+		if (Number.isFinite(distanceM) && distanceM > 0) {
+			bits.push(`${(distanceM / 1000).toFixed(1)} km`);
+		}
+		const meta = bits.length
+			? `<p style="margin:0.25rem 0 0;font-size:0.75rem;color:#57534e">${escapeHtml(bits.join(' · '))}</p>`
+			: '';
+		const link = href
+			? `<p style="margin:0.5rem 0 0"><a href="${escapeHtml(href)}" style="color:#166534;font-weight:600">View race →</a></p>`
+			: '';
+		return `<div style="font:14px/1.4 system-ui,sans-serif"><strong>${escapeHtml(title)}</strong>${meta}${link}</div>`;
+	}
+
+	function closeCoursePopup() {
+		coursePopup?.remove();
+		coursePopup = null;
+	}
+
+	function showCoursePopup(map: Map, lngLat: { lng: number; lat: number }, props: Record<string, unknown>) {
+		closeCoursePopup();
+		coursePopup = new Popup({ closeButton: true, closeOnClick: true, maxWidth: '260px', offset: 12 })
+			.setLngLat(lngLat)
+			.setHTML(racePopupHtml(props))
+			.addTo(map);
+	}
 
 	/** Non-empty MapTiler key for Outdoors (Wanderstories) + Satellite; null uses OSM raster and hides Satellite. */
 	function maptilerKey(): string | null {
@@ -109,8 +158,23 @@
 				source: SOURCE_ID,
 				layout: { 'line-join': 'round', 'line-cap': 'round' },
 				paint: {
-					'line-color': '#ea580c',
+					// Per-race colour from GeoJSON properties; focus/default stays orange.
+					'line-color': ['coalesce', ['get', 'color'], DEFAULT_LINE_COLOR],
 					'line-width': 5.5
+				}
+			});
+		}
+		// Wider invisible hit target so thin courses are easier to click on the homepage.
+		if (!map.getLayer(HIT_LAYER_ID)) {
+			map.addLayer({
+				id: HIT_LAYER_ID,
+				type: 'line',
+				source: SOURCE_ID,
+				layout: { 'line-join': 'round', 'line-cap': 'round' },
+				paint: {
+					'line-color': '#000000',
+					'line-width': 18,
+					'line-opacity': 0
 				}
 			});
 		}
@@ -199,6 +263,29 @@
 			map.resize();
 		};
 
+		const onCourseClick = (e: {
+			lngLat: { lng: number; lat: number };
+			features?: Array<{ properties?: Record<string, unknown> | null }>;
+		}) => {
+			const props = e.features?.[0]?.properties;
+			if (!props) return;
+			const href = String(props.href ?? '');
+			if (!href) return;
+			showCoursePopup(map, e.lngLat, props);
+		};
+
+		const onCourseEnter = () => {
+			map.getCanvas().style.cursor = 'pointer';
+		};
+		const onCourseLeave = () => {
+			map.getCanvas().style.cursor = '';
+		};
+
+		map.on('click', HIT_LAYER_ID, onCourseClick);
+		map.on('click', LINE_LAYER_ID, onCourseClick);
+		map.on('mouseenter', HIT_LAYER_ID, onCourseEnter);
+		map.on('mouseleave', HIT_LAYER_ID, onCourseLeave);
+
 		map.once('load', () => {
 			mapReady = true;
 			// Belt-and-suspenders: paint SSR focus immediately on load.
@@ -209,6 +296,11 @@
 
 		return () => {
 			document.removeEventListener('fullscreenchange', onFullscreen);
+			map.off('click', HIT_LAYER_ID, onCourseClick);
+			map.off('click', LINE_LAYER_ID, onCourseClick);
+			map.off('mouseenter', HIT_LAYER_ID, onCourseEnter);
+			map.off('mouseleave', HIT_LAYER_ID, onCourseLeave);
+			closeCoursePopup();
 			styleEpoch += 1;
 			mapReady = false;
 			mapRef = null;
