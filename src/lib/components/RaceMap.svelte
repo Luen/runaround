@@ -4,6 +4,7 @@
 		BASEMAP_OPTIONS,
 		DEFAULT_BASEMAP,
 		styleForBasemap,
+		WANDERSTORIES_ATTRIBUTION,
 		type BasemapId
 	} from '$lib/basemaps';
 	import { GeoJSONSource, LngLatBounds, Map, NavigationControl } from '$lib/maplibre';
@@ -54,13 +55,7 @@
 	const CASING_LAYER_ID = 'courses-casing';
 	const LINE_LAYER_ID = 'courses-line';
 
-	/** Non-empty Thunderforest key for Landscape vector Outdoors; null uses OSM raster. */
-	function thunderforestKey(): string | null {
-		const key = env.PUBLIC_THUNDERFOREST_API_KEY?.trim();
-		return key ? key : null;
-	}
-
-	/** Non-empty MapTiler key for optional satellite basemap; null hides Satellite in UI. */
+	/** Non-empty MapTiler key for Outdoors (Wanderstories) + Satellite; null uses OSM raster and hides Satellite. */
 	function maptilerKey(): string | null {
 		const key = env.PUBLIC_MAPTILER_API_KEY?.trim();
 		return key ? key : null;
@@ -172,9 +167,9 @@
 			}
 		};
 		// Register BEFORE setStyle: MapLibre may fire style.load sync for inline
-		// StyleSpecification (OSM/satellite) or async for remote Thunderforest style URLs.
+		// StyleSpecification (OSM/satellite) or async for remote Wanderstories style URLs.
 		map.once('style.load', onStyleReady);
-		map.setStyle(styleForBasemap(id, thunderforestKey(), maptilerKey()), { diff: false });
+		map.setStyle(styleForBasemap(id, maptilerKey()), { diff: false });
 	}
 
 	function setBasemap(id: BasemapId) {
@@ -189,9 +184,11 @@
 	function attachMap(node: HTMLDivElement) {
 		const map = new Map({
 			container: node,
-			style: styleForBasemap(DEFAULT_BASEMAP, thunderforestKey(), maptilerKey()),
+			style: styleForBasemap(DEFAULT_BASEMAP, maptilerKey()),
 			center: [146.81, -19.26],
-			zoom: 11
+			zoom: 11,
+			// One AttributionControl for Outdoors + Satellite; keeps style MapTiler/OSM credits.
+			attributionControl: { customAttribution: WANDERSTORIES_ATTRIBUTION }
 		});
 		map.addControl(new NavigationControl(), 'top-right');
 		mapRef = map;
