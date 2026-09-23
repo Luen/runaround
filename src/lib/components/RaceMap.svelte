@@ -41,8 +41,14 @@
 	/** LineString extracted from a successful `courseUrl` fetch. */
 	let fetchedFocus = $state<LineString | null>(null);
 	let basemap = $state<BasemapId>(DEFAULT_BASEMAP);
-	/** Bumps on each setStyle so stale style.load handlers no-op. */
+	/** Bumps when a basemap style finishes loading so overlay $effect can retry. */
+	let styleGeneration = $state(0);
+	/** Guards stale style.load / idle callbacks across rapid basemap switches. */
 	let styleEpoch = 0;
+	/** Previous overlay inputs — used so styleGeneration retries do not fitBounds. */
+	let prevOverlayRaces: RaceOverlay[] | undefined;
+	let prevOverlayFocus: LineString | null | undefined;
+	let prevOverlayFetched: LineString | null | undefined;
 
 	const SOURCE_ID = 'courses';
 	const CASING_LAYER_ID = 'courses-casing';
@@ -154,12 +160,24 @@
 
 	function applyBasemap(map: Map, id: BasemapId, fitAfter: boolean) {
 		const epoch = ++styleEpoch;
-		map.setStyle(styleForBasemap(id, mapTiles(), maptilerKey()));
-		map.once('style.load', () => {
+		const onStyleReady = () => {
 			if (epoch !== styleEpoch || mapRef !== map) return;
+			// Notify overlay $effect so it can retry if it early-returned mid-swap.
+			styleGeneration += 1;
 			// Full style swap drops custom GeoJSON sources/layers — re-add then paint.
 			repaintCourses(map, fitAfter);
-		});
+			// Rare: style.load before sources are queryable — retry once idle.
+			if (!map.getSource(SOURCE_ID)) {
+				map.once('idle', () => {
+					if (epoch !== styleEpoch || mapRef !== map) return;
+					repaintCourses(map, fitAfter);
+				});
+			}
+		};
+		// Register BEFORE setStyle: MapLibre often fires style.load synchronously for
+		// inline StyleSpecification objects (outdoors tiles[] / satellite TileJSON url).
+		map.once('style.load', onStyleReady);
+		map.setStyle(styleForBasemap(id, mapTiles(), maptilerKey()), { diff: false });
 	}
 
 	function setBasemap(id: BasemapId) {
@@ -200,6 +218,9 @@
 			styleEpoch += 1;
 			mapReady = false;
 			mapRef = null;
+			prevOverlayRaces = undefined;
+			prevOverlayFocus = undefined;
+			prevOverlayFetched = undefined;
 			map.remove();
 		};
 	}
@@ -235,14 +256,22 @@
 	$effect(() => {
 		const map = mapRef;
 		if (!map || !mapReady) return;
-		// Track races / focus / fetchedFocus so overlays update after style swaps too.
-		races;
-		focus;
-		fetchedFocus;
+		// Overlay data deps.
+		const r = races;
+		const f = focus;
+		const ff = fetchedFocus;
+		// Re-run after basemap style.load (styleGeneration bump from applyBasemap).
+		styleGeneration;
 		// During setStyle, sources are gone until style.load re-adds them.
 		if (!map.isStyleLoaded()) return;
-		// SSR focus paints immediately; successful course.json fetch upgrades the overlay.
-		repaintCourses(map, true);
+		// Fit only when overlay data changed — not on styleGeneration-only retries
+		// (basemap switch must keep the camera; applyBasemap already painted with fitAfter).
+		const dataChanged =
+			r !== prevOverlayRaces || f !== prevOverlayFocus || ff !== prevOverlayFetched;
+		prevOverlayRaces = r;
+		prevOverlayFocus = f;
+		prevOverlayFetched = ff;
+		repaintCourses(map, dataChanged);
 	});
 </script>
 
