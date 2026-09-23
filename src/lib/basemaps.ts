@@ -1,5 +1,5 @@
 /**
- * Basemap styles for RaceMap. Outdoors via PUBLIC_MAP_TILES / Thunderforest / OSM;
+ * Basemap styles for RaceMap. Outdoors via Thunderforest PNG / OSM;
  * optional MapTiler satellite via PUBLIC_MAPTILER_API_KEY (caller resolves env).
  */
 import type { StyleSpecification } from 'maplibre-gl';
@@ -24,7 +24,7 @@ export function maptilerSatelliteTileUrl(key: string): string {
 	return `https://api.maptiler.com/tiles/satellite-v2/tiles.json?key=${encodeURIComponent(key)}`;
 }
 
-/** Minimal raster style used for Outdoors (PUBLIC_MAP_TILES / Thunderforest / OSM). */
+/** Minimal raster style used for Outdoors (Thunderforest PNG / OSM). */
 export function outdoorsStyle(tileUrl: string): StyleSpecification {
 	return {
 		version: 8,
