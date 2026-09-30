@@ -66,6 +66,7 @@
   },
   "pnpm": {
     "overrides": {
+      "brace-expansion": ">=5.0.12",
       "cookie": "0.7.2",
       "esbuild": "^0.28.2",
       "@tailwindcss/typography>postcss-selector-parser": "6.1.4"
