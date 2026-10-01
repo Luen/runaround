@@ -30,7 +30,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 
 - Svelte 5 runes only. Validate `.svelte` with the Svelte MCP autofixer before finishing UI work.
 - `git mv` when relocating tracked assets so history is preserved; do not copy-then-delete binaries.
-- Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec. 
+- Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec.
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
@@ -38,6 +38,8 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 ## Security
 
 Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`. Do not hardcode Strava, Thunderforest, Cloudflare, or other keys; use env (`PUBLIC_MAP_TILES` / `PUBLIC_THUNDERFOREST_API_KEY` for maps). If a secret appears in git, stop, rotate it, and do not repeat the value in chat or commits.
+
+Every `pgTable` in `src/lib/server/db/schema.ts` ends in `.enableRLS()`; keep that for new tables. Production Postgres can be Supabase (Vercel integration), whose Data API exposes `public` to the `anon` key; the app connects as table owner, so RLS without policies blocks the API but not the app. `drizzle/0002_enable_rls_public_tables.sql` also revokes `anon`/`authenticated` grants when those roles exist.
 
 ## Git
 

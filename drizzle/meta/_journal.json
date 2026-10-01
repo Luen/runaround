@@ -15,6 +15,13 @@
       "when": 1787791457091,
       "tag": "0001_sharp_silver_centurion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790894016926,
+      "tag": "0002_enable_rls_public_tables",
+      "breakpoints": true
     }
   ]
 }
