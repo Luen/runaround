@@ -7,6 +7,7 @@ settings:
 overrides:
   brace-expansion: '>=5.0.12'
   cookie: 0.7.2
+  devalue: 5.9.4
   esbuild: ^0.28.2
   '@tailwindcss/typography>postcss-selector-parser': 6.1.4
 
@@ -1327,8 +1328,8 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  devalue@5.9.1:
-    resolution: {integrity: sha512-+17vil3EVQRzvtDJSFuTWEb8XJRvXqAiV3qZyQWD398QeXUa6CxsUyMdD1fxzEhUrd4FojitFz7lhIHBTlV4fw==}
+  devalue@5.9.4:
+    resolution: {integrity: sha512-sPAT4pztbu6586/hrhOnMKS17IJrvg12mXiSPSS3W5qDeN2RGgvZ0diZCm31dBbnevfVmujNO3IM2wrS4Y2Rhg==}
 
   drizzle-kit@0.31.10:
     resolution: {integrity: sha512-7OZcmQUrdGI+DUNNsKBn1aW8qSoKuTH7d0mYgSP8bAzdFzKoovxEFnoGQp2dVs82EOJeYycqRtciopszwUf8bw==}
@@ -2923,7 +2924,7 @@ snapshots:
       '@types/cookie': 0.6.0
       acorn: 8.18.0
       cookie: 0.7.2
-      devalue: 5.9.1
+      devalue: 5.9.4
       esm-env: 1.2.2
       kleur: 4.1.5
       magic-string: 0.30.21
@@ -3356,7 +3357,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  devalue@5.9.1: {}
+  devalue@5.9.4: {}
 
   drizzle-kit@0.31.10:
     dependencies:
@@ -4078,7 +4079,7 @@ snapshots:
       aria-query: 5.3.1
       axobject-query: 4.1.0
       clsx: 2.1.1
-      devalue: 5.9.1
+      devalue: 5.9.4
       esm-env: 1.2.2
       esrap: 2.3.6(@typescript-eslint/types@8.68.0)
       is-reference: 3.0.3
