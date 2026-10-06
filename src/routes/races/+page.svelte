@@ -38,7 +38,7 @@
 					Race winner {race.raceWinner.name} · {formatDuration(race.raceWinner.timeMs)}
 				</p>
 			{/if}
-			{#if race.allTime}
+			{#if race.allTime && (!race.raceWinner || race.allTime.name !== race.raceWinner.name || race.allTime.timeMs !== race.raceWinner.timeMs)}
 				<p class="text-sm text-stone-500">
 					All-time {race.allTime.name} · {formatDuration(race.allTime.timeMs)}
 				</p>
