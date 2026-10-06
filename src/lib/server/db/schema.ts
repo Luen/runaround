@@ -30,7 +30,7 @@ export const user = pgTable('user', {
 	stravaAthleteId: text('strava_athlete_id').unique(),
 	isAdmin: boolean('is_admin').notNull().default(false),
 	needsEmail: boolean('needs_email').notNull().default(true)
-});
+}).enableRLS();
 
 export const session = pgTable('session', {
 	id: text('id').primaryKey(),
@@ -43,7 +43,7 @@ export const session = pgTable('session', {
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id, { onDelete: 'cascade' })
-});
+}).enableRLS();
 
 export const account = pgTable(
 	'account',
@@ -66,7 +66,7 @@ export const account = pgTable(
 		updatedAt: timestamp('updated_at').notNull().defaultNow()
 	},
 	(t) => [uniqueIndex('account_issuer_accountId_uidx').on(t.issuer, t.accountId)]
-);
+).enableRLS();
 
 export const verification = pgTable('verification', {
 	id: text('id').primaryKey(),
@@ -75,7 +75,7 @@ export const verification = pgTable('verification', {
 	expiresAt: timestamp('expires_at').notNull(),
 	createdAt: timestamp('created_at').defaultNow(),
 	updatedAt: timestamp('updated_at').defaultNow()
-});
+}).enableRLS();
 
 export const races = pgTable(
 	'races',
@@ -100,7 +100,7 @@ export const races = pgTable(
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [index('races_status_idx').on(t.status), index('races_surface_idx').on(t.surface)]
-);
+).enableRLS();
 
 export const activities = pgTable(
 	'activities',
@@ -124,7 +124,7 @@ export const activities = pgTable(
 		uniqueIndex('activities_strava_id_idx').on(t.stravaActivityId),
 		index('activities_user_idx').on(t.userId)
 	]
-);
+).enableRLS();
 
 export const attempts = pgTable(
 	'attempts',
@@ -150,7 +150,7 @@ export const attempts = pgTable(
 		index('attempts_user_idx').on(t.userId),
 		index('attempts_athlete_idx').on(t.stravaAthleteId)
 	]
-);
+).enableRLS();
 
 export const rankSnapshots = pgTable(
 	'rank_snapshots',
@@ -168,7 +168,7 @@ export const rankSnapshots = pgTable(
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [uniqueIndex('rank_snapshots_unique').on(t.userId, t.raceId, t.board)]
-);
+).enableRLS();
 
 export const jobs = pgTable(
 	'jobs',
@@ -183,10 +183,10 @@ export const jobs = pgTable(
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [index('jobs_status_run_idx').on(t.status, t.runAt)]
-);
+).enableRLS();
 
 export const emailSuppressions = pgTable('email_suppressions', {
 	email: text('email').primaryKey(),
 	reason: text('reason').notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-});
+}).enableRLS();

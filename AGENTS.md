@@ -54,6 +54,8 @@ Never commit `.env`, `.env.*` (except `.env.template`), or `strava_config.json`.
 
 Kit options live in `svelte.config.js` (`kit.env.publicPrefix: 'PUBLIC_'`, adapter selection). Vercel’s Sensitive env UI needs that file so it can verify the public prefix. Server-only secrets (`BETTER_AUTH_SECRET`, `STRAVA_CLIENT_SECRET`, `STRAVA_VERIFY_TOKEN`, etc.) must **not** use `PUBLIC_` or `NEXT_PUBLIC_` — do not keep Supabase/`NEXT_PUBLIC_*` public prefixes for app secrets. After deploy of this config: add those as **Sensitive** in Vercel → Settings → Environment Variables. If the UI still flakes, **Encrypted** (non-Sensitive) still works for server-only vars.
 
+Every `pgTable` in `src/lib/server/db/schema.ts` ends in `.enableRLS()`; keep that for new tables. Production Postgres can be Supabase (Vercel integration), whose Data API exposes `public` to the `anon` key; the app connects as table owner, so RLS without policies blocks the API but not the app. `drizzle/0002_enable_rls_public_tables.sql` also revokes `anon`/`authenticated` grants when those roles exist.
+
 ## Git
 
 - `main` is production. `develop` is staging and the default branch. Feature PRs target `develop`; promote to production with a PR from `develop` into `main`.
