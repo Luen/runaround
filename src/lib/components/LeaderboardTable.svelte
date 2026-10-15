@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { formatDuration } from '$lib/geo';
-	import { safeHttpUrl } from '$lib/boards';
+	import {
+		defaultSortDir,
+		safeHttpUrl,
+		sortRankedRows,
+		type SortDir,
+		type SortKey
+	} from '$lib/boards';
 
 	type Row = {
 		rank: number;
@@ -9,10 +15,53 @@
 		startedAt: Date | string;
 		source: string;
 		effortUrl?: string | null;
+		completions: number;
 	};
 
 	let { title, rows }: { title: string; rows: Row[] } = $props();
+
+	let sortKey = $state<SortKey>('rank');
+	let sortDir = $state<SortDir>('asc');
+	const sorted = $derived(sortRankedRows(rows, sortKey, sortDir));
+
+	function sortBy(key: SortKey) {
+		if (sortKey === key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = key;
+			sortDir = defaultSortDir(key);
+		}
+	}
+
+	function ariaSort(key: SortKey): 'ascending' | 'descending' | 'none' {
+		if (sortKey !== key) return 'none';
+		return sortDir === 'asc' ? 'ascending' : 'descending';
+	}
+
+	const columns: { key: SortKey; label: string }[] = [
+		{ key: 'rank', label: 'Place' },
+		{ key: 'time', label: 'Time' },
+		{ key: 'completions', label: 'Completions' }
+	];
 </script>
+
+{#snippet header(key: SortKey, label: string)}
+	<th class="py-3 pr-4" aria-sort={ariaSort(key)}>
+		<button
+			type="button"
+			class={[
+				'inline-flex items-center gap-1 hover:text-green-900',
+				sortKey === key && 'text-green-900'
+			]}
+			onclick={() => sortBy(key)}
+		>
+			{label}
+			<span aria-hidden="true" class={['text-xs', sortKey !== key && 'text-stone-300']}>
+				{sortKey === key ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+			</span>
+		</button>
+	</th>
+{/snippet}
 
 <section class="space-y-3">
 	<h2 class="text-xl font-semibold">{title}</h2>
@@ -23,14 +72,15 @@
 			<table class="min-w-full text-left text-sm">
 				<thead>
 					<tr class="border-b border-stone-200">
-						<th class="py-3 pr-4">Place</th>
+						{@render header(columns[0].key, columns[0].label)}
 						<th class="py-3 pr-4">Runner</th>
-						<th class="py-3 pr-4">Time</th>
+						{@render header(columns[1].key, columns[1].label)}
+						{@render header(columns[2].key, columns[2].label)}
 						<th class="py-3 pr-4">Date</th>
 					</tr>
 				</thead>
 				<tbody>
-					{#each rows as row (row.rank + row.name)}
+					{#each sorted as row (row.rank + row.name)}
 						{@const effortHref = safeHttpUrl(row.effortUrl)}
 						<tr class="border-b border-stone-100">
 							<td class="py-3 pr-4 font-semibold">{row.rank}</td>
@@ -53,6 +103,7 @@
 									{formatDuration(row.timeMs)}
 								{/if}
 							</td>
+							<td class="py-3 pr-4">{row.completions}</td>
 							<td class="py-3 pr-4">{new Date(row.startedAt).toLocaleDateString()}</td>
 						</tr>
 					{/each}
