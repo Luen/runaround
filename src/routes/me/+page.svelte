@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { formatDuration } from '$lib/geo';
 	import Seo from '$lib/components/Seo.svelte';
 	import type { PageData } from './$types';
@@ -25,7 +26,7 @@
 	<ul class="mt-6 space-y-2">
 		{#each data.mine as row (row.slug + String(row.startedAt))}
 			<li class="rounded-lg border border-stone-200 bg-white p-3">
-				<a class="font-medium text-green-900" href="/races/{row.slug}">{row.title}</a>
+				<a class="font-medium text-green-900" href={resolve('/races/[id]', { id: row.slug })}>{row.title}</a>
 				— {formatDuration(row.timeMs)} on {new Date(row.startedAt).toLocaleDateString()}
 			</li>
 		{/each}

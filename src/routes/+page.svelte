@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { websiteJsonLd } from '$lib/seo';
@@ -45,10 +46,10 @@
 		to the route. Race-window results sit beside an overall board so old courses stay alive.
 	</p>
 	<div class="flex flex-wrap gap-3">
-		<a href="/races" class="rounded-full bg-green-800 px-4 py-2 text-white hover:bg-green-900"
+		<a href={resolve('/races')} class="rounded-full bg-green-800 px-4 py-2 text-white hover:bg-green-900"
 			>See races</a
 		>
-		<a href="/login" class="rounded-full border border-stone-300 px-4 py-2 hover:bg-white">Connect Strava</a>
+		<a href={resolve('/login')} class="rounded-full border border-stone-300 px-4 py-2 hover:bg-white">Connect Strava</a>
 	</div>
 </section>
 
@@ -62,7 +63,7 @@
 		<ul class="space-y-2">
 			{#each data.races as race (race.id)}
 				<li>
-					<a class="font-medium text-green-900 underline" href="/races/{race.slug}">{race.title}</a>
+					<a class="font-medium text-green-900 underline" href={resolve('/races/[id]', { id: race.slug })}>{race.title}</a>
 					<span class="text-sm text-stone-500"> · {race.surface}</span>
 				</li>
 			{/each}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
@@ -27,7 +28,7 @@
 	<RaceMap
 		focus={data.race.courseGeojson}
 		courseUrl={raceCourseJsonUrl(data.race.slug)}
-		gpxHref="/races/{data.race.slug}/gpx"
+		gpxHref={resolve('/races/[id]/gpx', { id: data.race.slug })}
 	/>
 </div>
 <form method="post" action="?/update" enctype="multipart/form-data" class="mt-6 space-y-3" use:enhance>

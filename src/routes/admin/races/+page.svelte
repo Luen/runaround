@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import Seo from '$lib/components/Seo.svelte';
 	import type { ActionData, PageData } from './$types';
@@ -52,7 +53,7 @@
 <ul class="mt-8 space-y-2">
 	{#each data.races as race (race.id)}
 		<li>
-			<a class="font-medium text-green-900 underline" href="/admin/races/{race.slug}">{race.title}</a>
+			<a class="font-medium text-green-900 underline" href={resolve('/admin/races/[id]', { id: race.slug })}>{race.title}</a>
 			<span class="text-sm text-stone-500"> · {race.surface} · {race.status}</span>
 		</li>
 	{/each}
