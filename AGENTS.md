@@ -44,6 +44,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - Race detail / admin maps load the course overlay from `/races/:slug/course.json` (`RaceMap` `courseUrl`); listing maps still pass `races`/`focus` SSR props. A Vercel Draft Mode `HEAD` to the HTML race URL (`x-vercel-draft-status`) is unrelated to map fetches — do not treat it as a missing GPX/GeoJSON bug.
 - GPX download links use `data-sveltekit-preload-data="off"` (and `data-sveltekit-reload` where needed) so the client router does not treat `/races/:slug/gpx` as a page navigation.
 - Homepage (`src/routes/+page`): map can overlay closed races via a “Show past races” checkbox (default on when no live/upcoming); the “Active and upcoming” list stays active-only.
+- Elevation: admin GPX upload/replace runs `processUploadedGpx` (`src/lib/server/elevation.ts`). It keeps the GPX's own `<ele>` when usable, else samples Mapterhorn terrarium WebP tiles (z13→z11 fallback, bilinear, in-memory tile cache, decoded with `sharp`), smooths over a 100 m distance window (`src/lib/elevation.ts`) and stores `elevation_gain_m` plus a stored GPX with `<ele>`. `course_geojson` stays 2D. Races with 0 m gain are backfilled on worker start (`elevation-backfill.ts`) or on the next admin save. Race page credits Mapterhorn.
 - Leaderboards: `attempts.effortUrl` flows through `rankedLeaderboard` (`src/lib/boards.ts`); `LeaderboardTable` links the time when `safeHttpUrl` accepts http(s).
 
 ## Security
@@ -61,6 +62,26 @@ Every `pgTable` in `src/lib/server/db/schema.ts` ends in `.enableRLS()`; keep th
 - `main` is production. `develop` is staging and the default branch. Feature PRs target `develop`; promote to production with a PR from `develop` into `main`.
 - **Never open a PR with `main` as the head branch** (including “sync main into develop”). This repo’s GitHub setting **automatically deletes the head branch when a PR is merged**, so a `main`→`develop` sync PR deletes `main` on merge. If `develop` needs the release merge commit, recreate/`git merge` without using `main` as the PR head, or leave `develop` one merge-commit behind until the next promote.
 - Do not commit unless the user asks. Do not force-push `main` or `develop`. Do not merge PRs unless asked. Conventional, why-focused commit messages.
+
+## Labels
+
+Always apply **at least one** fitting label to every issue and PR you create. Prefer existing labels; create a new label only if none fits.
+
+| Label              | When to use                                                                 |
+| ------------------ | --------------------------------------------------------------------------- |
+| `bug`              | Something isn't working (broken behaviour, wrong data, failed checks).      |
+| `enhancement`      | New feature or request.                                                     |
+| `documentation`    | Docs-only changes (`AGENTS.md`, README, comments that are the main change). |
+| `javascript`       | PRs that primarily update JavaScript/TypeScript application code.           |
+| `dependencies`     | PRs that update a dependency file (`package.json`, lockfile).               |
+| `question`         | Further information is requested; open-ended product discussion.            |
+| `good first issue` | Scoped work suitable for newcomers.                                         |
+| `help wanted`      | Extra attention or a second pair of hands is needed.                        |
+| `duplicate`        | Same as an existing issue or PR — link the original.                        |
+| `invalid`          | Not actionable or not applicable to this repo.                              |
+| `wontfix`          | Will not be worked on — say why in a comment.                               |
+
+For mixed PRs, pick the primary intent (e.g. a bugfix that also touches docs → `bug`). Label both the issue and its PR.
 
 ## Package manager
 

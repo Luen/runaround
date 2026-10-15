@@ -2,12 +2,21 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { rankedLeaderboard, filterRaceWindow, safeHttpUrl } from './boards';
+import {
+	rankedLeaderboard,
+	filterRaceWindow,
+	safeHttpUrl,
+	sortRankedRows,
+	defaultSortDir
+} from './boards';
 import { legacySurface } from './legacy';
 
 describe('legacy seed shape', () => {
 	it('contains nine races with leaderboards and polylines', () => {
-		const file = resolve(dirname(fileURLToPath(import.meta.url)), '../../data/legacy/database.json');
+		const file = resolve(
+			dirname(fileURLToPath(import.meta.url)),
+			'../../data/legacy/database.json'
+		);
 		const races = JSON.parse(readFileSync(file, 'utf8')) as {
 			id: number;
 			map?: { polyline?: string };
@@ -90,5 +99,33 @@ describe('safeHttpUrl', () => {
 		expect(safeHttpUrl(null)).toBeNull();
 		expect(safeHttpUrl('')).toBeNull();
 		expect(safeHttpUrl('  ')).toBeNull();
+	});
+});
+
+describe('completions and sorting', () => {
+	const base = { stravaAthleteId: null, importedName: null, source: 'live', effortUrl: null };
+	const rows = [
+		{ ...base, id: '1', userId: 'a', timeMs: 900, startedAt: new Date('2024-01-01') },
+		{ ...base, id: '2', userId: 'a', timeMs: 800, startedAt: new Date('2024-01-02') },
+		{ ...base, id: '3', userId: 'a', timeMs: 950, startedAt: new Date('2024-01-03') },
+		{ ...base, id: '4', userId: 'b', timeMs: 700, startedAt: new Date('2024-01-04') }
+	];
+
+	it('counts every completed attempt per runner', () => {
+		const board = rankedLeaderboard(rows);
+		expect(board.map((r) => [r.userId, r.completions])).toEqual([
+			['b', 1],
+			['a', 3]
+		]);
+	});
+
+	it('sorts by time and completions in both directions, keeping place', () => {
+		const board = rankedLeaderboard(rows);
+		expect(sortRankedRows(board, 'completions', 'desc').map((r) => r.rank)).toEqual([2, 1]);
+		expect(sortRankedRows(board, 'completions', 'asc').map((r) => r.rank)).toEqual([1, 2]);
+		expect(sortRankedRows(board, 'time', 'desc').map((r) => r.rank)).toEqual([2, 1]);
+		expect(sortRankedRows(board, 'rank', 'asc').map((r) => r.rank)).toEqual([1, 2]);
+		expect(defaultSortDir('completions')).toBe('desc');
+		expect(defaultSortDir('time')).toBe('asc');
 	});
 });

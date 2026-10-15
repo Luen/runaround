@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import { formatDate } from '$lib/dates';
 	import { formatDuration } from '$lib/geo';
 	import Seo from '$lib/components/Seo.svelte';
 	import type { PageData } from './$types';
@@ -20,13 +22,17 @@
 </p>
 
 {#if data.mine.length === 0}
-	<p class="mt-6 text-stone-700">No matched runs yet. Head out on a published course and sync Strava.</p>
+	<p class="mt-6 text-stone-700">
+		No matched runs yet. Head out on a published course and sync Strava.
+	</p>
 {:else}
 	<ul class="mt-6 space-y-2">
 		{#each data.mine as row (row.slug + String(row.startedAt))}
 			<li class="rounded-lg border border-stone-200 bg-white p-3">
-				<a class="font-medium text-green-900" href="/races/{row.slug}">{row.title}</a>
-				— {formatDuration(row.timeMs)} on {new Date(row.startedAt).toLocaleDateString()}
+				<a class="font-medium text-green-900" href={resolve('/races/[id]', { id: row.slug })}
+					>{row.title}</a
+				>
+				— {formatDuration(row.timeMs)} on {formatDate(row.startedAt)}
 			</li>
 		{/each}
 	</ul>

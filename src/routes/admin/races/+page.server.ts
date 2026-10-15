@@ -3,9 +3,11 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { parseGpxToLineString, geojsonToGpx, pointsFromLineString, endOfLocalDay, type LineString } from '$lib/geo';
+import { pointsFromLineString, type LineString } from '$lib/geo';
+import { processUploadedGpx } from '$lib/server/elevation';
 import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
+import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
 import type { Actions, PageServerLoad } from './$types';
 
 function slugify(value: string): string {
@@ -46,14 +48,21 @@ export const actions: Actions = {
 			return fail(400, { message: 'Upload a GPX course' });
 		}
 		const xml = await file.text();
-		let courseGeojson: LineString;
+		let course: Awaited<ReturnType<typeof processUploadedGpx>>;
 		try {
-			courseGeojson = parseGpxToLineString(xml);
+			course = await processUploadedGpx(parsed.data.title, xml);
 		} catch (err) {
 			return fail(400, { message: err instanceof Error ? err.message : 'Invalid GPX' });
 		}
-		const startsAt = new Date(parsed.data.startsAt);
-		const endsAt = endOfLocalDay(new Date(parsed.data.endsAt));
+		let startsAt: Date;
+		let endsAt: Date;
+		try {
+			// Admin inputs are Brisbane wall-clock times, independent of the server's TZ.
+			startsAt = parseBrisbaneInputValue(parsed.data.startsAt);
+			endsAt = endOfBrisbaneDay(parseBrisbaneInputValue(parsed.data.endsAt));
+		} catch {
+			return fail(400, { message: 'Check the race dates' });
+		}
 		const slugBase = slugify(parsed.data.title) || 'race';
 		const slug = `${slugBase}-${Date.now().toString(36)}`;
 		await db.insert(races).values({
@@ -65,9 +74,10 @@ export const actions: Actions = {
 			endsAt,
 			status: computeRaceStatus(startsAt, endsAt),
 			stravaSegmentId: parsed.data.stravaSegmentId || null,
-			courseGeojson,
-			gpx: geojsonToGpx(parsed.data.title, courseGeojson),
-			distanceM: distanceM(courseGeojson)
+			courseGeojson: course.courseGeojson,
+			gpx: course.gpx,
+			distanceM: distanceM(course.courseGeojson),
+			elevationGainM: course.elevationGainM
 		});
 		throw redirect(303, `/races/${slug}`);
 	}

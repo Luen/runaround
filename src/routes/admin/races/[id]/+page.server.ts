@@ -3,8 +3,10 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { parseGpxToLineString, geojsonToGpx, endOfLocalDay } from '$lib/geo';
+import { geojsonToGpx } from '$lib/geo';
+import { courseElevation, processUploadedGpx } from '$lib/server/elevation';
 import { computeRaceStatus } from '$lib/server/sync';
+import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
 import type { Actions, PageServerLoad } from './$types';
 
 const schema = z.object({
@@ -29,14 +31,40 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const parsed = schema.safeParse(Object.fromEntries(form));
 		if (!parsed.success) return fail(400, { message: 'Check the race details' });
-		const startsAt = new Date(parsed.data.startsAt);
-		const endsAt = endOfLocalDay(new Date(parsed.data.endsAt));
+		let startsAt: Date;
+		let endsAt: Date;
+		try {
+			// Admin inputs are Brisbane wall-clock times, independent of the server's TZ.
+			startsAt = parseBrisbaneInputValue(parsed.data.startsAt);
+			endsAt = endOfBrisbaneDay(parseBrisbaneInputValue(parsed.data.endsAt));
+		} catch {
+			return fail(400, { message: 'Check the race dates' });
+		}
 		let courseGeojson = race.courseGeojson;
 		let gpx = race.gpx;
+		let elevationGainM = race.elevationGainM;
 		const file = form.get('gpx');
 		if (file instanceof File && file.size > 0) {
-			courseGeojson = parseGpxToLineString(await file.text());
-			gpx = geojsonToGpx(parsed.data.title, courseGeojson);
+			try {
+				({ courseGeojson, gpx, elevationGainM } = await processUploadedGpx(
+					parsed.data.title,
+					await file.text()
+				));
+			} catch (err) {
+				return fail(400, { message: err instanceof Error ? err.message : 'Invalid GPX' });
+			}
+		} else if (!elevationGainM) {
+			// Existing course saved without elevation: fill it in on the next save.
+			try {
+				const enriched = await courseElevation(
+					gpx ?? geojsonToGpx(parsed.data.title, courseGeojson),
+					courseGeojson
+				);
+				elevationGainM = enriched.elevationGainM;
+				gpx = geojsonToGpx(parsed.data.title, courseGeojson, enriched.elevations);
+			} catch (err) {
+				console.error('Elevation lookup failed', err);
+			}
 		}
 		await db
 			.update(races)
@@ -50,6 +78,7 @@ export const actions: Actions = {
 				stravaSegmentId: parsed.data.stravaSegmentId || null,
 				courseGeojson,
 				gpx,
+				elevationGainM,
 				updatedAt: new Date()
 			})
 			.where(eq(races.id, race.id));

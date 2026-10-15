@@ -16,8 +16,7 @@ export function haversineMeters(a: LngLat, b: LngLat): number {
 	const dLng = toRad(b.lng - a.lng);
 	const sinLat = Math.sin(dLat / 2);
 	const sinLng = Math.sin(dLng / 2);
-	const h =
-		sinLat * sinLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
+	const h = sinLat * sinLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
 	return 2 * EARTH_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
@@ -119,15 +118,14 @@ export function endOfUtcDay(date: Date): Date {
 	return d;
 }
 
-export function endOfLocalDay(date: Date): Date {
-	const d = new Date(date);
-	d.setHours(23, 59, 59, 999);
-	return d;
-}
-
-export function geojsonToGpx(name: string, geojson: LineString): string {
+export function geojsonToGpx(name: string, geojson: LineString, elevations?: number[]): string {
+	const withEle = elevations?.length === geojson.coordinates.length;
 	const pts = geojson.coordinates
-		.map(([lng, lat]) => `      <trkpt lat="${lat}" lon="${lng}"></trkpt>`)
+		.map(([lng, lat], i) =>
+			withEle
+				? `      <trkpt lat="${lat}" lon="${lng}"><ele>${elevations[i]}</ele></trkpt>`
+				: `      <trkpt lat="${lat}" lon="${lng}"></trkpt>`
+		)
 		.join('\n');
 	return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="RunAround" xmlns="http://www.topografix.com/GPX/1/1">
@@ -168,7 +166,6 @@ function escapeXml(value: string): string {
 		.replaceAll('"', '&quot;');
 }
 
-
 /** True when a response Content-Type looks like JSON / GeoJSON (not HTML login pages). */
 export function isJsonLikeContentType(contentType: string): boolean {
 	const ct = contentType.split(';')[0]?.trim().toLowerCase() ?? '';
@@ -184,7 +181,6 @@ export function isJsonLikeContentType(contentType: string): boolean {
 export function raceCourseJsonUrl(slug: string): string {
 	return `/races/${encodeURIComponent(slug)}/course.json`;
 }
-
 
 /** Stable HSL colour from a race id/slug (same id → same colour every load). */
 export function colorForRaceId(id: string): string {
@@ -220,7 +216,6 @@ export type CourseFeatureCollection = {
 		geometry: LineString;
 	}>;
 };
-
 
 /** Extract a LineString from GeoJSON LineString / Feature / FeatureCollection payloads. */
 export function lineFromCoursePayload(data: unknown): LineString | null {
@@ -291,5 +286,7 @@ export function courseOverlayFeatureCollection(
 		});
 	}
 	// JSON round-trip unwraps Svelte 5 Proxies; structuredClone throws DataCloneError on them.
-	return JSON.parse(JSON.stringify({ type: 'FeatureCollection', features })) as CourseFeatureCollection;
+	return JSON.parse(
+		JSON.stringify({ type: 'FeatureCollection', features })
+	) as CourseFeatureCollection;
 }

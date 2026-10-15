@@ -9,8 +9,7 @@ import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { enqueueJob } from './jobs';
 
-const origin =
-	process.env['ORIGIN'] ?? process.env['BETTER_AUTH_URL'] ?? 'http://localhost:5173';
+const origin = process.env['ORIGIN'] ?? process.env['BETTER_AUTH_URL'] ?? 'http://localhost:5173';
 const devSecret = 'dev-only-insecure-secret-change-me-32';
 const buildSecret = 'build-time-placeholder-not-for-production!!';
 const placeholderEmail = (athleteId: string) => `strava-${athleteId}@users.runaround.invalid`;
@@ -57,9 +56,7 @@ export const auth = betterAuth({
 					scopes: ['read', 'activity:read_all', 'profile:read_all'],
 					authorizationUrlParams: { approval_prompt: 'auto' },
 					getUserInfo: async (tokens) => {
-						const token =
-							tokens.accessToken ??
-							(tokens as { access_token?: string }).access_token;
+						const token = tokens.accessToken ?? (tokens as { access_token?: string }).access_token;
 						if (!token) return null;
 						const res = await fetch('https://www.strava.com/api/v3/athlete', {
 							headers: { Authorization: `Bearer ${token}` }

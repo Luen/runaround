@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
+	import type { ResolvedPathname } from '$app/types';
 	import {
 		BASEMAP_OPTIONS,
 		DEFAULT_BASEMAP,
@@ -15,6 +16,7 @@
 		type CourseFeatureCollection,
 		type LineString
 	} from '$lib/geo';
+	import { routeEndpointFeatures } from '$lib/routeMarkers';
 
 	type RaceOverlay = {
 		id: string;
@@ -35,7 +37,8 @@
 	}: {
 		races?: RaceOverlay[];
 		focus?: LineString | null;
-		gpxHref?: string | null;
+		/** Build with resolve() so the link honours the app base path. */
+		gpxHref?: ResolvedPathname | null;
 		/** When set, fetch course GeoJSON from this URL (primary overlay on race detail). */
 		courseUrl?: string | null;
 	} = $props();
@@ -61,6 +64,68 @@
 	const LINE_LAYER_ID = 'courses-line';
 	const HIT_LAYER_ID = 'courses-hit';
 	const DEFAULT_LINE_COLOR = '#ea580c';
+	const ARROW_LAYER_ID = 'courses-arrows';
+	const ENDPOINT_SOURCE_ID = 'course-endpoints';
+	const ENDPOINT_LAYER_ID = 'course-endpoints';
+	const ARROW_IMAGE = 'route-arrow';
+	const ICON_PIXEL_RATIO = 2;
+
+	/** Draw an icon on a canvas so we never depend on basemap sprites/glyphs. */
+	function canvasIcon(size: number, paint: (ctx: CanvasRenderingContext2D, s: number) => void) {
+		const px = size * ICON_PIXEL_RATIO;
+		const canvas = document.createElement('canvas');
+		canvas.width = px;
+		canvas.height = px;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return null;
+		paint(ctx, px);
+		return ctx.getImageData(0, 0, px, px);
+	}
+
+	function badgeIcon(fill: string, label: string, fontScale = 0.5) {
+		return canvasIcon(26, (ctx, s) => {
+			const r = s / 2 - 3;
+			ctx.beginPath();
+			ctx.arc(s / 2, s / 2, r, 0, Math.PI * 2);
+			ctx.fillStyle = fill;
+			ctx.fill();
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = '#ffffff';
+			ctx.stroke();
+			ctx.fillStyle = '#ffffff';
+			ctx.font = `700 ${Math.round(s * fontScale)}px system-ui, sans-serif`;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText(label, s / 2, s / 2 + 1);
+		});
+	}
+
+	function ensureRouteImages(map: Map) {
+		const add = (id: string, img: ImageData | null) => {
+			if (img && !map.hasImage(id)) map.addImage(id, img, { pixelRatio: ICON_PIXEL_RATIO });
+		};
+		// Arrow points east (+x); symbol-placement: line rotates it along the course.
+		add(
+			ARROW_IMAGE,
+			canvasIcon(18, (ctx, s) => {
+				ctx.beginPath();
+				ctx.moveTo(s * 0.2, s * 0.18);
+				ctx.lineTo(s * 0.85, s * 0.5);
+				ctx.lineTo(s * 0.2, s * 0.82);
+				ctx.lineTo(s * 0.38, s * 0.5);
+				ctx.closePath();
+				ctx.fillStyle = '#ffffff';
+				ctx.strokeStyle = '#7c2d12';
+				ctx.lineWidth = s * 0.08;
+				ctx.lineJoin = 'round';
+				ctx.stroke();
+				ctx.fill();
+			})
+		);
+		add('route-start', badgeIcon('#15803d', 'S'));
+		add('route-finish', badgeIcon('#b91c1c', 'F'));
+		add('route-start-finish', badgeIcon('#1d4ed8', 'S/F', 0.32));
+	}
 
 	let coursePopup: Popup | null = null;
 
@@ -96,9 +161,18 @@
 		coursePopup = null;
 	}
 
-	function showCoursePopup(map: Map, lngLat: { lng: number; lat: number }, props: Record<string, unknown>) {
+	function showCoursePopup(
+		map: Map,
+		lngLat: { lng: number; lat: number },
+		props: Record<string, unknown>
+	) {
 		closeCoursePopup();
-		coursePopup = new Popup({ closeButton: true, closeOnClick: true, maxWidth: '260px', offset: 12 })
+		coursePopup = new Popup({
+			closeButton: true,
+			closeOnClick: true,
+			maxWidth: '260px',
+			offset: 12
+		})
 			.setLngLat(lngLat)
 			.setHTML(racePopupHtml(props))
 			.addTo(map);
@@ -111,9 +185,7 @@
 	}
 
 	const visibleBasemapOptions = $derived(
-		maptilerKey()
-			? BASEMAP_OPTIONS
-			: BASEMAP_OPTIONS.filter((o) => o.id !== 'satellite')
+		maptilerKey() ? BASEMAP_OPTIONS : BASEMAP_OPTIONS.filter((o) => o.id !== 'satellite')
 	);
 
 	function syncFullscreen() {
@@ -164,6 +236,54 @@
 				}
 			});
 		}
+		ensureRouteImages(map);
+		if (!map.getLayer(ARROW_LAYER_ID)) {
+			map.addLayer({
+				id: ARROW_LAYER_ID,
+				type: 'symbol',
+				source: SOURCE_ID,
+				layout: {
+					'symbol-placement': 'line',
+					// Screen-pixel spacing: MapLibre repeats arrows per tile, so they thin out zoomed out.
+					'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 8, 60, 12, 90, 16, 140],
+					'icon-image': ARROW_IMAGE,
+					'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.7, 14, 1],
+					'icon-rotation-alignment': 'map',
+					'icon-allow-overlap': true,
+					'icon-ignore-placement': true
+				}
+			});
+		}
+		if (!map.getSource(ENDPOINT_SOURCE_ID)) {
+			map.addSource(ENDPOINT_SOURCE_ID, {
+				type: 'geojson',
+				data: initialData
+					? routeEndpointFeatures(initialData)
+					: { type: 'FeatureCollection', features: [] }
+			});
+		}
+		if (!map.getLayer(ENDPOINT_LAYER_ID)) {
+			map.addLayer({
+				id: ENDPOINT_LAYER_ID,
+				type: 'symbol',
+				source: ENDPOINT_SOURCE_ID,
+				layout: {
+					'icon-image': [
+						'match',
+						['get', 'kind'],
+						'start',
+						'route-start',
+						'finish',
+						'route-finish',
+						'route-start-finish'
+					],
+					'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.75, 12, 1],
+					'icon-allow-overlap': true,
+					'icon-ignore-placement': true,
+					'symbol-sort-key': ['match', ['get', 'kind'], 'start', 2, 1]
+				}
+			});
+		}
 		// Wider invisible hit target so thin courses are easier to click on the homepage.
 		if (!map.getLayer(HIT_LAYER_ID)) {
 			map.addLayer({
@@ -193,6 +313,9 @@
 		ensureCourseLayers(map, plain);
 		const source = map.getSource(SOURCE_ID) as GeoJSONSource;
 		source.setData(plain);
+		(map.getSource(ENDPOINT_SOURCE_ID) as GeoJSONSource | undefined)?.setData(
+			routeEndpointFeatures(plain)
+		);
 		map.triggerRepaint();
 
 		if (!fit) return;
@@ -347,7 +470,7 @@
 		const f = focus;
 		const ff = fetchedFocus;
 		// Re-run after basemap style.load (styleGeneration bump from applyBasemap).
-		styleGeneration;
+		void styleGeneration;
 		// During setStyle, sources are gone until style.load re-adds them.
 		if (!map.isStyleLoaded()) return;
 		// Fit only when overlay data changed — not on styleGeneration-only retries
@@ -369,7 +492,7 @@
 	]}
 >
 	<div class="h-full w-full" {@attach attachMap}></div>
-	<div class="absolute left-2 top-2 z-10 flex flex-wrap items-center gap-2">
+	<div class="absolute top-2 left-2 z-10 flex flex-wrap items-center gap-2">
 		{#if gpxHref}
 			<a
 				class="rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200 hover:bg-white"
@@ -397,9 +520,7 @@
 					aria-pressed={basemap === opt.id}
 					class={[
 						'px-2.5 py-1.5 hover:bg-white',
-						basemap === opt.id
-							? 'bg-green-800 text-white hover:bg-green-800'
-							: 'bg-transparent'
+						basemap === opt.id ? 'bg-green-800 text-white hover:bg-green-800' : 'bg-transparent'
 					]}
 					onclick={() => setBasemap(opt.id)}
 				>

@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import { formatDateRange } from '$lib/dates';
+	import ChallengeFriend from '$lib/components/ChallengeFriend.svelte';
+	import { challengeUrl } from '$lib/challenge';
 	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
@@ -8,6 +12,9 @@
 
 	let { data }: { data: PageData } = $props();
 	let tab = $state<'race' | 'overall'>('race');
+	const myBestMs = $derived(
+		data.user ? (data.overall.find((r) => r.userId === data.user?.id)?.timeMs ?? null) : null
+	);
 </script>
 
 <Seo
@@ -18,18 +25,25 @@
 	jsonLd={sportsEventJsonLd(data.origin, data.race)}
 />
 
-<p class="text-sm capitalize text-green-800">{data.race.surface} · {data.race.status}</p>
+<p class="text-sm text-green-800 capitalize">{data.race.surface} · {data.race.status}</p>
 <h1 class="text-3xl font-bold">{data.race.title}</h1>
 <p class="mt-2 max-w-2xl text-stone-700">{data.race.description}</p>
 <p class="mt-2 text-sm text-stone-500">
-	{(data.race.distanceM / 1000).toFixed(1)} km · {Math.round(data.race.elevationGainM)} m gain · race
-	window {data.race.startsAt.toLocaleDateString()} – {data.race.endsAt.toLocaleDateString()}
+	{(data.race.distanceM / 1000).toFixed(1)} km · {Math.round(data.race.elevationGainM)} m gain
+	<a
+		class="underline"
+		href="https://mapterhorn.com/attribution"
+		rel="noopener noreferrer"
+		target="_blank"
+		title="Elevation data for courses without it">(elevation © Mapterhorn)</a
+	>
+	· race window {formatDateRange(data.race.startsAt, data.race.endsAt)}
 </p>
 
 <div class="mt-4 flex flex-wrap gap-3">
 	<a
 		class="rounded-full bg-green-800 px-4 py-2 text-white"
-		href="/races/{data.race.slug}/gpx"
+		href={resolve('/races/[id]/gpx', { id: data.race.slug })}
 		data-sveltekit-reload
 		data-sveltekit-preload-data="off">Download GPX</a
 	>
@@ -47,7 +61,7 @@
 	<RaceMap
 		focus={data.race.courseGeojson}
 		courseUrl={raceCourseJsonUrl(data.race.slug)}
-		gpxHref="/races/{data.race.slug}/gpx"
+		gpxHref={resolve('/races/[id]/gpx', { id: data.race.slug })}
 	/>
 </div>
 
@@ -71,3 +85,9 @@
 		<LeaderboardTable title="Overall (all-time)" rows={data.overall} />
 	{/if}
 </div>
+
+<ChallengeFriend
+	raceTitle={data.race.title}
+	url={challengeUrl(data.origin, data.race.slug)}
+	timeMs={myBestMs}
+/>

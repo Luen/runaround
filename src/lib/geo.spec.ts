@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { decodePolyline, parseClockToMs, parseDmy, formatDuration, parseGpxToLineString, courseOverlayFeatureCollection, colorForRaceId, raceCourseJsonUrl, isJsonLikeContentType, lineFromCoursePayload } from '$lib/geo';
+import {
+	decodePolyline,
+	parseClockToMs,
+	parseDmy,
+	formatDuration,
+	parseGpxToLineString,
+	courseOverlayFeatureCollection,
+	colorForRaceId,
+	raceCourseJsonUrl,
+	isJsonLikeContentType,
+	lineFromCoursePayload
+} from '$lib/geo';
 import {
 	courseCoverage,
 	matchActivityToCourse,
@@ -183,9 +194,9 @@ describe('lineFromCoursePayload', () => {
 	});
 
 	it('unwraps Feature and FeatureCollection', () => {
-		expect(
-			lineFromCoursePayload({ type: 'Feature', properties: {}, geometry: line })
-		).toEqual(line);
+		expect(lineFromCoursePayload({ type: 'Feature', properties: {}, geometry: line })).toEqual(
+			line
+		);
 		expect(
 			lineFromCoursePayload({
 				type: 'FeatureCollection',
