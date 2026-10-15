@@ -44,6 +44,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - Race detail / admin maps load the course overlay from `/races/:slug/course.json` (`RaceMap` `courseUrl`); listing maps still pass `races`/`focus` SSR props. A Vercel Draft Mode `HEAD` to the HTML race URL (`x-vercel-draft-status`) is unrelated to map fetches — do not treat it as a missing GPX/GeoJSON bug.
 - GPX download links use `data-sveltekit-preload-data="off"` (and `data-sveltekit-reload` where needed) so the client router does not treat `/races/:slug/gpx` as a page navigation.
 - Homepage (`src/routes/+page`): map can overlay closed races via a “Show past races” checkbox (default on when no live/upcoming); the “Active and upcoming” list stays active-only.
+- Elevation: admin GPX upload/replace runs `processUploadedGpx` (`src/lib/server/elevation.ts`). It keeps the GPX's own `<ele>` when usable, else samples Mapterhorn terrarium WebP tiles (z13→z11 fallback, bilinear, in-memory tile cache, decoded with `sharp`), smooths over a 100 m distance window (`src/lib/elevation.ts`) and stores `elevation_gain_m` plus a stored GPX with `<ele>`. `course_geojson` stays 2D. Races with 0 m gain are backfilled on worker start (`elevation-backfill.ts`) or on the next admin save. Race page credits Mapterhorn.
 - Leaderboards: `attempts.effortUrl` flows through `rankedLeaderboard` (`src/lib/boards.ts`); `LeaderboardTable` links the time when `safeHttpUrl` accepts http(s).
 
 ## Security

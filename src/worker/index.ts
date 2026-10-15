@@ -1,9 +1,15 @@
 import { claimNextJob, completeJob, failJob, enqueueJob } from '../lib/server/jobs';
-import { backfillUser, sendQueuedEmail, sendRaceEndEmails, upsertAndMatchActivity } from '../lib/server/sync';
+import {
+	backfillUser,
+	sendQueuedEmail,
+	sendRaceEndEmails,
+	upsertAndMatchActivity
+} from '../lib/server/sync';
 import { getActivity, stravaUsers } from '../lib/server/strava';
 import { db } from '../lib/server/db';
 import { activities } from '../lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { backfillMissingElevation } from '../lib/server/elevation-backfill';
 
 const POLL_MS = 15 * 60_000;
 const RACE_END_MS = 60_000;
@@ -51,6 +57,9 @@ async function handleJob() {
 
 async function loop() {
 	console.log('RunAround worker started');
+	backfillMissingElevation()
+		.then((n) => n && console.log(`Elevation backfilled for ${n} race(s)`))
+		.catch((err) => console.error('Elevation backfill failed', err));
 	await enqueueJob('race_end', {});
 	await enqueueJob('poll_activities', {}, new Date(Date.now() + POLL_MS));
 	for (;;) {
