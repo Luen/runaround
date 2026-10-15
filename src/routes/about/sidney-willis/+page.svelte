@@ -31,9 +31,9 @@
 <h1>Sidney Willis</h1>
 <p>Head Coach</p>
 <p>
-	Sidney is an Australian Frenchy with a passion for endurance sports. He played tennis at a national
-	level, later switched to rock climbing, then trail running — from 10 km to 100 km ultras across
-	Europe and Australia.
+	Sidney is an Australian Frenchy with a passion for endurance sports. He played tennis at a
+	national level, later switched to rock climbing, then trail running — from 10 km to 100 km ultras
+	across Europe and Australia.
 </p>
 <p>
 	His passion for sports and eye for detail had him start coaching fellow sport enthusiasts. Sidney

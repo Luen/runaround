@@ -6,9 +6,7 @@ import type { PageServerLoad } from './$types';
 
 type BoardLeader = { name: string; timeMs: number };
 
-function leaderFromBoard(
-	rows: Parameters<typeof rankedLeaderboard>[0]
-): BoardLeader | null {
+function leaderFromBoard(rows: Parameters<typeof rankedLeaderboard>[0]): BoardLeader | null {
 	const [top] = rankedLeaderboard(rows);
 	if (!top) return null;
 	return { name: top.name, timeMs: top.timeMs };

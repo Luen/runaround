@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { formatDateRange } from '$lib/dates';
 	import ChallengeFriend from '$lib/components/ChallengeFriend.svelte';
 	import { challengeUrl } from '$lib/challenge';
@@ -42,7 +43,7 @@
 <div class="mt-4 flex flex-wrap gap-3">
 	<a
 		class="rounded-full bg-green-800 px-4 py-2 text-white"
-		href="/races/{data.race.slug}/gpx"
+		href={resolve('/races/[id]/gpx', { id: data.race.slug })}
 		data-sveltekit-reload
 		data-sveltekit-preload-data="off">Download GPX</a
 	>
@@ -60,7 +61,7 @@
 	<RaceMap
 		focus={data.race.courseGeojson}
 		courseUrl={raceCourseJsonUrl(data.race.slug)}
-		gpxHref="/races/{data.race.slug}/gpx"
+		gpxHref={resolve('/races/[id]/gpx', { id: data.race.slug })}
 	/>
 </div>
 

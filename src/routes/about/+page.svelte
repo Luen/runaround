@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Seo from '$lib/components/Seo.svelte';
 	import { page } from '$app/state';
 </script>
@@ -15,7 +16,7 @@
 	RunAround is a Townsville-based running website that aims to promote running in our community,
 	inspire others to get outdoors, and stay connected with like-minded people. The Townsville Virtual
 	Running Series is the brainchild of
-	<a href="/about/sidney-willis">Sidney Willis</a> from
+	<a href={resolve('/about/sidney-willis')}>Sidney Willis</a> from
 	<a href="https://www.hungryrunner.net/">Hungry Runner Coaching</a>. This virtual running series
 	allows participants the flexibility that conventional races can't offer.
 </p>
@@ -31,8 +32,8 @@
 	leaderboard stays open so you can come back later and try to beat the record.
 </p>
 <p>
-	Read more about <a href="/about/luen-warneke">Luen Warneke</a> and
-	<a href="/about/sidney-willis">Sidney Willis</a>.
+	Read more about <a href={resolve('/about/luen-warneke')}>Luen Warneke</a> and
+	<a href={resolve('/about/sidney-willis')}>Sidney Willis</a>.
 </p>
 <img src="/Run-Hungry-2022-virtual-run-series.webp" alt="Run Hungry 2022 virtual run series" />
 <h2>Map of Castle Hill</h2>
