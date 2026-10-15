@@ -34,7 +34,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
 		"@tailwindcss/typography": "^0.5.20",
 		"@tailwindcss/vite": "^4.3.3",
-		"@types/node": "^24",
+		"@types/node": "^26",
 		"@vitest/browser-playwright": "^4.1.11",
 		"drizzle-kit": "^0.31.10",
 		"eslint": "^10.9.1",
