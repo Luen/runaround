@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ChallengeFriend from '$lib/components/ChallengeFriend.svelte';
+	import { challengeUrl } from '$lib/challenge';
 	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
@@ -8,6 +10,9 @@
 
 	let { data }: { data: PageData } = $props();
 	let tab = $state<'race' | 'overall'>('race');
+	const myBestMs = $derived(
+		data.user ? (data.overall.find((r) => r.userId === data.user?.id)?.timeMs ?? null) : null
+	);
 </script>
 
 <Seo
@@ -78,3 +83,9 @@
 		<LeaderboardTable title="Overall (all-time)" rows={data.overall} />
 	{/if}
 </div>
+
+<ChallengeFriend
+	raceTitle={data.race.title}
+	url={challengeUrl(data.origin, data.race.slug)}
+	timeMs={myBestMs}
+/>
