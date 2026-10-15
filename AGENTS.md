@@ -67,19 +67,19 @@ Every `pgTable` in `src/lib/server/db/schema.ts` ends in `.enableRLS()`; keep th
 
 Always apply **at least one** fitting label to every issue and PR you create. Prefer existing labels; create a new label only if none fits.
 
-| Label | When to use |
-| --- | --- |
-| `bug` | Something isn't working (broken behaviour, wrong data, failed checks). |
-| `enhancement` | New feature or request. |
-| `documentation` | Docs-only changes (`AGENTS.md`, README, comments that are the main change). |
-| `javascript` | PRs that primarily update JavaScript/TypeScript application code. |
-| `dependencies` | PRs that update a dependency file (`package.json`, lockfile). |
-| `question` | Further information is requested; open-ended product discussion. |
-| `good first issue` | Scoped work suitable for newcomers. |
-| `help wanted` | Extra attention or a second pair of hands is needed. |
-| `duplicate` | Same as an existing issue or PR — link the original. |
-| `invalid` | Not actionable or not applicable to this repo. |
-| `wontfix` | Will not be worked on — say why in a comment. |
+| Label              | When to use                                                                 |
+| ------------------ | --------------------------------------------------------------------------- |
+| `bug`              | Something isn't working (broken behaviour, wrong data, failed checks).      |
+| `enhancement`      | New feature or request.                                                     |
+| `documentation`    | Docs-only changes (`AGENTS.md`, README, comments that are the main change). |
+| `javascript`       | PRs that primarily update JavaScript/TypeScript application code.           |
+| `dependencies`     | PRs that update a dependency file (`package.json`, lockfile).               |
+| `question`         | Further information is requested; open-ended product discussion.            |
+| `good first issue` | Scoped work suitable for newcomers.                                         |
+| `help wanted`      | Extra attention or a second pair of hands is needed.                        |
+| `duplicate`        | Same as an existing issue or PR — link the original.                        |
+| `invalid`          | Not actionable or not applicable to this repo.                              |
+| `wontfix`          | Will not be worked on — say why in a comment.                               |
 
 For mixed PRs, pick the primary intent (e.g. a bugfix that also touches docs → `bug`). Label both the issue and its PR.
 
