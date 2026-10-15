@@ -10,3 +10,7 @@ updates:
     target-branch: 'develop'
     schedule:
       interval: 'weekly'
+    ignore:
+      # Keep @types/node on the runtime major (Node 24, Vercel's max); bump with engines/.nvmrc/CI.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
