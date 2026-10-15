@@ -19,6 +19,8 @@ Strava OAuth callback: `{ORIGIN}/api/auth/callback/strava`
 
 Webhook: `{ORIGIN}/api/strava/webhook`
 
+Onboarding email: `{ORIGIN}/onboarding/email` — new runners are sent here to add an email address, since Strava does not share one. Leave before adding an email and you keep getting redirected back here.
+
 ## Docker
 
 `docker compose up --build` starts `db`, `web` (port 4008), and `worker`.
