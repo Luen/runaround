@@ -118,12 +118,6 @@ export function endOfUtcDay(date: Date): Date {
 	return d;
 }
 
-export function endOfLocalDay(date: Date): Date {
-	const d = new Date(date);
-	d.setHours(23, 59, 59, 999);
-	return d;
-}
-
 export function geojsonToGpx(name: string, geojson: LineString, elevations?: number[]): string {
 	const withEle = elevations?.length === geojson.coordinates.length;
 	const pts = geojson.coordinates

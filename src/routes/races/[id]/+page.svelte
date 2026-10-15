@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateRange } from '$lib/dates';
 	import ChallengeFriend from '$lib/components/ChallengeFriend.svelte';
 	import { challengeUrl } from '$lib/challenge';
 	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
@@ -35,7 +36,7 @@
 		target="_blank"
 		title="Elevation data for courses without it">(elevation © Mapterhorn)</a
 	>
-	· race window {data.race.startsAt.toLocaleDateString()} – {data.race.endsAt.toLocaleDateString()}
+	· race window {formatDateRange(data.race.startsAt, data.race.endsAt)}
 </p>
 
 <div class="mt-4 flex flex-wrap gap-3">

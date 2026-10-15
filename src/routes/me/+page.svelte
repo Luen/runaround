@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/dates';
 	import { formatDuration } from '$lib/geo';
 	import Seo from '$lib/components/Seo.svelte';
 	import type { PageData } from './$types';
@@ -26,7 +27,7 @@
 		{#each data.mine as row (row.slug + String(row.startedAt))}
 			<li class="rounded-lg border border-stone-200 bg-white p-3">
 				<a class="font-medium text-green-900" href="/races/{row.slug}">{row.title}</a>
-				— {formatDuration(row.timeMs)} on {new Date(row.startedAt).toLocaleDateString()}
+				— {formatDuration(row.timeMs)} on {formatDate(row.startedAt)}
 			</li>
 		{/each}
 	</ul>
