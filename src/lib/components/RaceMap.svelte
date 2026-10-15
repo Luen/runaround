@@ -16,6 +16,7 @@
 		type CourseFeatureCollection,
 		type LineString
 	} from '$lib/geo';
+	import { routeEndpointFeatures } from '$lib/routeMarkers';
 
 	type RaceOverlay = {
 		id: string;
@@ -63,6 +64,68 @@
 	const LINE_LAYER_ID = 'courses-line';
 	const HIT_LAYER_ID = 'courses-hit';
 	const DEFAULT_LINE_COLOR = '#ea580c';
+	const ARROW_LAYER_ID = 'courses-arrows';
+	const ENDPOINT_SOURCE_ID = 'course-endpoints';
+	const ENDPOINT_LAYER_ID = 'course-endpoints';
+	const ARROW_IMAGE = 'route-arrow';
+	const ICON_PIXEL_RATIO = 2;
+
+	/** Draw an icon on a canvas so we never depend on basemap sprites/glyphs. */
+	function canvasIcon(size: number, paint: (ctx: CanvasRenderingContext2D, s: number) => void) {
+		const px = size * ICON_PIXEL_RATIO;
+		const canvas = document.createElement('canvas');
+		canvas.width = px;
+		canvas.height = px;
+		const ctx = canvas.getContext('2d');
+		if (!ctx) return null;
+		paint(ctx, px);
+		return ctx.getImageData(0, 0, px, px);
+	}
+
+	function badgeIcon(fill: string, label: string, fontScale = 0.5) {
+		return canvasIcon(26, (ctx, s) => {
+			const r = s / 2 - 3;
+			ctx.beginPath();
+			ctx.arc(s / 2, s / 2, r, 0, Math.PI * 2);
+			ctx.fillStyle = fill;
+			ctx.fill();
+			ctx.lineWidth = 4;
+			ctx.strokeStyle = '#ffffff';
+			ctx.stroke();
+			ctx.fillStyle = '#ffffff';
+			ctx.font = `700 ${Math.round(s * fontScale)}px system-ui, sans-serif`;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText(label, s / 2, s / 2 + 1);
+		});
+	}
+
+	function ensureRouteImages(map: Map) {
+		const add = (id: string, img: ImageData | null) => {
+			if (img && !map.hasImage(id)) map.addImage(id, img, { pixelRatio: ICON_PIXEL_RATIO });
+		};
+		// Arrow points east (+x); symbol-placement: line rotates it along the course.
+		add(
+			ARROW_IMAGE,
+			canvasIcon(18, (ctx, s) => {
+				ctx.beginPath();
+				ctx.moveTo(s * 0.2, s * 0.18);
+				ctx.lineTo(s * 0.85, s * 0.5);
+				ctx.lineTo(s * 0.2, s * 0.82);
+				ctx.lineTo(s * 0.38, s * 0.5);
+				ctx.closePath();
+				ctx.fillStyle = '#ffffff';
+				ctx.strokeStyle = '#7c2d12';
+				ctx.lineWidth = s * 0.08;
+				ctx.lineJoin = 'round';
+				ctx.stroke();
+				ctx.fill();
+			})
+		);
+		add('route-start', badgeIcon('#15803d', 'S'));
+		add('route-finish', badgeIcon('#b91c1c', 'F'));
+		add('route-start-finish', badgeIcon('#1d4ed8', 'S/F', 0.32));
+	}
 
 	let coursePopup: Popup | null = null;
 
@@ -173,6 +236,54 @@
 				}
 			});
 		}
+		ensureRouteImages(map);
+		if (!map.getLayer(ARROW_LAYER_ID)) {
+			map.addLayer({
+				id: ARROW_LAYER_ID,
+				type: 'symbol',
+				source: SOURCE_ID,
+				layout: {
+					'symbol-placement': 'line',
+					// Screen-pixel spacing: MapLibre repeats arrows per tile, so they thin out zoomed out.
+					'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 8, 60, 12, 90, 16, 140],
+					'icon-image': ARROW_IMAGE,
+					'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.7, 14, 1],
+					'icon-rotation-alignment': 'map',
+					'icon-allow-overlap': true,
+					'icon-ignore-placement': true
+				}
+			});
+		}
+		if (!map.getSource(ENDPOINT_SOURCE_ID)) {
+			map.addSource(ENDPOINT_SOURCE_ID, {
+				type: 'geojson',
+				data: initialData
+					? routeEndpointFeatures(initialData)
+					: { type: 'FeatureCollection', features: [] }
+			});
+		}
+		if (!map.getLayer(ENDPOINT_LAYER_ID)) {
+			map.addLayer({
+				id: ENDPOINT_LAYER_ID,
+				type: 'symbol',
+				source: ENDPOINT_SOURCE_ID,
+				layout: {
+					'icon-image': [
+						'match',
+						['get', 'kind'],
+						'start',
+						'route-start',
+						'finish',
+						'route-finish',
+						'route-start-finish'
+					],
+					'icon-size': ['interpolate', ['linear'], ['zoom'], 6, 0.75, 12, 1],
+					'icon-allow-overlap': true,
+					'icon-ignore-placement': true,
+					'symbol-sort-key': ['match', ['get', 'kind'], 'start', 2, 1]
+				}
+			});
+		}
 		// Wider invisible hit target so thin courses are easier to click on the homepage.
 		if (!map.getLayer(HIT_LAYER_ID)) {
 			map.addLayer({
@@ -202,6 +313,9 @@
 		ensureCourseLayers(map, plain);
 		const source = map.getSource(SOURCE_ID) as GeoJSONSource;
 		source.setData(plain);
+		(map.getSource(ENDPOINT_SOURCE_ID) as GeoJSONSource | undefined)?.setData(
+			routeEndpointFeatures(plain)
+		);
 		map.triggerRepaint();
 
 		if (!fit) return;
