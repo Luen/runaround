@@ -19,7 +19,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		object_id?: number;
 		owner_id?: number;
 	};
-	if (body.object_type === 'activity' && (body.aspect_type === 'create' || body.aspect_type === 'update')) {
+	if (
+		body.object_type === 'activity' &&
+		(body.aspect_type === 'create' || body.aspect_type === 'update')
+	) {
 		const { db } = await import('$lib/server/db');
 		const { user } = await import('$lib/server/db/schema');
 		const { eq } = await import('drizzle-orm');

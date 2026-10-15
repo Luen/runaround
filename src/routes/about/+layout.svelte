@@ -2,6 +2,6 @@
 	let { children } = $props();
 </script>
 
-<article class="prose prose-stone max-w-3xl prose-img:max-w-full prose-img:h-auto">
+<article class="prose max-w-3xl prose-stone prose-img:h-auto prose-img:max-w-full">
 	{@render children()}
 </article>

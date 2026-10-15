@@ -30,7 +30,9 @@ export async function backfillUser(userId: string) {
 
 export async function upsertAndMatchActivity(
 	userId: string,
-	activity: Awaited<ReturnType<typeof getActivity>> | NonNullable<Awaited<ReturnType<typeof listActivities>>>[number]
+	activity:
+		| Awaited<ReturnType<typeof getActivity>>
+		| NonNullable<Awaited<ReturnType<typeof listActivities>>>[number]
 ) {
 	if (!activity) return;
 	const sport = activity.sport_type ?? activity.type;
@@ -149,7 +151,8 @@ function streamsToTimed(
 
 async function maybeNotifyRankGain(userId: string, race: typeof races.$inferSelect) {
 	for (const board of ['race', 'overall'] as const) {
-		const rows = board === 'race' ? await raceLeaderboard(race.id) : await overallLeaderboard(race.id);
+		const rows =
+			board === 'race' ? await raceLeaderboard(race.id) : await overallLeaderboard(race.id);
 		const rank = rows.find((r) => r.userId === userId)?.rank;
 		if (!rank) continue;
 

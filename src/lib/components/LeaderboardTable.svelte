@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/dates';
 	import { formatDuration } from '$lib/geo';
 	import {
 		defaultSortDir,
@@ -92,6 +93,8 @@
 							</td>
 							<td class="py-3 pr-4">
 								{#if effortHref}
+									<!-- External Strava URL (https://www.strava.com/...); resolve() only applies to app routes. -->
+									<!-- eslint-disable svelte/no-navigation-without-resolve -->
 									<a
 										class="font-medium text-green-900 underline"
 										href={effortHref}
@@ -99,12 +102,13 @@
 										rel="noreferrer"
 										title="Open on Strava">{formatDuration(row.timeMs)}</a
 									>
+									<!-- eslint-enable svelte/no-navigation-without-resolve -->
 								{:else}
 									{formatDuration(row.timeMs)}
 								{/if}
 							</td>
 							<td class="py-3 pr-4">{row.completions}</td>
-							<td class="py-3 pr-4">{new Date(row.startedAt).toLocaleDateString()}</td>
+							<td class="py-3 pr-4">{formatDate(row.startedAt)}</td>
 						</tr>
 					{/each}
 				</tbody>

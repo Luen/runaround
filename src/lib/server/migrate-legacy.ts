@@ -54,7 +54,10 @@ export async function alignRaceWindowWithAttempts(raceId: string) {
 		if (row.startedAt > endsAt) endsAt = endOfUtcDay(row.startedAt);
 	}
 
-	if (startsAt.getTime() === race.startsAt.getTime() && endsAt.getTime() === race.endsAt.getTime()) {
+	if (
+		startsAt.getTime() === race.startsAt.getTime() &&
+		endsAt.getTime() === race.endsAt.getTime()
+	) {
 		return;
 	}
 
@@ -126,10 +129,7 @@ export async function migrateLegacy(pathToJson?: string) {
 			const athleteId = row.profileID ? String(row.profileID) : null;
 			const name = row.name.replace(/\s+/g, ' ').trim();
 			if (athleteId) {
-				const dup = await db
-					.select()
-					.from(attempts)
-					.where(eq(attempts.stravaAthleteId, athleteId));
+				const dup = await db.select().from(attempts).where(eq(attempts.stravaAthleteId, athleteId));
 				if (dup.some((d) => d.raceId === raceId && d.source === 'strava_import')) continue;
 			}
 			await db.insert(attempts).values({
@@ -150,4 +150,3 @@ export async function migrateLegacy(pathToJson?: string) {
 
 	await repairRaceWindows();
 }
-
