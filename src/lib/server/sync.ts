@@ -1,3 +1,4 @@
+import { siteOrigin } from '../origin';
 import { db } from './db';
 import { activities, attempts, emailSuppressions, races, rankSnapshots, user } from './db/schema';
 import { getActivity, getActivityStreams, listActivities } from './strava';
@@ -14,7 +15,7 @@ import { isPlaceholderEmail } from './identity';
 const RUN_SPORTS = new Set(['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']);
 
 function origin(): string {
-	return process.env.ORIGIN ?? 'http://localhost:5173';
+	return siteOrigin(process.env.ORIGIN, 'https://runaround.com.au');
 }
 
 export async function backfillUser(userId: string) {

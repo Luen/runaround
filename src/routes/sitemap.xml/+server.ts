@@ -1,9 +1,10 @@
+import { siteOrigin } from '$lib/origin';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { inArray } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 
-const origin = process.env.ORIGIN ?? 'https://runaround.com.au';
+const origin = siteOrigin(process.env.ORIGIN, 'https://runaround.com.au');
 
 function loc(path: string, lastmod?: Date | null) {
 	const last = lastmod ? `\n    <lastmod>${lastmod.toISOString().slice(0, 10)}</lastmod>` : '';
