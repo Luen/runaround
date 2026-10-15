@@ -10,7 +10,13 @@ export type ChallengeInput = {
 
 /** Absolute race page URL used in challenge links. */
 export function challengeUrl(origin: string, slug: string): string {
-	return new URL(`/races/${encodeURIComponent(slug)}`, origin).href;
+	const path = `/races/${encodeURIComponent(slug)}`;
+	try {
+		return new URL(path, origin).href;
+	} catch {
+		// Never take the race page down over a share link; fall back to a relative URL.
+		return path;
+	}
 }
 
 /** Invite text without the link (share sheets take the URL separately). */
