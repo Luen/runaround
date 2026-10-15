@@ -3,16 +3,11 @@
 	import { enhance } from '$app/forms';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
+	import { toBrisbaneInputValue } from '$lib/dates';
 	import { raceCourseJsonUrl } from '$lib/geo';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	function localValue(d: Date) {
-		const dt = new Date(d);
-		const pad = (n: number) => String(n).padStart(2, '0');
-		return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
-	}
 </script>
 
 <Seo
@@ -70,7 +65,7 @@
 			class="mt-1 w-full rounded-md border px-3 py-2"
 			type="datetime-local"
 			name="startsAt"
-			value={localValue(data.race.startsAt)}
+			value={toBrisbaneInputValue(data.race.startsAt)}
 			required
 		/>
 	</label>
@@ -80,7 +75,7 @@
 			class="mt-1 w-full rounded-md border px-3 py-2"
 			type="datetime-local"
 			name="endsAt"
-			value={localValue(data.race.endsAt)}
+			value={toBrisbaneInputValue(data.race.endsAt)}
 			required
 		/>
 	</label>

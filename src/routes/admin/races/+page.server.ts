@@ -3,10 +3,11 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { pointsFromLineString, endOfLocalDay, type LineString } from '$lib/geo';
+import { pointsFromLineString, type LineString } from '$lib/geo';
 import { processUploadedGpx } from '$lib/server/elevation';
 import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
+import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
 import type { Actions, PageServerLoad } from './$types';
 
 function slugify(value: string): string {
@@ -53,8 +54,15 @@ export const actions: Actions = {
 		} catch (err) {
 			return fail(400, { message: err instanceof Error ? err.message : 'Invalid GPX' });
 		}
-		const startsAt = new Date(parsed.data.startsAt);
-		const endsAt = endOfLocalDay(new Date(parsed.data.endsAt));
+		let startsAt: Date;
+		let endsAt: Date;
+		try {
+			// Admin inputs are Brisbane wall-clock times, independent of the server's TZ.
+			startsAt = parseBrisbaneInputValue(parsed.data.startsAt);
+			endsAt = endOfBrisbaneDay(parseBrisbaneInputValue(parsed.data.endsAt));
+		} catch {
+			return fail(400, { message: 'Check the race dates' });
+		}
 		const slugBase = slugify(parsed.data.title) || 'race';
 		const slug = `${slugBase}-${Date.now().toString(36)}`;
 		await db.insert(races).values({

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/dates';
 	import { formatDuration } from '$lib/geo';
 	import {
 		defaultSortDir,
@@ -107,7 +108,7 @@
 								{/if}
 							</td>
 							<td class="py-3 pr-4">{row.completions}</td>
-							<td class="py-3 pr-4">{new Date(row.startedAt).toLocaleDateString()}</td>
+							<td class="py-3 pr-4">{formatDate(row.startedAt)}</td>
 						</tr>
 					{/each}
 				</tbody>
