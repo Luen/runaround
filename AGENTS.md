@@ -63,6 +63,26 @@ Every `pgTable` in `src/lib/server/db/schema.ts` ends in `.enableRLS()`; keep th
 - **Never open a PR with `main` as the head branch** (including “sync main into develop”). This repo’s GitHub setting **automatically deletes the head branch when a PR is merged**, so a `main`→`develop` sync PR deletes `main` on merge. If `develop` needs the release merge commit, recreate/`git merge` without using `main` as the PR head, or leave `develop` one merge-commit behind until the next promote.
 - Do not commit unless the user asks. Do not force-push `main` or `develop`. Do not merge PRs unless asked. Conventional, why-focused commit messages.
 
+## Labels
+
+Always apply **at least one** fitting label to every issue and PR you create. Prefer existing labels; create a new label only if none fits.
+
+| Label              | When to use                                                                 |
+| ------------------ | --------------------------------------------------------------------------- |
+| `bug`              | Something isn't working (broken behaviour, wrong data, failed checks).      |
+| `enhancement`      | New feature or request.                                                     |
+| `documentation`    | Docs-only changes (`AGENTS.md`, README, comments that are the main change). |
+| `javascript`       | PRs that primarily update JavaScript/TypeScript application code.           |
+| `dependencies`     | PRs that update a dependency file (`package.json`, lockfile).               |
+| `question`         | Further information is requested; open-ended product discussion.            |
+| `good first issue` | Scoped work suitable for newcomers.                                         |
+| `help wanted`      | Extra attention or a second pair of hands is needed.                        |
+| `duplicate`        | Same as an existing issue or PR — link the original.                        |
+| `invalid`          | Not actionable or not applicable to this repo.                              |
+| `wontfix`          | Will not be worked on — say why in a comment.                               |
+
+For mixed PRs, pick the primary intent (e.g. a bugfix that also touches docs → `bug`). Label both the issue and its PR.
+
 ## Package manager
 
 This repo uses **pnpm** (`packageManager` in `package.json`).
