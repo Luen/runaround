@@ -16,3 +16,14 @@ export function siteOrigin(configured: string | null | undefined, fallback: stri
 	}
 	return fallback;
 }
+
+/** better-auth baseURL: first valid http(s) origin, else localhost in dev, else undefined (infer from request). */
+export function authBaseUrl(
+	origin: string | null | undefined,
+	betterAuthUrl: string | null | undefined,
+	isDev: boolean
+): string | undefined {
+	const fallback = isDev ? 'http://localhost:5173' : '';
+	const picked = siteOrigin(origin, siteOrigin(betterAuthUrl, fallback));
+	return picked || undefined;
+}

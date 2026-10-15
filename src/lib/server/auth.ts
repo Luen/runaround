@@ -2,14 +2,18 @@ import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
-import { building } from '$app/environment';
+import { building, dev } from '$app/environment';
+import { authBaseUrl } from '$lib/origin';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
 import * as schema from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { enqueueJob } from './jobs';
 
-const origin = process.env['ORIGIN'] ?? process.env['BETTER_AUTH_URL'] ?? 'http://localhost:5173';
+// Empty/unset ORIGIN must not fall back to localhost in production: better-auth's
+// SvelteKit handler only serves /api/auth/* when the request origin matches
+// baseURL, so a wrong baseURL 404s every auth route. Undefined = infer per request.
+const origin = authBaseUrl(process.env['ORIGIN'], process.env['BETTER_AUTH_URL'], dev);
 const devSecret = 'dev-only-insecure-secret-change-me-32';
 const buildSecret = 'build-time-placeholder-not-for-production!!';
 const placeholderEmail = (athleteId: string) => `strava-${athleteId}@users.runaround.invalid`;
