@@ -1,7 +1,8 @@
+import { siteOrigin } from '$lib/origin';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
-	const origin = process.env.ORIGIN ?? url.origin;
+	const origin = siteOrigin(process.env.ORIGIN, url.origin);
 	return {
 		origin,
 		user: locals.user
