@@ -18,12 +18,19 @@
 	jsonLd={sportsEventJsonLd(data.origin, data.race)}
 />
 
-<p class="text-sm capitalize text-green-800">{data.race.surface} · {data.race.status}</p>
+<p class="text-sm text-green-800 capitalize">{data.race.surface} · {data.race.status}</p>
 <h1 class="text-3xl font-bold">{data.race.title}</h1>
 <p class="mt-2 max-w-2xl text-stone-700">{data.race.description}</p>
 <p class="mt-2 text-sm text-stone-500">
-	{(data.race.distanceM / 1000).toFixed(1)} km · {Math.round(data.race.elevationGainM)} m gain · race
-	window {data.race.startsAt.toLocaleDateString()} – {data.race.endsAt.toLocaleDateString()}
+	{(data.race.distanceM / 1000).toFixed(1)} km · {Math.round(data.race.elevationGainM)} m gain
+	<a
+		class="underline"
+		href="https://mapterhorn.com/attribution"
+		rel="noopener noreferrer"
+		target="_blank"
+		title="Elevation data for courses without it">(elevation © Mapterhorn)</a
+	>
+	· race window {data.race.startsAt.toLocaleDateString()} – {data.race.endsAt.toLocaleDateString()}
 </p>
 
 <div class="mt-4 flex flex-wrap gap-3">
