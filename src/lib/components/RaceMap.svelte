@@ -98,9 +98,18 @@
 		coursePopup = null;
 	}
 
-	function showCoursePopup(map: Map, lngLat: { lng: number; lat: number }, props: Record<string, unknown>) {
+	function showCoursePopup(
+		map: Map,
+		lngLat: { lng: number; lat: number },
+		props: Record<string, unknown>
+	) {
 		closeCoursePopup();
-		coursePopup = new Popup({ closeButton: true, closeOnClick: true, maxWidth: '260px', offset: 12 })
+		coursePopup = new Popup({
+			closeButton: true,
+			closeOnClick: true,
+			maxWidth: '260px',
+			offset: 12
+		})
 			.setLngLat(lngLat)
 			.setHTML(racePopupHtml(props))
 			.addTo(map);
@@ -113,9 +122,7 @@
 	}
 
 	const visibleBasemapOptions = $derived(
-		maptilerKey()
-			? BASEMAP_OPTIONS
-			: BASEMAP_OPTIONS.filter((o) => o.id !== 'satellite')
+		maptilerKey() ? BASEMAP_OPTIONS : BASEMAP_OPTIONS.filter((o) => o.id !== 'satellite')
 	);
 
 	function syncFullscreen() {
@@ -371,7 +378,7 @@
 	]}
 >
 	<div class="h-full w-full" {@attach attachMap}></div>
-	<div class="absolute left-2 top-2 z-10 flex flex-wrap items-center gap-2">
+	<div class="absolute top-2 left-2 z-10 flex flex-wrap items-center gap-2">
 		{#if gpxHref}
 			<a
 				class="rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200 hover:bg-white"
@@ -399,9 +406,7 @@
 					aria-pressed={basemap === opt.id}
 					class={[
 						'px-2.5 py-1.5 hover:bg-white',
-						basemap === opt.id
-							? 'bg-green-800 text-white hover:bg-green-800'
-							: 'bg-transparent'
+						basemap === opt.id ? 'bg-green-800 text-white hover:bg-green-800' : 'bg-transparent'
 					]}
 					onclick={() => setBasemap(opt.id)}
 				>

@@ -18,7 +18,8 @@ export const BASEMAP_OPTIONS: { id: BasemapId; label: string }[] = [
 
 export const DEFAULT_BASEMAP: BasemapId = 'outdoors';
 
-export const OUTDOORS_ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+export const OUTDOORS_ATTRIBUTION =
+	'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 /** Custom credit for Wanderstories style; combined with MapTiler/OSM from the style via AttributionControl. */
 export const WANDERSTORIES_ATTRIBUTION =

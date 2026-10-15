@@ -22,9 +22,7 @@
 	} = $props();
 
 	const url = $derived(canonicalUrl(origin, path));
-	const imageUrl = $derived(
-		image.startsWith('http') ? image : canonicalUrl(origin, image)
-	);
+	const imageUrl = $derived(image.startsWith('http') ? image : canonicalUrl(origin, image));
 	const ld = $derived(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []);
 </script>
 

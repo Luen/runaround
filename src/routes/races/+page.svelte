@@ -31,7 +31,10 @@
 <ul class="mt-6 space-y-3">
 	{#each data.races as race (race.id)}
 		<li class="rounded-xl border border-stone-200 bg-white p-4">
-			<a class="text-lg font-semibold text-green-900" href={resolve('/races/[id]', { id: race.slug })}>{race.title}</a>
+			<a
+				class="text-lg font-semibold text-green-900"
+				href={resolve('/races/[id]', { id: race.slug })}>{race.title}</a
+			>
 			<p class="text-sm text-stone-500 capitalize">
 				{race.surface} · {race.status}{#if race.distanceM > 0}
 					· {(race.distanceM / 1000).toFixed(1)} km{/if}
