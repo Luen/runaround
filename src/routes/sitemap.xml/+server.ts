@@ -15,7 +15,14 @@ export const GET: RequestHandler = async () => {
 		.select({ slug: races.slug, updatedAt: races.updatedAt })
 		.from(races)
 		.where(inArray(races.status, ['upcoming', 'live', 'closed']));
-	const staticPages = ['/', '/races', '/about', '/about/luen-warneke', '/about/sidney-willis', '/contact'];
+	const staticPages = [
+		'/',
+		'/races',
+		'/about',
+		'/about/luen-warneke',
+		'/about/sidney-willis',
+		'/contact'
+	];
 	const urls = [
 		...staticPages.map((p) => loc(p)),
 		...published.map((r) => loc(`/races/${r.slug}`, r.updatedAt))

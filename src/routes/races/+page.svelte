@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+
+	const racesHref = resolve('/races');
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { formatDuration } from '$lib/geo';
@@ -20,15 +23,18 @@
 </p>
 
 <div class="mt-4 flex gap-3 text-sm">
-	<a class="underline" href="/races">All</a>
-	<a class="underline" href="/races?surface=road">Road</a>
-	<a class="underline" href="/races?surface=trail">Trail</a>
+	<a class="underline" href={resolve('/races')}>All</a>
+	<a class="underline" href="{racesHref}?surface=road">Road</a>
+	<a class="underline" href="{racesHref}?surface=trail">Trail</a>
 </div>
 
 <ul class="mt-6 space-y-3">
 	{#each data.races as race (race.id)}
 		<li class="rounded-xl border border-stone-200 bg-white p-4">
-			<a class="text-lg font-semibold text-green-900" href="/races/{race.slug}">{race.title}</a>
+			<a
+				class="text-lg font-semibold text-green-900"
+				href={resolve('/races/[id]', { id: race.slug })}>{race.title}</a
+			>
 			<p class="text-sm text-stone-500 capitalize">
 				{race.surface} · {race.status}{#if race.distanceM > 0}
 					· {(race.distanceM / 1000).toFixed(1)} km{/if}

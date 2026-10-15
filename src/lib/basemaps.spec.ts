@@ -62,9 +62,7 @@ describe('basemaps', () => {
 
 	it('builds MapTiler satellite TileJSON URL including the key', () => {
 		const url = maptilerSatelliteTileUrl('test-key');
-		expect(url).toBe(
-			'https://api.maptiler.com/tiles/satellite-v2/tiles.json?key=test-key'
-		);
+		expect(url).toBe('https://api.maptiler.com/tiles/satellite-v2/tiles.json?key=test-key');
 		expect(url).toContain('key=test-key');
 		expect(url).not.toContain('eox');
 	});
@@ -86,9 +84,7 @@ describe('basemaps', () => {
 	});
 
 	it('uses Wanderstories for outdoors and satellite style when MapTiler key is set', () => {
-		expect(styleForBasemap('outdoors', 'test-key')).toBe(
-			maptilerWanderstoriesStyleUrl('test-key')
-		);
+		expect(styleForBasemap('outdoors', 'test-key')).toBe(maptilerWanderstoriesStyleUrl('test-key'));
 		expect(styleForBasemap('satellite', 'test-key')).toEqual(satelliteStyle('test-key'));
 	});
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
+	import type { ResolvedPathname } from '$app/types';
 	import {
 		BASEMAP_OPTIONS,
 		DEFAULT_BASEMAP,
@@ -36,7 +37,8 @@
 	}: {
 		races?: RaceOverlay[];
 		focus?: LineString | null;
-		gpxHref?: string | null;
+		/** Build with resolve() so the link honours the app base path. */
+		gpxHref?: ResolvedPathname | null;
 		/** When set, fetch course GeoJSON from this URL (primary overlay on race detail). */
 		courseUrl?: string | null;
 	} = $props();
@@ -468,7 +470,7 @@
 		const f = focus;
 		const ff = fetchedFocus;
 		// Re-run after basemap style.load (styleGeneration bump from applyBasemap).
-		styleGeneration;
+		void styleGeneration;
 		// During setStyle, sources are gone until style.load re-adds them.
 		if (!map.isStyleLoaded()) return;
 		// Fit only when overlay data changed — not on styleGeneration-only retries

@@ -89,7 +89,10 @@ export async function listActivities(
 	return data ?? [];
 }
 
-export async function getActivity(userId: string, activityId: string): Promise<StravaActivity | null> {
+export async function getActivity(
+	userId: string,
+	activityId: string
+): Promise<StravaActivity | null> {
 	return stravaFetch<StravaActivity>(userId, `/activities/${activityId}?include_all_efforts=true`);
 }
 

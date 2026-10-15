@@ -7,15 +7,17 @@ export const COVERAGE_THRESHOLD = 0.85;
 
 export type TimedPoint = { point: LngLat; t: number };
 
-export type MatchResult = {
-	ok: true;
-	coverage: number;
-	timeMs: number;
-} | {
-	ok: false;
-	coverage: number;
-	reason: 'low_coverage' | 'no_time';
-};
+export type MatchResult =
+	| {
+			ok: true;
+			coverage: number;
+			timeMs: number;
+	  }
+	| {
+			ok: false;
+			coverage: number;
+			reason: 'low_coverage' | 'no_time';
+	  };
 
 export function bufferForSurface(surface: 'road' | 'trail'): number {
 	return surface === 'road' ? ROAD_BUFFER_M : TRAIL_BUFFER_M;
