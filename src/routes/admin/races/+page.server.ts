@@ -10,6 +10,7 @@ import { processUploadedGpx } from '$lib/server/elevation';
 import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
+import { raceEditable } from '$lib/race-edit';
 import type { Actions, PageServerLoad } from './$types';
 
 function slugify(value: string): string {
@@ -37,7 +38,10 @@ const raceSchema = z.object({
 
 export const load: PageServerLoad = async () => {
 	const all = await db.select().from(races).orderBy(desc(races.startsAt));
-	return { races: all, routingAvailable: routingAvailable() };
+	return {
+		races: all.map((r) => ({ ...r, editable: raceEditable(r) })),
+		routingAvailable: routingAvailable()
+	};
 };
 
 export const actions: Actions = {
