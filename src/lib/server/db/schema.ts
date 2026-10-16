@@ -96,6 +96,8 @@ export const races = pgTable(
 		elevationGainM: real('elevation_gain_m').notNull().default(0),
 		elevationProfileUrl: text('elevation_profile_url'),
 		raceEndEmailsSentAt: timestamp('race_end_emails_sent_at', { withTimezone: true }),
+		/** When set, times/ranks stay hidden from everyone but admins until this instant. */
+		resultsRevealAt: timestamp('results_reveal_at', { withTimezone: true }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},

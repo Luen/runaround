@@ -1,0 +1,1 @@
+ALTER TABLE "races" ADD COLUMN "results_reveal_at" timestamp with time zone;
