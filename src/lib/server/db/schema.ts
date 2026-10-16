@@ -96,6 +96,12 @@ export const races = pgTable(
 		elevationGainM: real('elevation_gain_m').notNull().default(0),
 		elevationProfileUrl: text('elevation_profile_url'),
 		raceEndEmailsSentAt: timestamp('race_end_emails_sent_at', { withTimezone: true }),
+		/** When set, times/ranks stay hidden from everyone but admins until this instant. */
+		resultsRevealAt: timestamp('results_reveal_at', { withTimezone: true }),
+		/** Team board (#207): runners auto-linked into teams of exactly this size; null = off. */
+		teamSize: integer('team_size'),
+		teamMaxSeparationM: integer('team_max_separation_m').notNull().default(1000),
+		teamMaxStartGapS: integer('team_max_start_gap_s').notNull().default(300),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
@@ -109,7 +115,12 @@ export const activities = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		stravaActivityId: text('strava_activity_id').notNull(),
+		/** Null for non-Strava activities (uploads #205, Garmin #107). */
+		stravaActivityId: text('strava_activity_id'),
+		/** 'strava' | 'upload' (and later 'garmin'). */
+		source: text('source').notNull().default('strava'),
+		/** Track fingerprint for uploaded files, to reject duplicates per runner. */
+		uploadHash: text('upload_hash'),
 		sport: text('sport').notNull().default('Run'),
 		name: text('name').notNull().default(''),
 		startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
@@ -122,6 +133,7 @@ export const activities = pgTable(
 	},
 	(t) => [
 		uniqueIndex('activities_strava_id_idx').on(t.stravaActivityId),
+		uniqueIndex('activities_user_upload_hash_idx').on(t.userId, t.uploadHash),
 		index('activities_user_idx').on(t.userId)
 	]
 ).enableRLS();
@@ -143,6 +155,8 @@ export const attempts = pgTable(
 		coveragePct: real('coverage_pct'),
 		source: attemptSource('source').notNull().default('live'),
 		effortUrl: text('effort_url'),
+		/** Downsampled on-course trace [epoch ms, lat, lng][] for team linking (#207). */
+		trace: jsonb('trace').$type<import('$lib/teams').TracePoint[]>(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [

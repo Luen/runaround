@@ -33,8 +33,18 @@ const raceSchema = z.object({
 	surface: z.enum(['road', 'trail']),
 	startsAt: z.string(),
 	endsAt: z.string(),
-	stravaSegmentId: z.string().optional()
+	stravaSegmentId: z.string().optional(),
+	resultsRevealAt: z.string().optional(),
+	teamSize: z.string().optional(),
+	teamMaxSeparationM: z.string().optional(),
+	teamMaxStartGapS: z.string().optional()
 });
+
+/** Optional positive integer form field; '' / missing → fallback. */
+function intField(value: string | undefined, fallback: number | null): number | null {
+	const n = Number.parseInt(value ?? '', 10);
+	return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 export const load: PageServerLoad = async () => {
 	const all = await db.select().from(races).orderBy(desc(races.startsAt));
@@ -75,6 +85,14 @@ export const actions: Actions = {
 		} catch {
 			return fail(400, { message: 'Check the race dates' });
 		}
+		let resultsRevealAt: Date | null = null;
+		if (parsed.data.resultsRevealAt?.trim()) {
+			try {
+				resultsRevealAt = parseBrisbaneInputValue(parsed.data.resultsRevealAt);
+			} catch {
+				return fail(400, { message: 'Check the results reveal date' });
+			}
+		}
 		const slugBase = slugify(parsed.data.title) || 'race';
 		const slug = `${slugBase}-${Date.now().toString(36)}`;
 		await db.insert(races).values({
@@ -86,6 +104,10 @@ export const actions: Actions = {
 			endsAt,
 			status: computeRaceStatus(startsAt, endsAt),
 			stravaSegmentId: parsed.data.stravaSegmentId || null,
+			resultsRevealAt,
+			teamSize: intField(parsed.data.teamSize, null),
+			teamMaxSeparationM: intField(parsed.data.teamMaxSeparationM, 1000) ?? 1000,
+			teamMaxStartGapS: intField(parsed.data.teamMaxStartGapS, 300) ?? 300,
 			courseGeojson: course.courseGeojson,
 			gpx: course.gpx,
 			distanceM: distanceM(course.courseGeojson),
