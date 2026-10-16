@@ -1,4 +1,5 @@
 import { db } from './db';
+import type { ActivityDatabase } from './activity-ingestion';
 import { attempts, races } from './db/schema';
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import { participantKey, rankedLeaderboard, type RankedRow } from '../boards';
@@ -6,10 +7,13 @@ import { DEFAULT_TEAM_RULES, findTeams, type TeamResult } from '../teams';
 
 export type LeaderboardRow = RankedRow;
 
-export async function raceLeaderboard(raceId: string): Promise<LeaderboardRow[]> {
-	const [race] = await db.select().from(races).where(eq(races.id, raceId)).limit(1);
+export async function raceLeaderboard(
+	raceId: string,
+	database: ActivityDatabase = db
+): Promise<LeaderboardRow[]> {
+	const [race] = await database.select().from(races).where(eq(races.id, raceId)).limit(1);
 	if (!race) return [];
-	const rows = await db
+	const rows = await database
 		.select()
 		.from(attempts)
 		.where(
@@ -23,8 +27,11 @@ export async function raceLeaderboard(raceId: string): Promise<LeaderboardRow[]>
 	return rankedLeaderboard(rows);
 }
 
-export async function overallLeaderboard(raceId: string): Promise<LeaderboardRow[]> {
-	const rows = await db
+export async function overallLeaderboard(
+	raceId: string,
+	database: ActivityDatabase = db
+): Promise<LeaderboardRow[]> {
+	const rows = await database
 		.select()
 		.from(attempts)
 		.where(eq(attempts.raceId, raceId))
