@@ -116,9 +116,10 @@ export function joinLegs(legs: Coord[][]): Coord[] {
 	const out: Coord[] = [];
 	for (const leg of legs) {
 		for (const c of leg) {
+			const p: Coord = [Number(c[0].toFixed(6)), Number(c[1].toFixed(6))];
 			const last = out[out.length - 1];
-			if (last && last[0] === c[0] && last[1] === c[1]) continue;
-			out.push([Number(c[0].toFixed(6)), Number(c[1].toFixed(6))]);
+			if (last && last[0] === p[0] && last[1] === p[1]) continue;
+			out.push(p);
 		}
 	}
 	return out;
