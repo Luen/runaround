@@ -18,5 +18,5 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.innerJoin(races, eq(attempts.raceId, races.id))
 		.where(eq(attempts.userId, locals.user.id))
 		.orderBy(desc(attempts.startedAt));
-	return { mine };
+	return { mine, hasStrava: Boolean(locals.user.stravaAthleteId) };
 };

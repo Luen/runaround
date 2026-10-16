@@ -10,7 +10,7 @@ Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteK
 
 **DB URL:** Production (Vercel/Supabase) must set `POSTGRES_URL` (pooled). Optional fallback `POSTGRES_URL_NON_POOLING` for direct/migrate. Resolution lives in `src/lib/server/db/postgres-url.ts` (used by runtime and `drizzle.config.ts`). Do not use `DATABASE_URL`.
 
-Product: admins create Road/Trail races with GPX; runners log in with Strava; GPS (+ optional Strava segment) matching; **race-window** and **overall** leaderboards; Cloudflare Email Sending from the **worker** only (rank improvement, not drops; race-end place). Canonical race URLs: `/races/:id` (legacy segment ids).
+Product: admins create Road/Trail races with GPX; runners log in with Strava or (when `MAGIC_LINK_ENABLED=true` + Cloudflare email env) a Better Auth magic link (`src/lib/server/magic-link.ts`; hashed single-use tokens, 15 min; sent inline from the web app, the one exception to worker-only email); GPS (+ optional Strava segment) matching; **race-window** and **overall** leaderboards; Cloudflare Email Sending from the **worker** only (rank improvement, not drops; race-end place). Canonical race URLs: `/races/:id` (legacy segment ids).
 
 ## Commands
 
@@ -45,6 +45,7 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - GPX download links use `data-sveltekit-preload-data="off"` (and `data-sveltekit-reload` where needed) so the client router does not treat `/races/:slug/gpx` as a page navigation.
 - Homepage (`src/routes/+page`): map can overlay closed races via a “Show past races” checkbox (default on when no live/upcoming); the “Active and upcoming” list stays active-only.
 - Elevation: admin GPX upload/replace runs `processUploadedGpx` (`src/lib/server/elevation.ts`). It keeps the GPX's own `<ele>` when usable, else samples Mapterhorn terrarium WebP tiles (z13→z11 fallback, bilinear, in-memory tile cache, decoded with `sharp`), smooths over a 100 m distance window (`src/lib/elevation.ts`) and stores `elevation_gain_m` plus a stored GPX with `<ele>`. `course_geojson` stays 2D. Races with 0 m gain are backfilled on worker start (`elevation-backfill.ts`) or on the next admin save. Race page credits Mapterhorn.
+- Accounts: magic-link sign-ups skip email onboarding (verified). A magic-link user connects Strava via `authClient.linkSocial` on `/me`; the `account.create` hook then sets `stravaAthleteId`, claims imported attempts and enqueues backfill. Logging in with Strava from `/login` instead creates a separate account.
 - Leaderboards: `attempts.effortUrl` flows through `rankedLeaderboard` (`src/lib/boards.ts`); `LeaderboardTable` links the time when `safeHttpUrl` accepts http(s).
 
 ## Security
