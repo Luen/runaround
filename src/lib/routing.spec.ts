@@ -88,6 +88,16 @@ describe('legs', () => {
 			])
 		).toEqual([a, b, c]);
 	});
+	it('merges joints that only differ beyond 6 decimal places', () => {
+		const c: Coord = [146.77, -19.3];
+		const bb: Coord = [146.7600000001, -19.31];
+		expect(
+			joinLegs([
+				[a, bb],
+				[bb, c]
+			])
+		).toEqual([a, b, c]);
+	});
 	it('measures distance', () => {
 		expect(lineDistanceM([a, b])).toBeGreaterThan(1400);
 		expect(lineDistanceM([a, b])).toBeLessThan(1600);
