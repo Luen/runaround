@@ -8,6 +8,7 @@ import { processUploadedGpx } from '$lib/server/elevation';
 import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
+import { raceEditable } from '$lib/race-edit';
 import type { Actions, PageServerLoad } from './$types';
 
 function slugify(value: string): string {
@@ -45,7 +46,7 @@ function intField(value: string | undefined, fallback: number | null): number | 
 
 export const load: PageServerLoad = async () => {
 	const all = await db.select().from(races).orderBy(desc(races.startsAt));
-	return { races: all };
+	return { races: all.map((r) => ({ ...r, editable: raceEditable(r) })) };
 };
 
 export const actions: Actions = {
