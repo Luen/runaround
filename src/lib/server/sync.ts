@@ -74,7 +74,29 @@ export async function upsertAndMatchActivity(
 		.where(eq(activities.id, activityRow.id));
 
 	const { timed, hasTime } = streamsToTimed(streams, activityRow.summaryPolyline);
+	await matchActivityToRaces(userId, activityRow, timed, hasTime, detailed?.segment_efforts);
+}
+
+/**
+ * Match one stored activity against every published race and upsert attempts.
+ * Shared by Strava sync, manual uploads (#205) and other sources. `timed[].t` is
+ * seconds from `activityRow.startedAt`; `hasTime` says whether those are real.
+ */
+export async function matchActivityToRaces(
+	userId: string,
+	activityRow: typeof activities.$inferSelect,
+	timed: TimedPoint[],
+	hasTime: boolean,
+	segmentEfforts?: { segment?: { id: number }; elapsed_time: number }[]
+) {
 	const published = await db.select().from(races);
+	const matched: {
+		id: string;
+		slug: string;
+		title: string;
+		timeMs: number;
+		hidden: boolean;
+	}[] = [];
 
 	for (const race of published) {
 		if (race.status === 'draft') continue;
@@ -83,7 +105,7 @@ export async function upsertAndMatchActivity(
 		let coverage: number | null = null;
 
 		const segmentId = race.stravaSegmentId ? Number(race.stravaSegmentId) : null;
-		const effort = detailed?.segment_efforts?.find((e) => e.segment?.id === segmentId);
+		const effort = segmentEfforts?.find((e) => e.segment?.id === segmentId);
 		if (effort) {
 			method = 'segment_effort';
 			timeMs = effort.elapsed_time * 1000;
@@ -142,8 +164,16 @@ export async function upsertAndMatchActivity(
 			});
 		}
 
+		matched.push({
+			id: race.id,
+			slug: race.slug,
+			title: race.title,
+			timeMs,
+			hidden: resultsHidden(race)
+		});
 		await maybeNotifyRankGain(userId, race);
 	}
+	return matched;
 }
 
 function streamsToTimed(

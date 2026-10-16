@@ -115,7 +115,12 @@ export const activities = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		stravaActivityId: text('strava_activity_id').notNull(),
+		/** Null for non-Strava activities (uploads #205, Garmin #107). */
+		stravaActivityId: text('strava_activity_id'),
+		/** 'strava' | 'upload' (and later 'garmin'). */
+		source: text('source').notNull().default('strava'),
+		/** Track fingerprint for uploaded files, to reject duplicates per runner. */
+		uploadHash: text('upload_hash'),
 		sport: text('sport').notNull().default('Run'),
 		name: text('name').notNull().default(''),
 		startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
@@ -128,6 +133,7 @@ export const activities = pgTable(
 	},
 	(t) => [
 		uniqueIndex('activities_strava_id_idx').on(t.stravaActivityId),
+		uniqueIndex('activities_user_upload_hash_idx').on(t.userId, t.uploadHash),
 		index('activities_user_idx').on(t.userId)
 	]
 ).enableRLS();
