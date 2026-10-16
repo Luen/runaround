@@ -10,6 +10,8 @@ import { db } from '../lib/server/db';
 import { activities } from '../lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { backfillMissingElevation } from '../lib/server/elevation-backfill';
+import { ingestGarminActivity } from '../lib/server/garmin';
+import type { GarminActivityDetail } from '../lib/garmin';
 
 const POLL_MS = 15 * 60_000;
 const RACE_END_MS = 60_000;
@@ -30,6 +32,9 @@ async function handleJob() {
 				.limit(1);
 			const detailed = await getActivity(userId, activityId);
 			await upsertAndMatchActivity(userId, detailed ?? (existing as never));
+		} else if (job.type === 'garmin_activity') {
+			const skipped = await ingestGarminActivity(job.payload.detail as GarminActivityDetail);
+			if (skipped) console.log(`Garmin activity skipped: ${skipped}`);
 		} else if (job.type === 'send_email') {
 			const result = await sendQueuedEmail(job.payload);
 			if (result && 'retry' in result && result.retry) {

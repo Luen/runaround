@@ -1,7 +1,8 @@
 import { db, postgresClient } from './db';
 import { jobs } from './db/schema';
 
-export type JobType = 'backfill' | 'match_activity' | 'send_email' | 'poll_activities' | 'race_end';
+export type JobType =
+	'backfill' | 'match_activity' | 'send_email' | 'poll_activities' | 'race_end' | 'garmin_activity';
 
 export async function enqueueJob(
 	type: JobType,
