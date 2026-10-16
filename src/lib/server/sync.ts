@@ -2,7 +2,7 @@ import { siteOrigin } from '../origin';
 import { db } from './db';
 import { activities, attempts, emailSuppressions, races, rankSnapshots, user } from './db/schema';
 import { getActivity, getActivityStreams, listActivities } from './strava';
-import { matchActivityToCourse, onCoursePoints, rankImproved } from '../matching';
+import { matchActivityToCourse, courseEffortPoints, rankImproved } from '../matching';
 import { downsampleTrace, type TracePoint } from '../teams';
 import { decodePolyline, pointsFromLineString, type LngLat } from '../geo';
 import type { TimedPoint } from '../matching';
@@ -128,11 +128,9 @@ export async function matchActivityToRaces(
 		// On-course trace with real timestamps, for team linking (#207).
 		const trace: TracePoint[] | null = hasTime
 			? downsampleTrace(
-					onCoursePoints(timed, pointsFromLineString(race.courseGeojson), race.surface).map((p) => [
-						activityRow.startedAt.getTime() + p.t * 1000,
-						p.point.lat,
-						p.point.lng
-					])
+					courseEffortPoints(timed, pointsFromLineString(race.courseGeojson), race.surface).map(
+						(p) => [activityRow.startedAt.getTime() + p.t * 1000, p.point.lat, p.point.lng]
+					)
 				)
 			: null;
 
@@ -350,7 +348,12 @@ export async function sendRaceEndEmails() {
 	const now = new Date();
 	const all = await db.select().from(races);
 	for (const race of all) {
-		if (race.endsAt > now || race.raceEndEmailsSentAt) continue;
+		if (race.endsAt >= now) continue;
+		// Race lifecycle is independent of the results/email embargo.
+		if (race.status !== 'closed') {
+			await db.update(races).set({ status: 'closed' }).where(eq(races.id, race.id));
+		}
+		if (race.raceEndEmailsSentAt) continue;
 		// Embargoed races send their final-place emails at the reveal instead.
 		if (resultsHidden(race, now)) continue;
 		const board = await raceLeaderboard(race.id);

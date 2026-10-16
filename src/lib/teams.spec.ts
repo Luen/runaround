@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { courseEffortPoints, matchActivityToCourse, type TimedPoint } from './matching';
 import {
 	DEFAULT_TEAM_RULES,
 	downsampleTrace,
@@ -57,6 +58,39 @@ describe('downsampleTrace', () => {
 });
 
 describe('ranTogether', () => {
+	it('rejects off-course separation after extracting the matched effort', () => {
+		const course = Array.from({ length: 61 }, (_, i) => ({
+			lat: -19.3 + (i / 60) * 0.002,
+			lng: 146.75
+		}));
+		const a: TimedPoint[] = course.map((point, i) => ({ point, t: i * 10 }));
+		const b = a.map((p, i) => ({
+			...p,
+			point: { ...p.point, lng: i >= 15 && i <= 45 ? 146.78 : 146.75 }
+		}));
+		// The runner returns later to cover the missing part of the course.
+		for (let i = 15; i <= 45; i++) b.push({ point: course[i], t: 600 + i * 10 });
+		b.push({ point: course[60], t: 1200 });
+		const together = [...a, ...a.map((p) => ({ ...p, t: p.t + 610 }))];
+		expect(matchActivityToCourse({ course, activity: b, surface: 'trail' }).ok).toBe(true);
+		const toTrace = (pts: TimedPoint[]): TracePoint[] =>
+			downsampleTrace(
+				courseEffortPoints(pts, course, 'trail').map((p) => [
+					T0 + p.t * 1000,
+					p.point.lat,
+					p.point.lng
+				])
+			);
+		expect(ranTogether(toTrace(together), toTrace(b))).toBe(false);
+		expect(courseEffortPoints(b, course, 'trail').some((p) => p.point.lng === 146.78)).toBe(true);
+	});
+	it('trims only the lead-in and tail outside the course', () => {
+		const point = { lat: -19.3, lng: 146.75 };
+		const outside = { lat: -20, lng: 146 };
+		const activity = [outside, point, outside, point, outside].map((point, t) => ({ point, t }));
+		expect(courseEffortPoints(activity, [point], 'trail')).toEqual(activity.slice(1, 4));
+		expect(courseEffortPoints(activity, [], 'trail')).toEqual([]);
+	});
 	it('is true for runners side by side', () => {
 		expect(ranTogether(trace(), trace({ lngOffset: 0.001, startOffsetS: 20 }))).toBe(true);
 	});
