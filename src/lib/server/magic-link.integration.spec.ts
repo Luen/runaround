@@ -75,16 +75,14 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 					}
 				})
 				.returning();
-			await db
-				.insert(attempts)
-				.values({
-					raceId: race.id,
-					stravaAthleteId: '123',
-					timeMs: 60_000,
-					startedAt: new Date('2020-06-01'),
-					matchMethod: 'import',
-					source: 'strava_import'
-				});
+			await db.insert(attempts).values({
+				raceId: race.id,
+				stravaAthleteId: '123',
+				timeMs: 60_000,
+				startedAt: new Date('2020-06-01'),
+				matchMethod: 'import',
+				source: 'strava_import'
+			});
 			await verifyEmail('strava-123@example.test');
 			const [runner] = await db.select().from(user);
 			expect(runner.stravaAthleteId).toBeNull();
@@ -94,26 +92,22 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			expect(await db.select().from(jobs)).toHaveLength(0);
 		});
 		it('offers a secure reconnect after verification removes old unproven OAuth links', async () => {
-			await db
-				.insert(user)
-				.values({
-					id: 'existing',
-					name: 'Existing',
-					email: 'existing@example.test',
-					emailVerified: false,
-					needsEmail: false,
-					stravaAthleteId: '123'
-				});
-			await db
-				.insert(account)
-				.values({
-					id: 'old',
-					userId: 'existing',
-					issuer: 'local:oauth:strava',
-					providerId: 'strava',
-					accountId: '123',
-					accessToken: 'old-token'
-				});
+			await db.insert(user).values({
+				id: 'existing',
+				name: 'Existing',
+				email: 'existing@example.test',
+				emailVerified: false,
+				needsEmail: false,
+				stravaAthleteId: '123'
+			});
+			await db.insert(account).values({
+				id: 'old',
+				userId: 'existing',
+				issuer: 'local:oauth:strava',
+				providerId: 'strava',
+				accountId: '123',
+				accessToken: 'old-token'
+			});
 			await verifyEmail('existing@example.test');
 			const [runner] = await db.select().from(user).where(eq(user.id, 'existing'));
 			expect(await db.select().from(account)).toHaveLength(0);
