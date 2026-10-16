@@ -18,7 +18,12 @@
 	noindex
 />
 
-<h1 class="text-3xl font-bold">Edit race</h1>
+<h1 class="text-3xl font-bold">{data.editable ? 'Edit race' : data.race.title}</h1>
+{#if !data.editable}
+	<p class="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900" role="status">
+		This race has finished and can no longer be edited. Its details are shown read-only.
+	</p>
+{/if}
 <div class="mt-4">
 	<RaceMap
 		focus={data.race.courseGeojson}
@@ -33,77 +38,88 @@
 	class="mt-6 space-y-3"
 	use:enhance
 >
-	<label class="block text-sm"
-		>Title
-		<input
-			class="mt-1 w-full rounded-md border px-3 py-2"
-			name="title"
-			value={data.race.title}
-			required
-		/>
-	</label>
-	<label class="block text-sm"
-		>Description
-		<textarea class="mt-1 w-full rounded-md border px-3 py-2" name="description" required
-			>{data.race.description}</textarea
+	<fieldset class="space-y-3" disabled={!data.editable}>
+		<label class="block text-sm"
+			>Title
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				name="title"
+				value={data.race.title}
+				required
+			/>
+		</label>
+		<label class="block text-sm"
+			>Description
+			<textarea class="mt-1 w-full rounded-md border px-3 py-2" name="description" required
+				>{data.race.description}</textarea
+			>
+		</label>
+		<label class="block text-sm"
+			>Surface
+			<select
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				name="surface"
+				value={data.race.surface}
+			>
+				<option value="road">Road</option>
+				<option value="trail">Trail</option>
+			</select>
+		</label>
+		<label class="block text-sm"
+			>Starts
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="datetime-local"
+				name="startsAt"
+				value={toBrisbaneInputValue(data.race.startsAt)}
+				required
+			/>
+		</label>
+		<label class="block text-sm"
+			>Ends
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="datetime-local"
+				name="endsAt"
+				value={toBrisbaneInputValue(data.race.endsAt)}
+				required
+			/>
+		</label>
+		<label class="block text-sm"
+			>Hide results until (optional, Brisbane time)
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="datetime-local"
+				name="resultsRevealAt"
+				value={data.race.resultsRevealAt ? toBrisbaneInputValue(data.race.resultsRevealAt) : ''}
+			/>
+			<span class="text-xs text-stone-500"
+				>Times and places stay hidden from everyone except admins until this moment.</span
+			>
+		</label>
+		<label class="block text-sm"
+			>Strava segment ID
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				name="stravaSegmentId"
+				value={data.race.stravaSegmentId ?? ''}
+			/>
+		</label>
+		<label class="block text-sm"
+			>Replace GPX (optional)
+			<input
+				class="mt-1 w-full"
+				type="file"
+				name="gpx"
+				accept=".gpx,application/gpx+xml,text/xml"
+			/>
+		</label>
+		<button
+			class="rounded-full bg-green-800 px-4 py-2 text-white"
+			type="submit"
+			hidden={!data.editable}>Save</button
 		>
-	</label>
-	<label class="block text-sm"
-		>Surface
-		<select
-			class="mt-1 w-full rounded-md border px-3 py-2"
-			name="surface"
-			value={data.race.surface}
-		>
-			<option value="road">Road</option>
-			<option value="trail">Trail</option>
-		</select>
-	</label>
-	<label class="block text-sm"
-		>Starts
-		<input
-			class="mt-1 w-full rounded-md border px-3 py-2"
-			type="datetime-local"
-			name="startsAt"
-			value={toBrisbaneInputValue(data.race.startsAt)}
-			required
-		/>
-	</label>
-	<label class="block text-sm"
-		>Ends
-		<input
-			class="mt-1 w-full rounded-md border px-3 py-2"
-			type="datetime-local"
-			name="endsAt"
-			value={toBrisbaneInputValue(data.race.endsAt)}
-			required
-		/>
-	</label>
-	<label class="block text-sm"
-		>Hide results until (optional, Brisbane time)
-		<input
-			class="mt-1 w-full rounded-md border px-3 py-2"
-			type="datetime-local"
-			name="resultsRevealAt"
-			value={data.race.resultsRevealAt ? toBrisbaneInputValue(data.race.resultsRevealAt) : ''}
-		/>
-		<span class="text-xs text-stone-500"
-			>Times and places stay hidden from everyone except admins until this moment.</span
-		>
-	</label>
-	<label class="block text-sm"
-		>Strava segment ID
-		<input
-			class="mt-1 w-full rounded-md border px-3 py-2"
-			name="stravaSegmentId"
-			value={data.race.stravaSegmentId ?? ''}
-		/>
-	</label>
-	<label class="block text-sm"
-		>Replace GPX (optional)
-		<input class="mt-1 w-full" type="file" name="gpx" accept=".gpx,application/gpx+xml,text/xml" />
-	</label>
-	<button class="rounded-full bg-green-800 px-4 py-2 text-white" type="submit">Save</button>
+	</fieldset>
 	{#if form?.message}
 		<p class="text-red-700">{form.message}</p>
 	{/if}
