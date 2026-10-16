@@ -1,6 +1,7 @@
 import { db } from './db';
 import { account, activities } from './db/schema';
-import { and, eq, gte, lte } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+import { findSameRun, withActivityIngestion } from './activity-ingestion';
 import {
 	GARMIN_REGISTRATION_URL,
 	GARMIN_TOKEN_URL,
@@ -13,7 +14,6 @@ import { matchActivityToRaces } from './sync';
 
 export const GARMIN_PROVIDER = 'garmin';
 const GARMIN_ISSUER = 'local:oauth:garmin';
-const SAME_RUN_WINDOW_MS = 60_000;
 
 type TokenResponse = {
 	access_token: string;
@@ -127,36 +127,37 @@ export async function ingestGarminActivity(detail: GarminActivityDetail): Promis
 	const parsed = parseGarminActivity(detail);
 	if (!parsed) return 'not a GPS run/walk/hike';
 
-	const [dupe] = await db
-		.select({ id: activities.id })
-		.from(activities)
-		.where(
-			and(
-				eq(activities.userId, link.userId),
-				gte(activities.startedAt, new Date(parsed.startedAt.getTime() - SAME_RUN_WINDOW_MS)),
-				lte(activities.startedAt, new Date(parsed.startedAt.getTime() + SAME_RUN_WINDOW_MS))
-			)
-		)
-		.limit(1);
-	if (dupe) return 'same run already synced';
+	return withActivityIngestion(link.userId, async (database) => {
+		const [existing] = await database
+			.select()
+			.from(activities)
+			.where(eq(activities.garminActivityId, key))
+			.limit(1);
+		if (existing && existing.userId !== link.userId) return 'activity belongs to another runner';
+		// An exact provider id is resumable, not a duplicate from another source.
+		if (!existing && (await findSameRun(database, link.userId, parsed.startedAt)))
+			return 'same run already synced';
 
-	const [row] = await db
-		.insert(activities)
-		.values({
-			userId: link.userId,
-			source: 'garmin',
-			garminActivityId: key,
-			sport: 'Run',
-			name: parsed.name,
-			startedAt: parsed.startedAt,
-			distanceM: parsed.distanceM,
-			movingTimeS: parsed.elapsedS,
-			elapsedTimeS: parsed.elapsedS,
-			streamFetchedAt: new Date()
-		})
-		.onConflictDoNothing()
-		.returning();
-	if (!row) return 'already stored';
-	await matchActivityToRaces(link.userId, row, parsed.timed, true);
-	return null;
+		const [row] = existing
+			? [existing]
+			: await database
+					.insert(activities)
+					.values({
+						userId: link.userId,
+						source: 'garmin',
+						garminActivityId: key,
+						sport: 'Run',
+						name: parsed.name,
+						startedAt: parsed.startedAt,
+						distanceM: parsed.distanceM,
+						movingTimeS: parsed.elapsedS,
+						elapsedTimeS: parsed.elapsedS,
+						streamFetchedAt: new Date()
+					})
+					.onConflictDoNothing()
+					.returning();
+		if (!row) return 'already stored';
+		await matchActivityToRaces(link.userId, row, parsed.timed, true, undefined, database);
+		return null;
+	});
 }
