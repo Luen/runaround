@@ -16,16 +16,21 @@ vi.mock('./db', async () => {
 });
 vi.mock('./strava', () => ({
 	getActivity: vi.fn(async () => null),
-	getActivityStreams: vi.fn(async () => ({
-		latlng: {
-			data: [
-				[-19.3, 146.75],
-				[-19.299, 146.75],
-				[-19.298, 146.75]
-			]
-		},
-		time: { data: [0, 60, 120] }
-	})),
+	getActivityStreams: vi.fn(
+		async (): Promise<{
+			latlng?: { data: [number, number][] };
+			time?: { data: number[] };
+		} | null> => ({
+			latlng: {
+				data: [
+					[-19.3, 146.75],
+					[-19.299, 146.75],
+					[-19.298, 146.75]
+				]
+			},
+			time: { data: [0, 60, 120] }
+		})
+	),
 	listActivities: vi.fn()
 }));
 
@@ -33,6 +38,7 @@ import { db, postgresClient } from './db';
 import { activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
 import { ingestUploadedGpx } from './upload';
 import { upsertAndMatchActivity } from './sync';
+import { getActivityStreams } from './strava';
 
 const start = new Date('2026-01-01T00:00:00Z');
 const strava = {
@@ -140,6 +146,28 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			});
 			expect(await db.select().from(activities)).toHaveLength(2);
 			expect(await db.select().from(attempts).where(eq(attempts.userId, 'runner'))).toHaveLength(2);
+		});
+		it('ignores an activity outside the race window (#222)', async () => {
+			await upsertAndMatchActivity('runner', {
+				...strava,
+				id: 102,
+				start_date: '2020-01-01T00:00:00Z'
+			});
+			expect(await db.select().from(activities)).toHaveLength(1);
+			expect(await db.select().from(attempts)).toHaveLength(0);
+		});
+		it('does not time an activity with no time stream (#223)', async () => {
+			vi.mocked(getActivityStreams).mockResolvedValueOnce({
+				latlng: {
+					data: [
+						[-19.3, 146.75],
+						[-19.299, 146.75],
+						[-19.298, 146.75]
+					]
+				}
+			});
+			await upsertAndMatchActivity('runner', strava);
+			expect(await db.select().from(attempts)).toHaveLength(0);
 		});
 	}
 );

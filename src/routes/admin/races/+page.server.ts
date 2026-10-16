@@ -10,6 +10,7 @@ import { processUploadedGpx } from '$lib/server/elevation';
 import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
+import { effectiveRaceStatus } from '$lib/matching';
 import { raceEditable } from '$lib/race-edit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -49,7 +50,8 @@ function intField(value: string | undefined, fallback: number | null): number | 
 export const load: PageServerLoad = async () => {
 	const all = await db.select().from(races).orderBy(desc(races.startsAt));
 	return {
-		races: all.map((r) => ({ ...r, editable: raceEditable(r) })),
+		// Show status from the clock (#221); editability is judged on the stored race.
+		races: all.map((r) => ({ ...r, status: effectiveRaceStatus(r), editable: raceEditable(r) })),
 		routingAvailable: routingAvailable()
 	};
 };

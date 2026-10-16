@@ -17,6 +17,8 @@ import {
 	rankImproved,
 	inRaceWindow,
 	computeRaceStatus,
+	effectiveRaceStatus,
+	timedPointsFromStreams,
 	ROAD_BUFFER_M
 } from '$lib/matching';
 
@@ -107,6 +109,50 @@ describe('leaderboard rules', () => {
 		expect(computeRaceStatus(start, end, new Date('2022-01-01T00:00:00Z'))).toBe('upcoming');
 		expect(computeRaceStatus(start, end, new Date('2022-01-15T00:00:00Z'))).toBe('live');
 		expect(computeRaceStatus(start, end, new Date('2022-02-01T00:00:00Z'))).toBe('closed');
+	});
+
+	it('derives displayed status from the clock but keeps drafts', () => {
+		const race = {
+			status: 'upcoming',
+			startsAt: new Date('2022-01-10T00:00:00Z'),
+			endsAt: new Date('2022-01-20T00:00:00Z')
+		};
+		expect(effectiveRaceStatus(race, new Date('2022-01-15T00:00:00Z'))).toBe('live');
+		expect(effectiveRaceStatus(race, new Date('2022-02-01T00:00:00Z'))).toBe('closed');
+		expect(
+			effectiveRaceStatus({ ...race, status: 'draft' }, new Date('2022-01-15T00:00:00Z'))
+		).toBe('draft');
+	});
+});
+
+describe('timedPointsFromStreams', () => {
+	it('requires both latlng and time streams', () => {
+		expect(timedPointsFromStreams(undefined, [0, 1])).toEqual({ timed: [], hasTime: false });
+		expect(
+			timedPointsFromStreams(
+				[
+					[1, 2],
+					[3, 4]
+				],
+				undefined
+			)
+		).toEqual({ timed: [], hasTime: false });
+		expect(timedPointsFromStreams([[1, 2]], [0])).toEqual({ timed: [], hasTime: false });
+	});
+
+	it('pairs points with real timestamps', () => {
+		const result = timedPointsFromStreams(
+			[
+				[1, 2],
+				[3, 4]
+			],
+			[0, 30]
+		);
+		expect(result.hasTime).toBe(true);
+		expect(result.timed).toEqual([
+			{ point: { lat: 1, lng: 2 }, t: 0 },
+			{ point: { lat: 3, lng: 4 }, t: 30 }
+		]);
 	});
 });
 
