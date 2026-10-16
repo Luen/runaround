@@ -37,7 +37,11 @@
 
 {#if !data.hasStrava}
 	<div class="mt-4 rounded-xl border border-stone-200 bg-white p-4">
-		<p class="text-stone-700">Connect Strava to match your runs automatically.</p>
+		<p class="text-stone-700">
+			{data.stravaNeedsReconnect
+				? 'For account security, email verification removed the previous Strava connection. Reconnect Strava to resume automatic syncing.'
+				: 'Connect Strava to match your runs automatically.'}
+		</p>
 		<button
 			type="button"
 			class="mt-3 rounded-full bg-[#fc4c02] px-4 py-2 font-semibold text-white disabled:opacity-60"

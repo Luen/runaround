@@ -1,4 +1,5 @@
 import { betterAuth } from 'better-auth/minimal';
+import { APIError } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
@@ -113,16 +114,31 @@ export const auth = betterAuth({
 	databaseHooks: {
 		account: {
 			create: {
+				before: async (created) => {
+					if (created.providerId === 'strava') {
+						const [u] = await db
+							.select()
+							.from(schema.user)
+							.where(eq(schema.user.id, created.userId))
+							.limit(1);
+						if (u?.stravaAthleteId && u.stravaAthleteId !== created.accountId) {
+							throw new APIError('BAD_REQUEST', {
+								message: 'Reconnect the Strava athlete already associated with this runner'
+							});
+						}
+					}
+					return { data: created };
+				},
 				after: async (created) => {
 					// Strava linked to an existing (e.g. magic-link) user (#204): adopt the athlete id,
-					// claim imported attempts and backfill. New Strava sign-ups are handled in user.create.
+					// claim imported attempts and backfill, including reconnection after email proof cleanup.
 					if (created.providerId !== 'strava') return;
 					const [u] = await db
 						.select()
 						.from(schema.user)
 						.where(eq(schema.user.id, created.userId))
 						.limit(1);
-					if (!u || u.stravaAthleteId) return;
+					if (!u) return;
 					await db
 						.update(schema.user)
 						.set({ stravaAthleteId: created.accountId })
@@ -137,33 +153,16 @@ export const auth = betterAuth({
 		},
 		user: {
 			create: {
-				after: async (created) => {
-					const athleteId = created.email?.startsWith('strava-')
-						? created.email.slice('strava-'.length).split('@')[0]
-						: null;
-					if (athleteId) {
-						await db
-							.update(schema.user)
-							.set({ stravaAthleteId: athleteId, needsEmail: true })
-							.where(eq(schema.user.id, created.id));
-						await db
-							.update(schema.attempts)
-							.set({ userId: created.id })
-							.where(eq(schema.attempts.stravaAthleteId, athleteId));
-					}
-					if (athleteId) {
-						await enqueueJob('backfill', { userId: created.id });
-					} else if (created.email && !isPlaceholderEmail(created.email)) {
-						// Magic-link sign-up (#204): the email is already proven, skip onboarding.
-						await db
-							.update(schema.user)
-							.set({
-								needsEmail: false,
-								emailVerified: true,
-								isAdmin: adminEmails().includes(created.email.toLowerCase())
-							})
-							.where(eq(schema.user.id, created.id));
-					}
+				before: async (created) => {
+					// Magic-link proof comes from Better Auth, never from an email prefix.
+					const verified = created.emailVerified && !isPlaceholderEmail(created.email);
+					return {
+						data: {
+							...created,
+							needsEmail: !verified,
+							isAdmin: Boolean(verified && adminEmails().includes(created.email.toLowerCase()))
+						}
+					};
 				}
 			}
 		}
