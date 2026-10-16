@@ -2,15 +2,22 @@ import { siteOrigin } from '../origin';
 import { db } from './db';
 import { activities, attempts, emailSuppressions, races, rankSnapshots, user } from './db/schema';
 import { getActivity, getActivityStreams, listActivities } from './strava';
-import { matchActivityToCourse, courseEffortPoints, rankImproved } from '../matching';
+import {
+	matchActivityToCourse,
+	courseEffortPoints,
+	rankImproved,
+	inRaceWindow,
+	timedPointsFromStreams,
+	effectiveRaceStatus
+} from '../matching';
 import { downsampleTrace, type TracePoint } from '../teams';
-import { decodePolyline, pointsFromLineString, type LngLat } from '../geo';
+import { pointsFromLineString } from '../geo';
 import type { TimedPoint } from '../matching';
 import { overallLeaderboard, raceLeaderboard } from './leaderboard';
 import { enqueueJob } from './jobs';
 import { positionGainedEmail, raceEndedEmail, sendEmail } from './email';
 import { formatDuration } from '../geo';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { isPlaceholderEmail } from './identity';
 import { resultsHidden } from '../reveal';
 import { findSameRun, withActivityIngestion, type ActivityDatabase } from './activity-ingestion';
@@ -21,15 +28,40 @@ function origin(): string {
 	return siteOrigin(process.env.ORIGIN, 'https://runaround.com.au');
 }
 
-export async function backfillUser(userId: string) {
+/**
+ * Sync a runner's Strava activities into RunAround.
+ *
+ * Incremental by default (#225): only activities newer than the latest stored one
+ * are fetched, so the 15-minute poll is a handful of API calls, not a full history
+ * re-download. `full: true` (the daily rescan) re-reads everything so a newly
+ * created race can still match older runs.
+ */
+export async function backfillUser(userId: string, options: { full?: boolean } = {}) {
+	let after: number | undefined;
+	if (!options.full) {
+		const [latest] = await db
+			.select({ startedAt: activities.startedAt })
+			.from(activities)
+			.where(eq(activities.userId, userId))
+			.orderBy(desc(activities.startedAt))
+			.limit(1);
+		if (latest?.startedAt) after = Math.floor(latest.startedAt.getTime() / 1000);
+	}
+
 	for (let page = 1; page <= 20; page += 1) {
-		const batch = await listActivities(userId, page, 50);
+		const batch = await listActivities(userId, page, 50, after);
 		if (batch.length === 0) break;
 		for (const activity of batch) {
 			await upsertAndMatchActivity(userId, activity);
 		}
 		if (batch.length < 50) break;
 	}
+}
+
+/** Fetch one activity's detail once, then store and match it (webhook path, #225). */
+export async function syncActivityById(userId: string, activityId: string) {
+	const detailed = await getActivity(userId, activityId);
+	if (detailed) await upsertAndMatchActivity(userId, detailed);
 }
 
 export async function upsertAndMatchActivity(
@@ -42,8 +74,12 @@ export async function upsertAndMatchActivity(
 	const sport = activity.sport_type ?? activity.type;
 	if (!RUN_SPORTS.has(sport) && activity.type !== 'Run') return;
 
-	// Fetch provider data before taking the database lock.
-	const detailed = await getActivity(userId, String(activity.id));
+	// Fetch provider data before taking the database lock. A payload from
+	// getActivity already carries segment efforts, so we skip the duplicate detail
+	// call that the webhook used to make (#225).
+	const detailed = Array.isArray(activity.segment_efforts)
+		? activity
+		: await getActivity(userId, String(activity.id));
 	const streams = await getActivityStreams(userId, String(activity.id));
 	return withActivityIngestion(userId, async (database) => {
 		const [existing] = await database
@@ -78,7 +114,7 @@ export async function upsertAndMatchActivity(
 			.set({ streamFetchedAt: new Date() })
 			.where(eq(activities.id, activityRow.id));
 
-		const { timed, hasTime } = streamsToTimed(streams, activityRow.summaryPolyline);
+		const { timed, hasTime } = streamsToTimed(streams);
 		await matchActivityToRaces(
 			userId,
 			activityRow,
@@ -114,6 +150,9 @@ export async function matchActivityToRaces(
 
 	for (const race of published) {
 		if (race.status === 'draft') continue;
+		// A run outside the race window is never a race attempt (#222). Without this a
+		// 2020 run over the course shows up (and emails) on a race created in 2026.
+		if (!inRaceWindow(activityRow.startedAt, race.startsAt, race.endsAt)) continue;
 		let method: 'gps' | 'segment_effort' | null = null;
 		let timeMs: number | null = null;
 		let coverage: number | null = null;
@@ -188,26 +227,15 @@ export async function matchActivityToRaces(
 	return matched;
 }
 
-function streamsToTimed(
-	streams: Awaited<ReturnType<typeof getActivityStreams>>,
-	summaryPolyline: string | null
-): { timed: TimedPoint[]; hasTime: boolean } {
-	if (streams?.latlng?.data?.length) {
-		const hasTime = Boolean(streams.time?.data?.length);
-		const times = streams.time?.data ?? streams.latlng.data.map((_, i) => i);
-		return {
-			hasTime,
-			timed: streams.latlng.data.map(([lat, lng], i) => ({
-				point: { lat, lng } satisfies LngLat,
-				t: times[i] ?? i
-			}))
-		};
-	}
-	if (summaryPolyline) {
-		const pts = decodePolyline(summaryPolyline);
-		return { hasTime: false, timed: pts.map((point, i) => ({ point, t: i })) };
-	}
-	return { hasTime: false, timed: [] };
+/**
+ * Convert Strava streams to timed points. Both `latlng` and `time` are required: a
+ * summary polyline has no timestamps, and indexing it produced bogus times (#223).
+ */
+function streamsToTimed(streams: Awaited<ReturnType<typeof getActivityStreams>>): {
+	timed: TimedPoint[];
+	hasTime: boolean;
+} {
+	return timedPointsFromStreams(streams?.latlng?.data, streams?.time?.data);
 }
 
 async function maybeNotifyRankGain(
@@ -367,6 +395,17 @@ export async function sendQueuedEmail(payload: Record<string, unknown>) {
 	}
 
 	return { skip: true as const };
+}
+
+/** Persist upcoming → live → closed so stored status stops going stale (#221). */
+export async function refreshRaceStatuses(now = new Date()) {
+	const all = await db.select().from(races);
+	for (const race of all) {
+		const status = effectiveRaceStatus(race, now);
+		if (status !== race.status) {
+			await db.update(races).set({ status, updatedAt: now }).where(eq(races.id, race.id));
+		}
+	}
 }
 
 export async function sendRaceEndEmails() {

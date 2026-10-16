@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { building } from '$app/environment';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { resolvePostgresUrl } from './postgres-url';
@@ -32,17 +31,22 @@ const localDatabaseUrl = 'postgres://runaround:runaround@127.0.0.1:5432/runaroun
 
 function databaseUrl(): string {
 	// Bracket access inside resolvePostgresUrl avoids Vite replacing env reads at build time.
-	const fromEnv = resolvePostgresUrl();
-	if (fromEnv) return fromEnv;
+	return resolvePostgresUrl() ?? localDatabaseUrl;
+}
 
-	// SvelteKit postbuild analysis runs on Vercel without runtime env vars.
-	if (building) return localDatabaseUrl;
-
+/**
+ * Fail fast in deployed runtimes when POSTGRES_URL is missing.
+ *
+ * This lives outside a top-level throw so the module stays importable during the
+ * SvelteKit build (no `$app/environment`) and by the worker, which must not import
+ * `$app/*`. Call it at server/work start; it throws only against a deployed env.
+ */
+export function assertDatabaseConfigured(): void {
+	// Bracket access inside resolvePostgresUrl avoids Vite replacing env reads at build time.
+	if (resolvePostgresUrl()) return;
 	if (process.env['VERCEL'] === '1' || process.env['NODE_ENV'] === 'production') {
 		throw new Error('POSTGRES_URL is not set');
 	}
-
-	return localDatabaseUrl;
 }
 
 export const postgresClient = postgres(databaseUrl());
