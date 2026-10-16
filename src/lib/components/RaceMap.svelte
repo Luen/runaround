@@ -45,6 +45,11 @@
 
 	let shell = $state<HTMLDivElement | null>(null);
 	let isFullscreen = $state(false);
+	/**
+	 * CSS "pseudo" fullscreen for browsers without the element Fullscreen API
+	 * (notably iPhone Safari, where `requestFullscreen` is undefined on divs). See #202.
+	 */
+	let isPseudoFullscreen = $state(false);
 	let mapRef = $state<Map | null>(null);
 	let mapReady = $state(false);
 	/** LineString extracted from a successful `courseUrl` fetch. */
@@ -189,16 +194,39 @@
 	);
 
 	function syncFullscreen() {
-		isFullscreen = document.fullscreenElement === shell;
+		isFullscreen = isPseudoFullscreen || document.fullscreenElement === shell;
+	}
+
+	function setPseudoFullscreen(on: boolean) {
+		isPseudoFullscreen = on;
+		document.documentElement.style.overflow = on ? 'hidden' : '';
+		syncFullscreen();
+		requestAnimationFrame(() => mapRef?.resize());
 	}
 
 	async function toggleFullscreen() {
 		if (!shell) return;
+		if (isPseudoFullscreen) {
+			setPseudoFullscreen(false);
+			return;
+		}
 		if (document.fullscreenElement === shell) {
 			await document.exitFullscreen();
-		} else {
-			await shell.requestFullscreen();
+			return;
 		}
+		if (typeof shell.requestFullscreen === 'function' && document.fullscreenEnabled) {
+			try {
+				await shell.requestFullscreen();
+				return;
+			} catch {
+				// Fall through to the CSS fallback (e.g. blocked by permissions policy).
+			}
+		}
+		setPseudoFullscreen(true);
+	}
+
+	function onWindowKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && isPseudoFullscreen) setPseudoFullscreen(false);
 	}
 
 	function ensureCourseLayers(map: Map, initialData?: CourseFeatureCollection) {
@@ -419,6 +447,7 @@
 
 		return () => {
 			document.removeEventListener('fullscreenchange', onFullscreen);
+			if (isPseudoFullscreen) document.documentElement.style.overflow = '';
 			map.off('click', HIT_LAYER_ID, onCourseClick);
 			map.off('click', LINE_LAYER_ID, onCourseClick);
 			map.off('mouseenter', HIT_LAYER_ID, onCourseEnter);
@@ -484,11 +513,14 @@
 	});
 </script>
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 <div
 	bind:this={shell}
 	class={[
-		'group relative h-80 overflow-hidden rounded-xl border border-stone-200 bg-stone-100',
-		isFullscreen && 'h-screen w-screen rounded-none border-0'
+		'group h-80 overflow-hidden rounded-xl border border-stone-200 bg-stone-100',
+		isFullscreen && 'h-screen w-screen rounded-none border-0',
+		isPseudoFullscreen ? 'fixed inset-0 z-50 h-dvh' : 'relative'
 	]}
 >
 	<div class="h-full w-full" {@attach attachMap}></div>
@@ -505,6 +537,7 @@
 		<button
 			type="button"
 			class="rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200 hover:bg-white"
+			aria-pressed={isFullscreen}
 			onclick={toggleFullscreen}
 		>
 			{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
