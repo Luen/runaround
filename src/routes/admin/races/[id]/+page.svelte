@@ -3,8 +3,8 @@
 	import { enhance } from '$app/forms';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
-	import { toBrisbaneInputValue } from '$lib/dates';
-	import { raceCourseJsonUrl } from '$lib/geo';
+	import { formatDateTime, toBrisbaneInputValue } from '$lib/dates';
+	import { formatDuration, raceCourseJsonUrl } from '$lib/geo';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -159,3 +159,29 @@
 		<p class="text-red-700">{form.message}</p>
 	{/if}
 </form>
+
+<section class="mt-8 space-y-2">
+	<h2 class="text-xl font-semibold">Uploaded GPX attempts</h2>
+	{#if data.uploads.length === 0}
+		<p class="text-stone-600">No runner uploads on this race.</p>
+	{:else}
+		<ul class="space-y-2">
+			{#each data.uploads as up (up.id)}
+				<li
+					class="flex flex-wrap items-center gap-3 rounded-lg border border-stone-200 bg-white p-3"
+				>
+					<span class="font-medium">{up.name ?? 'Runner'}</span>
+					<span>{formatDuration(up.timeMs)}</span>
+					<span class="text-sm text-stone-500">{formatDateTime(up.startedAt)} · {up.fileName}</span>
+					<form method="post" action="?/removeUpload" use:enhance>
+						<input type="hidden" name="attemptId" value={up.id} />
+						<button
+							class="rounded-full border border-red-300 px-3 py-1 text-sm text-red-700"
+							type="submit">Remove</button
+						>
+					</form>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+</section>

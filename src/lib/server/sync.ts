@@ -13,6 +13,7 @@ import { formatDuration } from '../geo';
 import { and, eq } from 'drizzle-orm';
 import { isPlaceholderEmail } from './identity';
 import { resultsHidden } from '../reveal';
+import { findSameRun, withActivityIngestion, type ActivityDatabase } from './activity-ingestion';
 
 const RUN_SPORTS = new Set(['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']);
 
@@ -41,40 +42,75 @@ export async function upsertAndMatchActivity(
 	const sport = activity.sport_type ?? activity.type;
 	if (!RUN_SPORTS.has(sport) && activity.type !== 'Run') return;
 
-	const [existing] = await db
-		.select()
-		.from(activities)
-		.where(eq(activities.stravaActivityId, String(activity.id)))
-		.limit(1);
-
-	let activityRow = existing;
-	if (!activityRow) {
-		const [inserted] = await db
-			.insert(activities)
-			.values({
-				userId,
-				stravaActivityId: String(activity.id),
-				sport,
-				name: activity.name,
-				startedAt: new Date(activity.start_date),
-				distanceM: activity.distance,
-				movingTimeS: activity.moving_time,
-				elapsedTimeS: activity.elapsed_time,
-				summaryPolyline: activity.map?.summary_polyline ?? null
-			})
-			.returning();
-		activityRow = inserted;
-	}
-
+	// Fetch provider data before taking the database lock.
 	const detailed = await getActivity(userId, String(activity.id));
 	const streams = await getActivityStreams(userId, String(activity.id));
-	await db
-		.update(activities)
-		.set({ streamFetchedAt: new Date() })
-		.where(eq(activities.id, activityRow.id));
+	return withActivityIngestion(userId, async (database) => {
+		const [existing] = await database
+			.select()
+			.from(activities)
+			.where(eq(activities.stravaActivityId, String(activity.id)))
+			.limit(1);
 
-	const { timed, hasTime } = streamsToTimed(streams, activityRow.summaryPolyline);
-	const published = await db.select().from(races);
+		let activityRow = existing;
+		if (!activityRow && (await findSameRun(database, userId, new Date(activity.start_date))))
+			return;
+		if (!activityRow) {
+			const [inserted] = await database
+				.insert(activities)
+				.values({
+					userId,
+					stravaActivityId: String(activity.id),
+					sport,
+					name: activity.name,
+					startedAt: new Date(activity.start_date),
+					distanceM: activity.distance,
+					movingTimeS: activity.moving_time,
+					elapsedTimeS: activity.elapsed_time,
+					summaryPolyline: activity.map?.summary_polyline ?? null
+				})
+				.returning();
+			activityRow = inserted;
+		}
+
+		await database
+			.update(activities)
+			.set({ streamFetchedAt: new Date() })
+			.where(eq(activities.id, activityRow.id));
+
+		const { timed, hasTime } = streamsToTimed(streams, activityRow.summaryPolyline);
+		await matchActivityToRaces(
+			userId,
+			activityRow,
+			timed,
+			hasTime,
+			detailed?.segment_efforts,
+			database
+		);
+	});
+}
+
+/**
+ * Match one stored activity against every published race and upsert attempts.
+ * Shared by Strava sync, manual uploads (#205) and other sources. `timed[].t` is
+ * seconds from `activityRow.startedAt`; `hasTime` says whether those are real.
+ */
+export async function matchActivityToRaces(
+	userId: string,
+	activityRow: typeof activities.$inferSelect,
+	timed: TimedPoint[],
+	hasTime: boolean,
+	segmentEfforts?: { segment?: { id: number }; elapsed_time: number }[],
+	database: ActivityDatabase = db
+) {
+	const published = await database.select().from(races);
+	const matched: {
+		id: string;
+		slug: string;
+		title: string;
+		timeMs: number;
+		hidden: boolean;
+	}[] = [];
 
 	for (const race of published) {
 		if (race.status === 'draft') continue;
@@ -83,7 +119,7 @@ export async function upsertAndMatchActivity(
 		let coverage: number | null = null;
 
 		const segmentId = race.stravaSegmentId ? Number(race.stravaSegmentId) : null;
-		const effort = detailed?.segment_efforts?.find((e) => e.segment?.id === segmentId);
+		const effort = segmentEfforts?.find((e) => e.segment?.id === segmentId);
 		if (effort) {
 			method = 'segment_effort';
 			timeMs = effort.elapsed_time * 1000;
@@ -112,20 +148,20 @@ export async function upsertAndMatchActivity(
 				)
 			: null;
 
-		const [prior] = await db
+		const [prior] = await database
 			.select()
 			.from(attempts)
 			.where(and(eq(attempts.raceId, race.id), eq(attempts.activityId, activityRow.id)))
 			.limit(1);
 
 		if (prior) {
-			await db
+			await database
 				.update(attempts)
 				.set({ timeMs, matchMethod: method, coveragePct: coverage, trace })
 				.where(eq(attempts.id, prior.id));
 		} else {
-			const [u] = await db.select().from(user).where(eq(user.id, userId)).limit(1);
-			await db.insert(attempts).values({
+			const [u] = await database.select().from(user).where(eq(user.id, userId)).limit(1);
+			await database.insert(attempts).values({
 				raceId: race.id,
 				userId,
 				activityId: activityRow.id,
@@ -140,8 +176,16 @@ export async function upsertAndMatchActivity(
 			});
 		}
 
-		await maybeNotifyRankGain(userId, race);
+		matched.push({
+			id: race.id,
+			slug: race.slug,
+			title: race.title,
+			timeMs,
+			hidden: resultsHidden(race)
+		});
+		await maybeNotifyRankGain(userId, race, database);
 	}
+	return matched;
 }
 
 function streamsToTimed(
@@ -166,16 +210,22 @@ function streamsToTimed(
 	return { hasTime: false, timed: [] };
 }
 
-async function maybeNotifyRankGain(userId: string, race: typeof races.$inferSelect) {
+async function maybeNotifyRankGain(
+	userId: string,
+	race: typeof races.$inferSelect,
+	database: ActivityDatabase
+) {
 	// Embargoed (#206): a "you moved up" email would reveal places early.
 	if (resultsHidden(race)) return;
 	for (const board of ['race', 'overall'] as const) {
 		const rows =
-			board === 'race' ? await raceLeaderboard(race.id) : await overallLeaderboard(race.id);
+			board === 'race'
+				? await raceLeaderboard(race.id, database)
+				: await overallLeaderboard(race.id, database);
 		const rank = rows.find((r) => r.userId === userId)?.rank;
 		if (!rank) continue;
 
-		const [snap] = await db
+		const [snap] = await database
 			.select()
 			.from(rankSnapshots)
 			.where(
@@ -191,7 +241,7 @@ async function maybeNotifyRankGain(userId: string, race: typeof races.$inferSele
 		const shouldEmail = rankImproved(previous, rank);
 
 		if (!snap) {
-			await db.insert(rankSnapshots).values({
+			await database.insert(rankSnapshots).values({
 				userId,
 				raceId: race.id,
 				board,
@@ -199,7 +249,7 @@ async function maybeNotifyRankGain(userId: string, race: typeof races.$inferSele
 				notifiedRank: rank
 			});
 		} else {
-			await db
+			await database
 				.update(rankSnapshots)
 				.set({ rank, updatedAt: new Date() })
 				.where(eq(rankSnapshots.id, snap.id));
@@ -207,14 +257,19 @@ async function maybeNotifyRankGain(userId: string, race: typeof races.$inferSele
 
 		if (!shouldEmail) continue;
 
-		await enqueueJob('send_email', {
-			kind: 'position_gained',
-			userId,
-			raceId: race.id,
-			board,
-			oldRank: previous,
-			newRank: rank
-		});
+		await enqueueJob(
+			'send_email',
+			{
+				kind: 'position_gained',
+				userId,
+				raceId: race.id,
+				board,
+				oldRank: previous,
+				newRank: rank
+			},
+			new Date(),
+			database
+		);
 	}
 }
 
