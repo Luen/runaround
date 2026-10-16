@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { CourseEditor } from '$lib/course-editor';
 	import { env } from '$env/dynamic/public';
 	import { resolve } from '$app/paths';
 	import { outdoorsStyle, WANDERSTORIES_ATTRIBUTION } from '$lib/basemaps';
 	import { GeoJSONSource, Map, Marker, NavigationControl } from '$lib/maplibre';
 	import { joinLegs, lineDistanceM, type Coord } from '$lib/routing';
 
-	let { routingAvailable, name = 'drawnCourse' }: { routingAvailable: boolean; name?: string } =
-		$props();
-
-	type Snapshot = { waypoints: Coord[]; legs: Coord[][] };
+	let {
+		routingAvailable,
+		name = 'drawnCourse',
+		busy = $bindable(false)
+	}: { routingAvailable: boolean; name?: string; busy?: boolean } = $props();
 
 	let container: HTMLDivElement;
 	let map: Map | null = null;
@@ -17,7 +19,7 @@
 
 	let waypoints = $state<Coord[]>([]);
 	let legs = $state<Coord[][]>([]);
-	let history = $state<Snapshot[]>([]);
+	let undoCount = $state(0);
 	// svelte-ignore state_referenced_locally
 	let snap = $state(routingAvailable);
 	let pending = $state(0);
@@ -26,20 +28,15 @@
 	const line = $derived(joinLegs(legs));
 	const distanceKm = $derived(lineDistanceM(line) / 1000);
 	const courseValue = $derived(
-		line.length >= 2 ? JSON.stringify({ type: 'LineString', coordinates: line }) : ''
+		!busy && line.length >= 2 ? JSON.stringify({ type: 'LineString', coordinates: line }) : ''
 	);
 
 	function clone<T>(v: T): T {
 		return JSON.parse(JSON.stringify(v)) as T;
 	}
 
-	function remember() {
-		history = [...history, clone({ waypoints, legs })];
-	}
-
 	async function fetchLeg(from: Coord, to: Coord): Promise<Coord[]> {
 		if (!snap) return [from, to];
-		pending += 1;
 		try {
 			const res = await fetch(resolve('/admin/route'), {
 				method: 'POST',
@@ -53,49 +50,20 @@
 		} catch (err) {
 			routeError = `Straight line used: ${err instanceof Error ? err.message : 'routing failed'}`;
 			return [from, to];
-		} finally {
-			pending -= 1;
 		}
 	}
 
-	async function addWaypoint(c: Coord) {
-		remember();
-		const prev = waypoints.at(-1);
-		waypoints = [...waypoints, c];
-		if (prev) {
-			const leg = await fetchLeg(prev, c);
-			legs = [...legs, leg];
-		}
-	}
-
-	async function moveWaypoint(i: number, c: Coord) {
-		remember();
-		const next = [...waypoints];
-		next[i] = c;
-		waypoints = next;
-		const updated = [...legs];
-		const jobs: Promise<void>[] = [];
-		if (i > 0) jobs.push(fetchLeg(next[i - 1], c).then((leg) => void (updated[i - 1] = leg)));
-		if (i < next.length - 1)
-			jobs.push(fetchLeg(c, next[i + 1]).then((leg) => void (updated[i] = leg)));
-		await Promise.all(jobs);
-		legs = updated;
-	}
-
-	function undo() {
-		const last = history.at(-1);
-		if (!last) return;
-		history = history.slice(0, -1);
-		waypoints = last.waypoints;
-		legs = last.legs;
-	}
-
-	function clearAll() {
-		if (waypoints.length === 0) return;
-		remember();
-		waypoints = [];
-		legs = [];
-	}
+	const editor = new CourseEditor(fetchLeg, (state) => {
+		waypoints = state.waypoints;
+		legs = state.legs;
+		undoCount = state.undoCount;
+		pending = state.pending;
+		busy = pending > 0;
+	});
+	onDestroy(() => {
+		editor.dispose();
+		busy = false;
+	});
 
 	function syncMarkers() {
 		if (!map) return;
@@ -111,7 +79,7 @@
 			const marker = new Marker({ element: el, draggable: true }).setLngLat(c).addTo(map!);
 			marker.on('dragend', () => {
 				const ll = marker.getLngLat();
-				void moveWaypoint(i, [ll.lng, ll.lat]);
+				void editor.move(i, [ll.lng, ll.lat]);
 			});
 			return marker;
 		});
@@ -177,7 +145,7 @@
 			});
 			syncLine();
 		});
-		map.on('click', (e) => void addWaypoint([e.lngLat.lng, e.lngLat.lat]));
+		map.on('click', (e) => void editor.add([e.lngLat.lng, e.lngLat.lat]));
 		return () => {
 			for (const m of markers) m.remove();
 			map?.remove();
@@ -194,19 +162,19 @@
 			class="flex items-center gap-1"
 			title={routingAvailable ? '' : 'Set ROUTING_PROVIDER to enable'}
 		>
-			<input type="checkbox" bind:checked={snap} disabled={!routingAvailable} />
+			<input type="checkbox" bind:checked={snap} disabled={!routingAvailable || busy} />
 			Snap new segments to paths
 		</label>
 		<button
 			type="button"
 			class="rounded-full border px-3 py-1 disabled:opacity-50"
-			onclick={undo}
-			disabled={history.length === 0 || pending > 0}>Undo</button
+			onclick={() => editor.undo()}
+			disabled={undoCount === 0 || pending > 0}>Undo</button
 		>
 		<button
 			type="button"
 			class="rounded-full border px-3 py-1 disabled:opacity-50"
-			onclick={clearAll}
+			onclick={() => editor.clear()}
 			disabled={waypoints.length === 0 || pending > 0}>Clear</button
 		>
 		{#if pending > 0}<span class="text-stone-500">Routing…</span>{/if}

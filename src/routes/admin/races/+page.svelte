@@ -7,6 +7,7 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let courseMode = $state<'upload' | 'draw'>('upload');
+	let courseBusy = $state(false);
 </script>
 
 <Seo
@@ -25,7 +26,9 @@
 	action="?/create"
 	enctype="multipart/form-data"
 	class="mt-6 space-y-3 rounded-xl border border-stone-200 bg-white p-4"
-	use:enhance
+	use:enhance={({ cancel }) => {
+		if (courseMode === 'draw' && courseBusy) cancel();
+	}}
 >
 	<h2 class="font-semibold">New race</h2>
 	<label class="block text-sm"
@@ -85,10 +88,14 @@
 				required
 			/>
 		{:else}
-			<CourseDrawer routingAvailable={data.routingAvailable} />
+			<CourseDrawer routingAvailable={data.routingAvailable} bind:busy={courseBusy} />
 		{/if}
 	</fieldset>
-	<button class="rounded-full bg-green-800 px-4 py-2 text-white" type="submit">Publish race</button>
+	<button
+		class="rounded-full bg-green-800 px-4 py-2 text-white"
+		type="submit"
+		disabled={courseMode === 'draw' && courseBusy}>Publish race</button
+	>
 	{#if form?.message}
 		<p class="text-red-700">{form.message}</p>
 	{/if}
