@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { pointsFromLineString, type LineString } from '$lib/geo';
+import { geojsonToGpx, pointsFromLineString, type LineString } from '$lib/geo';
+import { parseDrawnCourse } from '$lib/routing';
+import { routingAvailable } from '$lib/server/routing';
 import { processUploadedGpx } from '$lib/server/elevation';
 import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
@@ -46,7 +48,10 @@ function intField(value: string | undefined, fallback: number | null): number | 
 
 export const load: PageServerLoad = async () => {
 	const all = await db.select().from(races).orderBy(desc(races.startsAt));
-	return { races: all.map((r) => ({ ...r, editable: raceEditable(r) })) };
+	return {
+		races: all.map((r) => ({ ...r, editable: raceEditable(r) })),
+		routingAvailable: routingAvailable()
+	};
 };
 
 export const actions: Actions = {
@@ -55,10 +60,16 @@ export const actions: Actions = {
 		const parsed = raceSchema.safeParse(Object.fromEntries(form));
 		if (!parsed.success) return fail(400, { message: 'Check the race details' });
 		const file = form.get('gpx');
-		if (!(file instanceof File) || file.size === 0) {
-			return fail(400, { message: 'Upload a GPX course' });
+		const drawn = parseDrawnCourse(form.get('drawnCourse'));
+		let xml: string;
+		if (file instanceof File && file.size > 0) {
+			xml = await file.text();
+		} else if (drawn) {
+			// #209: a drawn course goes through the exact same pipeline as an uploaded GPX.
+			xml = geojsonToGpx(parsed.data.title, drawn);
+		} else {
+			return fail(400, { message: 'Upload a GPX course or draw one on the map' });
 		}
-		const xml = await file.text();
 		let course: Awaited<ReturnType<typeof processUploadedGpx>>;
 		try {
 			course = await processUploadedGpx(parsed.data.title, xml);
