@@ -8,6 +8,7 @@ import { geojsonToGpx } from '$lib/geo';
 import { courseElevation, processUploadedGpx } from '$lib/server/elevation';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
+import { raceEditable } from '$lib/race-edit';
 import type { Actions, PageServerLoad } from './$types';
 
 const schema = z.object({
@@ -44,7 +45,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		.innerJoin(activities, eq(attempts.activityId, activities.id))
 		.where(and(eq(attempts.raceId, race.id), eq(activities.source, 'upload')))
 		.orderBy(desc(attempts.startedAt));
-	return { race, uploads };
+	return { race, uploads, editable: raceEditable(race) };
 };
 
 export const actions: Actions = {
@@ -58,6 +59,9 @@ export const actions: Actions = {
 	update: async ({ request, params }) => {
 		const [race] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
 		if (!race) error(404, 'Race not found');
+		if (!raceEditable(race)) {
+			return fail(403, { message: 'This race has finished and can no longer be edited.' });
+		}
 		const form = await request.formData();
 		const parsed = schema.safeParse(Object.fromEntries(form));
 		if (!parsed.success) return fail(400, { message: 'Check the race details' });
