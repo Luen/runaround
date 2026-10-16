@@ -36,14 +36,23 @@ export function parseGpxActivity(xml: string, now: Date = new Date()): ParsedAct
 		'Uploaded run';
 
 	const raw: { point: LngLat; ms: number }[] = [];
-	const re = /<trkpt\b([^>]*)>([\s\S]*?)<\/trkpt>/gi;
-	let m: RegExpExecArray | null;
 	let untimed = 0;
-	while ((m = re.exec(xml))) {
-		const lat = attr(m[1], 'lat');
-		const lng = attr(m[1], 'lon');
+	// Linear scan: a lazy `<trkpt>...</trkpt>` regex backtracks quadratically on
+	// self-closing or unclosed points, which a 4 MB upload can exploit.
+	const lower = xml.toLowerCase();
+	for (let i = lower.indexOf('<trkpt'); i >= 0;) {
+		const next = lower.indexOf('<trkpt', i + 6);
+		const chunk = xml.slice(i, next < 0 ? xml.length : next);
+		i = next;
+		const open = /^<trkpt\b([^>]*)>/i.exec(chunk);
+		if (!open || open[1].trimEnd().endsWith('/')) continue;
+		const close = chunk.toLowerCase().indexOf('</trkpt>');
+		if (close < 0) continue;
+		const body = chunk.slice(open[0].length, close);
+		const lat = attr(open[1], 'lat');
+		const lng = attr(open[1], 'lon');
 		if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
-		const time = /<time>([^<]+)<\/time>/i.exec(m[2])?.[1];
+		const time = /<time>([^<]+)<\/time>/i.exec(body)?.[1];
 		const ms = time ? Date.parse(time.trim()) : NaN;
 		if (Number.isNaN(ms)) {
 			untimed += 1;

@@ -62,3 +62,12 @@ describe('trackFingerprint', () => {
 		expect(a).not.toBe(c);
 	});
 });
+
+describe('parseGpxActivity performance', () => {
+	it('stays linear on self-closing track points', () => {
+		const xml = '<gpx>' + '<trkpt lat="1" lon="1"/>'.repeat(150_000) + '</gpx>';
+		const t = Date.now();
+		expect(() => parseGpxActivity(xml)).toThrow();
+		expect(Date.now() - t).toBeLessThan(2000);
+	});
+});
