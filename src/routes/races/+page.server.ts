@@ -1,4 +1,5 @@
 import { filterRaceWindow, rankedLeaderboard } from '$lib/boards';
+import { canSeeResults } from '$lib/reveal';
 import { db } from '$lib/server/db';
 import { attempts, races } from '$lib/server/db/schema';
 import { desc, inArray } from 'drizzle-orm';
@@ -12,7 +13,7 @@ function leaderFromBoard(rows: Parameters<typeof rankedLeaderboard>[0]): BoardLe
 	return { name: top.name, timeMs: top.timeMs };
 }
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
 	const surface = url.searchParams.get('surface');
 	try {
 		const all = await db.select().from(races).orderBy(desc(races.startsAt));
@@ -46,7 +47,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		}
 
 		const racesWithSummaries = filtered.map((race) => {
-			const raceAttempts = byRace.get(race.id) ?? [];
+			// Embargoed races (#206) must not leak a leader or time in the listing.
+			const raceAttempts = canSeeResults(race, locals.user) ? (byRace.get(race.id) ?? []) : [];
 			const allTime = leaderFromBoard(raceAttempts);
 			const raceWinner =
 				race.status === 'closed'

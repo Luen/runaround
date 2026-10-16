@@ -32,7 +32,9 @@
 				<a class="font-medium text-green-900" href={resolve('/races/[id]', { id: row.slug })}
 					>{row.title}</a
 				>
-				— {formatDuration(row.timeMs)} on {formatDate(row.startedAt)}
+				— {row.timeMs === null
+					? 'attempt received (time hidden until results are revealed)'
+					: formatDuration(row.timeMs)} on {formatDate(row.startedAt)}
 			</li>
 		{/each}
 	</ul>

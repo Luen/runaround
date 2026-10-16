@@ -31,7 +31,8 @@ const raceSchema = z.object({
 	surface: z.enum(['road', 'trail']),
 	startsAt: z.string(),
 	endsAt: z.string(),
-	stravaSegmentId: z.string().optional()
+	stravaSegmentId: z.string().optional(),
+	resultsRevealAt: z.string().optional()
 });
 
 export const load: PageServerLoad = async () => {
@@ -64,6 +65,14 @@ export const actions: Actions = {
 		} catch {
 			return fail(400, { message: 'Check the race dates' });
 		}
+		let resultsRevealAt: Date | null = null;
+		if (parsed.data.resultsRevealAt?.trim()) {
+			try {
+				resultsRevealAt = parseBrisbaneInputValue(parsed.data.resultsRevealAt);
+			} catch {
+				return fail(400, { message: 'Check the results reveal date' });
+			}
+		}
 		const slugBase = slugify(parsed.data.title) || 'race';
 		const slug = `${slugBase}-${Date.now().toString(36)}`;
 		await db.insert(races).values({
@@ -75,6 +84,7 @@ export const actions: Actions = {
 			endsAt,
 			status: computeRaceStatus(startsAt, endsAt),
 			stravaSegmentId: parsed.data.stravaSegmentId || null,
+			resultsRevealAt,
 			courseGeojson: course.courseGeojson,
 			gpx: course.gpx,
 			distanceM: distanceM(course.courseGeojson),

@@ -61,6 +61,17 @@
 		/>
 	</label>
 	<label class="block text-sm"
+		>Hide results until (optional, Brisbane time)
+		<input
+			class="mt-1 w-full rounded-md border px-3 py-2"
+			type="datetime-local"
+			name="resultsRevealAt"
+		/>
+		<span class="text-xs text-stone-500"
+			>Times and places stay hidden from everyone except admins until this moment.</span
+		>
+	</label>
+	<label class="block text-sm"
 		>Optional Strava segment ID
 		<input class="mt-1 w-full rounded-md border px-3 py-2" name="stravaSegmentId" />
 	</label>

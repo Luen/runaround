@@ -11,6 +11,7 @@ import { positionGainedEmail, raceEndedEmail, sendEmail } from './email';
 import { formatDuration } from '../geo';
 import { and, eq } from 'drizzle-orm';
 import { isPlaceholderEmail } from './identity';
+import { resultsHidden } from '../reveal';
 
 const RUN_SPORTS = new Set(['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']);
 
@@ -151,6 +152,8 @@ function streamsToTimed(
 }
 
 async function maybeNotifyRankGain(userId: string, race: typeof races.$inferSelect) {
+	// Embargoed (#206): a "you moved up" email would reveal places early.
+	if (resultsHidden(race)) return;
 	for (const board of ['race', 'overall'] as const) {
 		const rows =
 			board === 'race' ? await raceLeaderboard(race.id) : await overallLeaderboard(race.id);
@@ -219,7 +222,7 @@ export async function sendQueuedEmail(payload: Record<string, unknown>) {
 		const raceId = String(payload.raceId);
 		const board = payload.board as 'race' | 'overall';
 		const [race] = await db.select().from(races).where(eq(races.id, raceId)).limit(1);
-		if (!race) return { skip: true as const };
+		if (!race || resultsHidden(race)) return { skip: true as const };
 		const [snap] = await db
 			.select()
 			.from(rankSnapshots)
@@ -300,7 +303,14 @@ export async function sendRaceEndEmails() {
 	const now = new Date();
 	const all = await db.select().from(races);
 	for (const race of all) {
-		if (race.endsAt > now || race.raceEndEmailsSentAt) continue;
+		if (race.endsAt >= now) continue;
+		// Race lifecycle is independent of the results/email embargo.
+		if (race.status !== 'closed') {
+			await db.update(races).set({ status: 'closed' }).where(eq(races.id, race.id));
+		}
+		if (race.raceEndEmailsSentAt) continue;
+		// Embargoed races send their final-place emails at the reveal instead.
+		if (resultsHidden(race, now)) continue;
 		const board = await raceLeaderboard(race.id);
 		for (const row of board) {
 			if (!row.userId) continue;

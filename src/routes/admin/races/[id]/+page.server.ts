@@ -16,7 +16,8 @@ const schema = z.object({
 	surface: z.enum(['road', 'trail']),
 	startsAt: z.string(),
 	endsAt: z.string(),
-	stravaSegmentId: z.string().optional()
+	stravaSegmentId: z.string().optional(),
+	resultsRevealAt: z.string().optional()
 });
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -43,6 +44,14 @@ export const actions: Actions = {
 			endsAt = endOfBrisbaneDay(parseBrisbaneInputValue(parsed.data.endsAt));
 		} catch {
 			return fail(400, { message: 'Check the race dates' });
+		}
+		let resultsRevealAt: Date | null = null;
+		if (parsed.data.resultsRevealAt?.trim()) {
+			try {
+				resultsRevealAt = parseBrisbaneInputValue(parsed.data.resultsRevealAt);
+			} catch {
+				return fail(400, { message: 'Check the results reveal date' });
+			}
 		}
 		let courseGeojson = race.courseGeojson;
 		let gpx = race.gpx;
@@ -80,6 +89,7 @@ export const actions: Actions = {
 				endsAt,
 				status: computeRaceStatus(startsAt, endsAt),
 				stravaSegmentId: parsed.data.stravaSegmentId || null,
+				resultsRevealAt,
 				courseGeojson,
 				gpx,
 				elevationGainM,
