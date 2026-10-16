@@ -2,9 +2,11 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import Seo from '$lib/components/Seo.svelte';
+	import CourseDrawer from '$lib/components/CourseDrawer.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let courseMode = $state<'upload' | 'draw'>('upload');
 </script>
 
 <Seo
@@ -64,16 +66,28 @@
 		>Optional Strava segment ID
 		<input class="mt-1 w-full rounded-md border px-3 py-2" name="stravaSegmentId" />
 	</label>
-	<label class="block text-sm"
-		>Course GPX
-		<input
-			class="mt-1 w-full"
-			type="file"
-			name="gpx"
-			accept=".gpx,application/gpx+xml,text/xml"
-			required
-		/>
-	</label>
+	<fieldset class="space-y-3">
+		<legend class="text-sm font-medium">Course</legend>
+		<div class="flex gap-4 text-sm">
+			<label class="flex items-center gap-1"
+				><input type="radio" bind:group={courseMode} value="upload" /> Upload GPX</label
+			>
+			<label class="flex items-center gap-1"
+				><input type="radio" bind:group={courseMode} value="draw" /> Draw on map</label
+			>
+		</div>
+		{#if courseMode === 'upload'}
+			<input
+				class="w-full"
+				type="file"
+				name="gpx"
+				accept=".gpx,application/gpx+xml,text/xml"
+				required
+			/>
+		{:else}
+			<CourseDrawer routingAvailable={data.routingAvailable} />
+		{/if}
+	</fieldset>
 	<button class="rounded-full bg-green-800 px-4 py-2 text-white" type="submit">Publish race</button>
 	{#if form?.message}
 		<p class="text-red-700">{form.message}</p>
