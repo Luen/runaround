@@ -31,8 +31,17 @@ const raceSchema = z.object({
 	startsAt: z.string(),
 	endsAt: z.string(),
 	stravaSegmentId: z.string().optional(),
-	resultsRevealAt: z.string().optional()
+	resultsRevealAt: z.string().optional(),
+	teamSize: z.string().optional(),
+	teamMaxSeparationM: z.string().optional(),
+	teamMaxStartGapS: z.string().optional()
 });
+
+/** Optional positive integer form field; '' / missing → fallback. */
+function intField(value: string | undefined, fallback: number | null): number | null {
+	const n = Number.parseInt(value ?? '', 10);
+	return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 export const load: PageServerLoad = async () => {
 	const all = await db.select().from(races).orderBy(desc(races.startsAt));
@@ -84,6 +93,9 @@ export const actions: Actions = {
 			status: computeRaceStatus(startsAt, endsAt),
 			stravaSegmentId: parsed.data.stravaSegmentId || null,
 			resultsRevealAt,
+			teamSize: intField(parsed.data.teamSize, null),
+			teamMaxSeparationM: intField(parsed.data.teamMaxSeparationM, 1000) ?? 1000,
+			teamMaxStartGapS: intField(parsed.data.teamMaxStartGapS, 300) ?? 300,
 			courseGeojson: course.courseGeojson,
 			gpx: course.gpx,
 			distanceM: distanceM(course.courseGeojson),

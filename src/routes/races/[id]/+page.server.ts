@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { attempts, races } from '$lib/server/db/schema';
 import { and, count, eq } from 'drizzle-orm';
-import { overallLeaderboard, raceLeaderboard } from '$lib/server/leaderboard';
+import { overallLeaderboard, raceLeaderboard, teamLeaderboard } from '$lib/server/leaderboard';
 import { ensureRaceElevation } from '$lib/server/elevation-backfill';
 import { canSeeResults, resultsHidden } from '$lib/reveal';
 import type { PageServerLoad } from './$types';
@@ -25,8 +25,20 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		myAttempts = Number(c?.n ?? 0);
 	}
 
-	const [raceBoard, overall] = visible
-		? await Promise.all([raceLeaderboard(race.id), overallLeaderboard(race.id)])
-		: [[], []];
-	return { race, raceBoard, overall, resultsHidden: hidden, resultsVisible: visible, myAttempts };
+	const [raceBoard, overall, teams] = visible
+		? await Promise.all([
+				raceLeaderboard(race.id),
+				overallLeaderboard(race.id),
+				race.teamSize ? teamLeaderboard(race.id) : Promise.resolve([])
+			])
+		: [[], [], []];
+	return {
+		race,
+		raceBoard,
+		overall,
+		teams,
+		resultsHidden: hidden,
+		resultsVisible: visible,
+		myAttempts
+	};
 };

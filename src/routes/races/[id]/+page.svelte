@@ -4,6 +4,7 @@
 	import ChallengeFriend from '$lib/components/ChallengeFriend.svelte';
 	import { challengeUrl } from '$lib/challenge';
 	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
+	import TeamLeaderboardTable from '$lib/components/TeamLeaderboardTable.svelte';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { raceCourseJsonUrl } from '$lib/geo';
@@ -11,7 +12,7 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let tab = $state<'race' | 'overall'>('race');
+	let tab = $state<'race' | 'overall' | 'teams'>('race');
 	const myBestMs = $derived(
 		data.user ? (data.overall.find((r) => r.userId === data.user?.id)?.timeMs ?? null) : null
 	);
@@ -100,11 +101,20 @@
 			class={['rounded-full px-4 py-1.5', tab === 'overall' ? 'bg-green-800 text-white' : 'border']}
 			onclick={() => (tab = 'overall')}>Overall</button
 		>
+		{#if data.race.teamSize}
+			<button
+				type="button"
+				class={['rounded-full px-4 py-1.5', tab === 'teams' ? 'bg-green-800 text-white' : 'border']}
+				onclick={() => (tab = 'teams')}>Teams of {data.race.teamSize}</button
+			>
+		{/if}
 	</div>
 
 	<div class="mt-4">
 		{#if tab === 'race'}
 			<LeaderboardTable title="Race window" rows={data.raceBoard} />
+		{:else if tab === 'teams' && data.race.teamSize}
+			<TeamLeaderboardTable title="Teams" teams={data.teams} teamSize={data.race.teamSize} />
 		{:else}
 			<LeaderboardTable title="Overall (all-time)" rows={data.overall} />
 		{/if}

@@ -71,6 +71,40 @@
 			>Times and places stay hidden from everyone except admins until this moment.</span
 		>
 	</label>
+	<fieldset class="grid gap-3 rounded-md border border-stone-200 p-3 sm:grid-cols-3">
+		<legend class="px-1 text-sm font-medium">Team board (optional)</legend>
+		<label class="block text-sm"
+			>Team size
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="number"
+				min="2"
+				max="20"
+				name="teamSize"
+				placeholder="Off"
+			/>
+		</label>
+		<label class="block text-sm"
+			>Max separation (m)
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="number"
+				min="50"
+				name="teamMaxSeparationM"
+				value="1000"
+			/>
+		</label>
+		<label class="block text-sm"
+			>Max start/finish gap (s)
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="number"
+				min="10"
+				name="teamMaxStartGapS"
+				value="300"
+			/>
+		</label>
+	</fieldset>
 	<label class="block text-sm"
 		>Optional Strava segment ID
 		<input class="mt-1 w-full rounded-md border px-3 py-2" name="stravaSegmentId" />

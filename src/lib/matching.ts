@@ -32,6 +32,16 @@ export function courseCoverage(course: LngLat[], activity: LngLat[], bufferMeter
 	return hit / course.length;
 }
 
+/** Activity points within the course buffer, in order (the on-course effort). */
+export function onCoursePoints(
+	activity: TimedPoint[],
+	course: LngLat[],
+	surface: 'road' | 'trail'
+): TimedPoint[] {
+	const buffer = bufferForSurface(surface);
+	return activity.filter((a) => course.some((c) => haversineMeters(a.point, c) <= buffer));
+}
+
 export function timeOnCourseMs(
 	activity: TimedPoint[],
 	course: LngLat[],
