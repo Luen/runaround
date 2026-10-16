@@ -32,6 +32,21 @@ export function courseCoverage(course: LngLat[], activity: LngLat[], bufferMeter
 	return hit / course.length;
 }
 
+/** Trim to first/last course contact, retaining excursions between them. */
+export function courseEffortPoints(
+	activity: TimedPoint[],
+	course: LngLat[],
+	surface: 'road' | 'trail'
+): TimedPoint[] {
+	const buffer = bufferForSurface(surface);
+	const touchesCourse = (a: TimedPoint) =>
+		course.some((c) => haversineMeters(a.point, c) <= buffer);
+	const first = activity.findIndex(touchesCourse);
+	if (first < 0) return [];
+	const last = activity.findLastIndex(touchesCourse);
+	return activity.slice(first, last + 1);
+}
+
 export function timeOnCourseMs(
 	activity: TimedPoint[],
 	course: LngLat[],

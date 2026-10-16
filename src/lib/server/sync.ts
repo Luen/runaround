@@ -2,7 +2,8 @@ import { siteOrigin } from '../origin';
 import { db } from './db';
 import { activities, attempts, emailSuppressions, races, rankSnapshots, user } from './db/schema';
 import { getActivity, getActivityStreams, listActivities } from './strava';
-import { matchActivityToCourse, rankImproved } from '../matching';
+import { matchActivityToCourse, courseEffortPoints, rankImproved } from '../matching';
+import { downsampleTrace, type TracePoint } from '../teams';
 import { decodePolyline, pointsFromLineString, type LngLat } from '../geo';
 import type { TimedPoint } from '../matching';
 import { overallLeaderboard, raceLeaderboard } from './leaderboard';
@@ -72,7 +73,7 @@ export async function upsertAndMatchActivity(
 		.set({ streamFetchedAt: new Date() })
 		.where(eq(activities.id, activityRow.id));
 
-	const timed = streamsToTimed(streams, activityRow.summaryPolyline);
+	const { timed, hasTime } = streamsToTimed(streams, activityRow.summaryPolyline);
 	const published = await db.select().from(races);
 
 	for (const race of published) {
@@ -102,6 +103,15 @@ export async function upsertAndMatchActivity(
 
 		if (!method || timeMs === null) continue;
 
+		// On-course trace with real timestamps, for team linking (#207).
+		const trace: TracePoint[] | null = hasTime
+			? downsampleTrace(
+					courseEffortPoints(timed, pointsFromLineString(race.courseGeojson), race.surface).map(
+						(p) => [activityRow.startedAt.getTime() + p.t * 1000, p.point.lat, p.point.lng]
+					)
+				)
+			: null;
+
 		const [prior] = await db
 			.select()
 			.from(attempts)
@@ -111,7 +121,7 @@ export async function upsertAndMatchActivity(
 		if (prior) {
 			await db
 				.update(attempts)
-				.set({ timeMs, matchMethod: method, coveragePct: coverage })
+				.set({ timeMs, matchMethod: method, coveragePct: coverage, trace })
 				.where(eq(attempts.id, prior.id));
 		} else {
 			const [u] = await db.select().from(user).where(eq(user.id, userId)).limit(1);
@@ -125,7 +135,8 @@ export async function upsertAndMatchActivity(
 				startedAt: activityRow.startedAt,
 				matchMethod: method,
 				coveragePct: coverage,
-				source: 'live'
+				source: 'live',
+				trace
 			});
 		}
 
@@ -136,19 +147,23 @@ export async function upsertAndMatchActivity(
 function streamsToTimed(
 	streams: Awaited<ReturnType<typeof getActivityStreams>>,
 	summaryPolyline: string | null
-): TimedPoint[] {
+): { timed: TimedPoint[]; hasTime: boolean } {
 	if (streams?.latlng?.data?.length) {
+		const hasTime = Boolean(streams.time?.data?.length);
 		const times = streams.time?.data ?? streams.latlng.data.map((_, i) => i);
-		return streams.latlng.data.map(([lat, lng], i) => ({
-			point: { lat, lng } satisfies LngLat,
-			t: times[i] ?? i
-		}));
+		return {
+			hasTime,
+			timed: streams.latlng.data.map(([lat, lng], i) => ({
+				point: { lat, lng } satisfies LngLat,
+				t: times[i] ?? i
+			}))
+		};
 	}
 	if (summaryPolyline) {
 		const pts = decodePolyline(summaryPolyline);
-		return pts.map((point, i) => ({ point, t: i }));
+		return { hasTime: false, timed: pts.map((point, i) => ({ point, t: i })) };
 	}
-	return [];
+	return { hasTime: false, timed: [] };
 }
 
 async function maybeNotifyRankGain(userId: string, race: typeof races.$inferSelect) {

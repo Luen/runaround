@@ -98,6 +98,10 @@ export const races = pgTable(
 		raceEndEmailsSentAt: timestamp('race_end_emails_sent_at', { withTimezone: true }),
 		/** When set, times/ranks stay hidden from everyone but admins until this instant. */
 		resultsRevealAt: timestamp('results_reveal_at', { withTimezone: true }),
+		/** Team board (#207): runners auto-linked into teams of exactly this size; null = off. */
+		teamSize: integer('team_size'),
+		teamMaxSeparationM: integer('team_max_separation_m').notNull().default(1000),
+		teamMaxStartGapS: integer('team_max_start_gap_s').notNull().default(300),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
@@ -145,6 +149,8 @@ export const attempts = pgTable(
 		coveragePct: real('coverage_pct'),
 		source: attemptSource('source').notNull().default('live'),
 		effortUrl: text('effort_url'),
+		/** Downsampled on-course trace [epoch ms, lat, lng][] for team linking (#207). */
+		trace: jsonb('trace').$type<import('$lib/teams').TracePoint[]>(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [
