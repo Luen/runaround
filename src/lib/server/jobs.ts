@@ -1,14 +1,16 @@
 import { db, postgresClient } from './db';
 import { jobs } from './db/schema';
+import type { ActivityDatabase } from './activity-ingestion';
 
 export type JobType = 'backfill' | 'match_activity' | 'send_email' | 'poll_activities' | 'race_end';
 
 export async function enqueueJob(
 	type: JobType,
 	payload: Record<string, unknown> = {},
-	runAt = new Date()
+	runAt = new Date(),
+	database: ActivityDatabase = db
 ) {
-	await db.insert(jobs).values({ type, payload, runAt });
+	await database.insert(jobs).values({ type, payload, runAt });
 }
 
 function asPayload(raw: unknown): Record<string, unknown> {

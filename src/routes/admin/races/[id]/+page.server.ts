@@ -1,8 +1,9 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import { db } from '$lib/server/db';
-import { races } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { activities, attempts, races } from '$lib/server/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
+import { removeUploadedAttempt } from '$lib/server/upload';
 import { geojsonToGpx } from '$lib/geo';
 import { courseElevation, processUploadedGpx } from '$lib/server/elevation';
 import { computeRaceStatus } from '$lib/server/sync';
@@ -32,10 +33,29 @@ function intField(value: string | undefined, fallback: number | null): number | 
 export const load: PageServerLoad = async ({ params }) => {
 	const [race] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
 	if (!race) error(404, 'Race not found');
-	return { race, editable: raceEditable(race) };
+	const uploads = await db
+		.select({
+			id: attempts.id,
+			name: attempts.importedName,
+			timeMs: attempts.timeMs,
+			startedAt: attempts.startedAt,
+			fileName: activities.name
+		})
+		.from(attempts)
+		.innerJoin(activities, eq(attempts.activityId, activities.id))
+		.where(and(eq(attempts.raceId, race.id), eq(activities.source, 'upload')))
+		.orderBy(desc(attempts.startedAt));
+	return { race, uploads, editable: raceEditable(race) };
 };
 
 export const actions: Actions = {
+	removeUpload: async ({ request }) => {
+		const id = String((await request.formData()).get('attemptId') ?? '');
+		if (!id || !(await removeUploadedAttempt(id))) {
+			return fail(400, { message: 'Could not remove that upload' });
+		}
+		return { removed: true };
+	},
 	update: async ({ request, params }) => {
 		const [race] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
 		if (!race) error(404, 'Race not found');

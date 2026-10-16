@@ -1,9 +1,10 @@
-import { redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { attempts, races } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { resultsHidden } from '$lib/reveal';
-import type { PageServerLoad } from './$types';
+import { ingestUploadedGpx } from '$lib/server/upload';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(302, '/login');
@@ -27,4 +28,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 			return { ...rest, timeMs: hidden ? null : timeMs, hidden };
 		})
 	};
+};
+
+export const actions: Actions = {
+	upload: async ({ request, locals }) => {
+		if (!locals.user) throw redirect(302, '/login');
+		const file = (await request.formData()).get('activity');
+		if (!(file instanceof File)) return fail(400, { uploadError: 'Choose a GPX file to upload.' });
+		const result = await ingestUploadedGpx(locals.user.id, file);
+		if (!result.ok) return fail(400, { uploadError: result.message });
+		return { uploaded: result.matched };
+	}
 };
