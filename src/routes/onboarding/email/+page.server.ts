@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { adminEmails } from '$lib/server/identity';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -24,6 +24,17 @@ export const actions: Actions = {
 			return fail(400, { message: 'Enter a valid email address' });
 		}
 		const email = parsed.data.email.toLowerCase();
+		const [taken] = await db
+			.select({ id: user.id })
+			.from(user)
+			.where(and(eq(user.email, email), ne(user.id, locals.user.id)))
+			.limit(1);
+		if (taken) {
+			return fail(400, {
+				message:
+					'That email already has a RunAround account. Log out, sign in with that email, then use "Connect Strava" on My results.'
+			});
+		}
 		const isAdmin = adminEmails().includes(email);
 		await db
 			.update(user)
