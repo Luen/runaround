@@ -75,15 +75,13 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			await db
 				.insert(user)
 				.values({ id: 'runner', name: 'Runner', email: 'runner@example.test', needsEmail: false });
-			await db
-				.insert(account)
-				.values({
-					id: 'garmin-link',
-					userId: 'runner',
-					providerId: 'garmin',
-					issuer: 'local:oauth:garmin',
-					accountId: 'garmin-runner'
-				});
+			await db.insert(account).values({
+				id: 'garmin-link',
+				userId: 'runner',
+				providerId: 'garmin',
+				issuer: 'local:oauth:garmin',
+				accountId: 'garmin-runner'
+			});
 			await db.insert(races).values({
 				slug: 'test',
 				title: 'Test',

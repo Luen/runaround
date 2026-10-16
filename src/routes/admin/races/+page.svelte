@@ -125,14 +125,24 @@
 	{/if}
 </form>
 
-<ul class="mt-8 space-y-2">
+<h2 class="mt-10 text-xl font-semibold">All races</h2>
+<ul class="mt-3 space-y-2">
 	{#each data.races as race (race.id)}
-		<li>
+		<li class="flex flex-wrap items-baseline gap-x-3">
 			<a
 				class="font-medium text-green-900 underline"
-				href={resolve('/admin/races/[id]', { id: race.slug })}>{race.title}</a
+				href={resolve('/races/[id]', { id: race.slug })}>{race.title}</a
 			>
-			<span class="text-sm text-stone-500"> · {race.surface} · {race.status}</span>
+			<span class="text-sm text-stone-500">{race.surface} · {race.status}</span>
+			{#if race.editable}
+				<a class="text-sm underline" href={resolve('/admin/races/[id]', { id: race.slug })}>Edit</a>
+			{:else}
+				<a
+					class="text-sm text-stone-500 underline"
+					href={resolve('/admin/races/[id]', { id: race.slug })}
+					title="Finished races are read-only">View (locked)</a
+				>
+			{/if}
 		</li>
 	{/each}
 </ul>
