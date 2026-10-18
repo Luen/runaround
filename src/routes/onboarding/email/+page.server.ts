@@ -30,7 +30,11 @@ export const actions: Actions = {
 			.from(user)
 			.where(and(eq(user.email, email), ne(user.id, locals.user.id)))
 			.limit(1);
-		if (taken) return fail(400, { message: 'That email is already in use.' });
+		if (taken)
+			return fail(400, {
+				message:
+					'That email already has a RunAround account. Log out, sign in with that email, then use "Connect Strava" on My results.'
+			});
 
 		try {
 			await db
@@ -41,7 +45,10 @@ export const actions: Actions = {
 				.where(eq(user.id, locals.user.id));
 		} catch (err) {
 			if ((err as { code?: string }).code === '23505') {
-				return fail(400, { message: 'That email is already in use.' });
+				return fail(400, {
+					message:
+						'That email already has a RunAround account. Log out, sign in with that email, then use "Connect Strava" on My results.'
+				});
 			}
 			throw err;
 		}
