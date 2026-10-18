@@ -11,6 +11,8 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const [row] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
 	if (!row) error(404, 'Race not found');
+	// Drafts are not public (#237); admins can still preview them.
+	if (row.status === 'draft' && !locals.user?.isAdmin) error(404, 'Race not found');
 	const stored = await ensureRaceElevation(row);
 	// Derive status from the clock (#221) so the page is correct even when the worker
 	// has not persisted the upcoming → live → closed transition yet.

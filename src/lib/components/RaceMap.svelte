@@ -469,6 +469,9 @@
 			fetchedFocus = null;
 			return;
 		}
+		// Drop the previous race's fetched course before loading this one (#238), so a
+		// failed fetch falls back to the new SSR `focus` instead of the old line.
+		fetchedFocus = null;
 		let cancelled = false;
 		(async () => {
 			try {

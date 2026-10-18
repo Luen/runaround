@@ -1,4 +1,10 @@
-import { claimNextJob, completeJob, failJob, enqueueJob } from '../lib/server/jobs';
+import {
+	claimNextJob,
+	completeJob,
+	failJob,
+	enqueueJob,
+	reclaimStuckJobs
+} from '../lib/server/jobs';
 import {
 	backfillUser,
 	refreshRaceStatuses,
@@ -9,6 +15,7 @@ import {
 import { stravaUsers } from '../lib/server/strava';
 import { assertDatabaseConfigured } from '../lib/server/db';
 import { backfillMissingElevation } from '../lib/server/elevation-backfill';
+import { deleteStravaActivityIfGone } from '../lib/server/activity-deletion';
 
 const POLL_MS = 15 * 60_000;
 const RACE_END_MS = 60_000;
@@ -22,6 +29,8 @@ async function handleJob() {
 			await backfillUser(String(job.payload.userId), { full: job.payload.full === true });
 		} else if (job.type === 'match_activity') {
 			await syncActivityById(String(job.payload.userId), String(job.payload.activityId));
+		} else if (job.type === 'delete_activity') {
+			await deleteStravaActivityIfGone(String(job.payload.userId), String(job.payload.activityId));
 		} else if (job.type === 'send_email') {
 			const result = await sendQueuedEmail(job.payload);
 			if (result && 'retry' in result && result.retry) {
@@ -60,6 +69,9 @@ async function handleJob() {
 async function loop() {
 	assertDatabaseConfigured();
 	console.log('RunAround worker started');
+	// Recover jobs a previous (crashed) worker left mid-flight (#234).
+	const reclaimed = await reclaimStuckJobs();
+	if (reclaimed) console.log(`Requeued ${reclaimed} stuck job(s)`);
 	backfillMissingElevation()
 		.then((n) => n && console.log(`Elevation backfilled for ${n} race(s)`))
 		.catch((err) => console.error('Elevation backfill failed', err));

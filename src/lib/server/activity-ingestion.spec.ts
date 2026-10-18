@@ -31,14 +31,17 @@ vi.mock('./strava', () => ({
 			time: { data: [0, 60, 120] }
 		})
 	),
-	listActivities: vi.fn()
+	listActivities: vi.fn(),
+	stravaActivityDeleted: vi.fn(async () => true)
 }));
 
 import { db, postgresClient } from './db';
 import { activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
 import { ingestUploadedGpx } from './upload';
 import { upsertAndMatchActivity } from './sync';
-import { getActivityStreams } from './strava';
+import { getActivityStreams, stravaActivityDeleted } from './strava';
+import { deleteStravaActivityIfGone } from './activity-deletion';
+import { claimNextJob, enqueueJob, reclaimStuckJobs } from './jobs';
 
 const start = new Date('2026-01-01T00:00:00Z');
 const strava = {
@@ -168,6 +171,29 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			});
 			await upsertAndMatchActivity('runner', strava);
 			expect(await db.select().from(attempts)).toHaveLength(0);
+		});
+		it('removes a deleted Strava activity only when Strava confirms it (#233)', async () => {
+			await upsertAndMatchActivity('runner', strava);
+			expect(await db.select().from(attempts)).toHaveLength(1);
+			// A forged event for someone else's activity, or one Strava still serves, is ignored.
+			expect(await deleteStravaActivityIfGone('someone-else', '100')).toBe(false);
+			vi.mocked(stravaActivityDeleted).mockResolvedValueOnce(false);
+			expect(await deleteStravaActivityIfGone('runner', '100')).toBe(false);
+			expect(await db.select().from(attempts)).toHaveLength(1);
+			expect(await deleteStravaActivityIfGone('runner', '100')).toBe(true);
+			expect(await db.select().from(activities)).toHaveLength(0);
+			expect(await db.select().from(attempts)).toHaveLength(0);
+			expect(await deleteStravaActivityIfGone('runner', '100')).toBe(false);
+		});
+		it('requeues jobs left running by a dead worker (#234)', async () => {
+			await enqueueJob('backfill', { userId: 'runner' });
+			expect(await claimNextJob()).not.toBeNull();
+			// A fresh lease is not reclaimed...
+			expect(await reclaimStuckJobs(900)).toBe(0);
+			// ...but a lease older than the threshold is put back to pending.
+			await db.execute(sql`update jobs set run_at = NOW() - INTERVAL '1 hour'`);
+			expect(await reclaimStuckJobs(900)).toBe(1);
+			expect((await db.select().from(jobs))[0].status).toBe('pending');
 		});
 	}
 );

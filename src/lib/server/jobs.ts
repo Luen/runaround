@@ -3,7 +3,13 @@ import { jobs } from './db/schema';
 import type { ActivityDatabase } from './activity-ingestion';
 
 export type JobType =
-	'backfill' | 'match_activity' | 'send_email' | 'poll_activities' | 'full_rescan' | 'race_end';
+	| 'backfill'
+	| 'match_activity'
+	| 'delete_activity'
+	| 'send_email'
+	| 'poll_activities'
+	| 'full_rescan'
+	| 'race_end';
 
 export async function enqueueJob(
 	type: JobType,
@@ -33,7 +39,7 @@ export async function claimNextJob() {
 		{ id: string; type: string; payload: unknown; status: string }[]
 	>`
 		UPDATE jobs
-		SET status = 'running', attempts = attempts + 1
+		SET status = 'running', attempts = attempts + 1, run_at = NOW()
 		WHERE id = (
 			SELECT id FROM jobs
 			WHERE status = 'pending' AND run_at <= NOW()
@@ -66,4 +72,19 @@ export async function failJob(id: string, error: string, retry = true) {
 		return;
 	}
 	await postgresClient`UPDATE jobs SET status = 'failed', last_error = ${error} WHERE id = ${id}`;
+}
+
+/**
+ * Requeue jobs whose worker died between claim and completion (#234). `run_at`
+ * doubles as the lease timestamp: `claimNextJob` stamps it when the job starts.
+ */
+export async function reclaimStuckJobs(olderThanSeconds = 900): Promise<number> {
+	const rows = await postgresClient<{ id: string }[]>`
+		UPDATE jobs
+		SET status = 'pending', run_at = NOW()
+		WHERE status = 'running'
+			AND run_at < NOW() - (${olderThanSeconds}::int * INTERVAL '1 second')
+		RETURNING id
+	`;
+	return rows.length;
 }

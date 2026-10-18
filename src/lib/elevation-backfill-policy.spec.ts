@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { geojsonToGpx, type LineString } from './geo';
 import { needsElevationBackfill, withTimeout } from './elevation-backfill-policy';
 
 const line = {
@@ -19,6 +20,14 @@ describe('needsElevationBackfill', () => {
 		expect(needsElevationBackfill({ elevationGainM: 0, courseGeojson: { coordinates: [] } })).toBe(
 			false
 		);
+	});
+	it('is false once the stored GPX carries usable elevation, even at 0 m gain (#236)', () => {
+		const stored: LineString = {
+			type: 'LineString',
+			coordinates: line.coordinates as [number, number][]
+		};
+		const gpx = geojsonToGpx('flat', stored, [10, 12]);
+		expect(needsElevationBackfill({ elevationGainM: 0, courseGeojson: line, gpx })).toBe(false);
 	});
 });
 

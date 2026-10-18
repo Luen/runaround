@@ -17,7 +17,10 @@ function leaderFromBoard(rows: Parameters<typeof rankedLeaderboard>[0]): BoardLe
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const surface = url.searchParams.get('surface');
 	try {
-		const all = await db.select().from(races).orderBy(desc(races.startsAt));
+		// Drafts are never public (#237).
+		const all = (await db.select().from(races).orderBy(desc(races.startsAt))).filter(
+			(r) => r.status !== 'draft'
+		);
 		const filtered =
 			surface === 'road' || surface === 'trail' ? all.filter((r) => r.surface === surface) : all;
 
