@@ -26,14 +26,16 @@ vi.mock('./strava', () => ({
 		},
 		time: { data: [0, 60, 120] }
 	})),
-	listActivities: vi.fn()
+	listActivities: vi.fn(),
+	stravaActivityDeleted: vi.fn(async () => true)
 }));
 
 import { db, postgresClient } from './db';
 import { activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
 import { ingestUploadedGpx } from './upload';
 import { upsertAndMatchActivity } from './sync';
-import { deleteStravaActivity } from './activity-deletion';
+import { deleteStravaActivityIfGone } from './activity-deletion';
+import { stravaActivityDeleted } from './strava';
 import { claimNextJob, enqueueJob, reclaimStuckJobs } from './jobs';
 
 const start = new Date('2026-01-01T00:00:00Z');
@@ -143,13 +145,18 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			expect(await db.select().from(activities)).toHaveLength(2);
 			expect(await db.select().from(attempts).where(eq(attempts.userId, 'runner'))).toHaveLength(2);
 		});
-		it('removes a deleted Strava activity and its attempts (#233)', async () => {
+		it('removes a deleted Strava activity only when Strava confirms it (#233)', async () => {
 			await upsertAndMatchActivity('runner', strava);
 			expect(await db.select().from(attempts)).toHaveLength(1);
-			expect(await deleteStravaActivity('100')).toBe(true);
+			// A forged event for someone else's activity, or one Strava still serves, is ignored.
+			expect(await deleteStravaActivityIfGone('someone-else', '100')).toBe(false);
+			vi.mocked(stravaActivityDeleted).mockResolvedValueOnce(false);
+			expect(await deleteStravaActivityIfGone('runner', '100')).toBe(false);
+			expect(await db.select().from(attempts)).toHaveLength(1);
+			expect(await deleteStravaActivityIfGone('runner', '100')).toBe(true);
 			expect(await db.select().from(activities)).toHaveLength(0);
 			expect(await db.select().from(attempts)).toHaveLength(0);
-			expect(await deleteStravaActivity('100')).toBe(false);
+			expect(await deleteStravaActivityIfGone('runner', '100')).toBe(false);
 		});
 		it('requeues jobs left running by a dead worker (#234)', async () => {
 			await enqueueJob('backfill', { userId: 'runner' });

@@ -16,6 +16,7 @@ import { db } from '../lib/server/db';
 import { activities } from '../lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { backfillMissingElevation } from '../lib/server/elevation-backfill';
+import { deleteStravaActivityIfGone } from '../lib/server/activity-deletion';
 
 const POLL_MS = 15 * 60_000;
 const RACE_END_MS = 60_000;
@@ -36,6 +37,8 @@ async function handleJob() {
 				.limit(1);
 			const detailed = await getActivity(userId, activityId);
 			await upsertAndMatchActivity(userId, detailed ?? (existing as never));
+		} else if (job.type === 'delete_activity') {
+			await deleteStravaActivityIfGone(String(job.payload.userId), String(job.payload.activityId));
 		} else if (job.type === 'send_email') {
 			const result = await sendQueuedEmail(job.payload);
 			if (result && 'retry' in result && result.retry) {

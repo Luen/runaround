@@ -19,25 +19,26 @@ export const POST: RequestHandler = async ({ request }) => {
 		object_id?: number;
 		owner_id?: number;
 	};
-	if (body.object_type === 'activity') {
-		if (body.aspect_type === 'delete') {
-			// A deleted Strava run must stop counting (#233).
-			if (body.object_id) {
-				const { deleteStravaActivity } = await import('$lib/server/activity-deletion');
-				await deleteStravaActivity(String(body.object_id));
-			}
-		} else if (body.aspect_type === 'create' || body.aspect_type === 'update') {
-			const { db } = await import('$lib/server/db');
-			const { user } = await import('$lib/server/db/schema');
-			const { eq } = await import('drizzle-orm');
-			const [u] = await db
-				.select()
-				.from(user)
-				.where(eq(user.stravaAthleteId, String(body.owner_id)))
-				.limit(1);
-			if (u) {
-				await enqueueJob('match_activity', { userId: u.id, activityId: String(body.object_id) });
-			}
+	if (
+		body.object_type === 'activity' &&
+		body.object_id &&
+		(body.aspect_type === 'create' ||
+			body.aspect_type === 'update' ||
+			body.aspect_type === 'delete')
+	) {
+		const { db } = await import('$lib/server/db');
+		const { user } = await import('$lib/server/db/schema');
+		const { eq } = await import('drizzle-orm');
+		const [u] = await db
+			.select()
+			.from(user)
+			.where(eq(user.stravaAthleteId, String(body.owner_id)))
+			.limit(1);
+		if (u) {
+			// Events are unsigned: a delete is only a hint the worker verifies with
+			// Strava before removing the run (#233).
+			const type = body.aspect_type === 'delete' ? 'delete_activity' : 'match_activity';
+			await enqueueJob(type, { userId: u.id, activityId: String(body.object_id) });
 		}
 	}
 	return json({ ok: true });

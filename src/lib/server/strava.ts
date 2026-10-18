@@ -82,6 +82,22 @@ export async function stravaFetch<T>(userId: string, path: string): Promise<T | 
 	return (await res.json()) as T;
 }
 
+/**
+ * True only when Strava confirms, with the runner's own token, that the activity
+ * no longer exists (404). Webhook events are unsigned, so a delete is never
+ * trusted on its own (#233). No token / 401 / 403 → false (keep the activity).
+ */
+export async function stravaActivityDeleted(userId: string, activityId: string): Promise<boolean> {
+	const token = await refreshIfNeeded(userId);
+	if (!token) return false;
+	const res = await fetch(`${STRAVA}/activities/${encodeURIComponent(activityId)}`, {
+		headers: { Authorization: `Bearer ${token}` }
+	});
+	if (res.status === 429) throw new Error('STRAVA_RATE_LIMIT');
+	if (res.status >= 500) throw new Error(`STRAVA_HTTP_${res.status}`);
+	return res.status === 404;
+}
+
 export async function listActivities(
 	userId: string,
 	page = 1,

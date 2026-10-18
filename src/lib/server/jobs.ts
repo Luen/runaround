@@ -2,7 +2,8 @@ import { db, postgresClient } from './db';
 import { jobs } from './db/schema';
 import type { ActivityDatabase } from './activity-ingestion';
 
-export type JobType = 'backfill' | 'match_activity' | 'send_email' | 'poll_activities' | 'race_end';
+export type JobType =
+	'backfill' | 'match_activity' | 'delete_activity' | 'send_email' | 'poll_activities' | 'race_end';
 
 export async function enqueueJob(
 	type: JobType,
