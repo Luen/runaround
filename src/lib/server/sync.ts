@@ -42,7 +42,8 @@ export async function backfillUser(userId: string, options: { full?: boolean } =
 		const [latest] = await db
 			.select({ startedAt: activities.startedAt })
 			.from(activities)
-			.where(eq(activities.userId, userId))
+			// Strava only: a newer upload/Garmin run must not hide unsynced Strava runs.
+			.where(and(eq(activities.userId, userId), eq(activities.source, 'strava')))
 			.orderBy(desc(activities.startedAt))
 			.limit(1);
 		if (latest?.startedAt) after = Math.floor(latest.startedAt.getTime() / 1000);
@@ -74,13 +75,27 @@ export async function upsertAndMatchActivity(
 	const sport = activity.sport_type ?? activity.type;
 	if (!RUN_SPORTS.has(sport) && activity.type !== 'Run') return;
 
+	// Only a run inside some published race window can become an attempt (#222), so
+	// skip both provider calls for every other run. Otherwise the daily full rescan
+	// re-downloads detail + streams for a runner's whole history and exhausts the
+	// Strava rate limit (#225). The summary row is still stored for the watermark.
+	const startedAt = new Date(activity.start_date);
+	const windows = await db
+		.select({ status: races.status, startsAt: races.startsAt, endsAt: races.endsAt })
+		.from(races);
+	const matchable = windows.some(
+		(r) => r.status !== 'draft' && inRaceWindow(startedAt, r.startsAt, r.endsAt)
+	);
+
 	// Fetch provider data before taking the database lock. A payload from
 	// getActivity already carries segment efforts, so we skip the duplicate detail
 	// call that the webhook used to make (#225).
-	const detailed = Array.isArray(activity.segment_efforts)
-		? activity
-		: await getActivity(userId, String(activity.id));
-	const streams = await getActivityStreams(userId, String(activity.id));
+	const detailed = !matchable
+		? null
+		: Array.isArray(activity.segment_efforts)
+			? activity
+			: await getActivity(userId, String(activity.id));
+	const streams = matchable ? await getActivityStreams(userId, String(activity.id)) : null;
 	return withActivityIngestion(userId, async (database) => {
 		const [existing] = await database
 			.select()
@@ -109,6 +124,7 @@ export async function upsertAndMatchActivity(
 			activityRow = inserted;
 		}
 
+		if (!matchable) return;
 		await database
 			.update(activities)
 			.set({ streamFetchedAt: new Date() })

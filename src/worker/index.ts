@@ -3,7 +3,8 @@ import {
 	completeJob,
 	failJob,
 	enqueueJob,
-	reclaimStuckJobs
+	reclaimStuckJobs,
+	scheduleRecurringJob
 } from '../lib/server/jobs';
 import {
 	backfillUser,
@@ -41,21 +42,21 @@ async function handleJob() {
 			// Keep stored status (upcoming → live → closed) fresh, then email finishers.
 			await refreshRaceStatuses();
 			await sendRaceEndEmails();
-			await enqueueJob('race_end', {}, new Date(Date.now() + RACE_END_MS));
+			await scheduleRecurringJob('race_end', new Date(Date.now() + RACE_END_MS));
 		} else if (job.type === 'poll_activities') {
 			// Incremental: only activities newer than the last stored one (#225).
 			const users = await stravaUsers();
 			for (const u of users) {
 				await enqueueJob('backfill', { userId: u.id });
 			}
-			await enqueueJob('poll_activities', {}, new Date(Date.now() + POLL_MS));
+			await scheduleRecurringJob('poll_activities', new Date(Date.now() + POLL_MS));
 		} else if (job.type === 'full_rescan') {
 			// Daily full history re-read so new races can match older runs (#225).
 			const users = await stravaUsers();
 			for (const u of users) {
 				await enqueueJob('backfill', { userId: u.id, full: true });
 			}
-			await enqueueJob('full_rescan', {}, new Date(Date.now() + FULL_RESCAN_MS));
+			await scheduleRecurringJob('full_rescan', new Date(Date.now() + FULL_RESCAN_MS));
 		}
 		await completeJob(job.id);
 	} catch (err) {
@@ -75,9 +76,9 @@ async function loop() {
 	backfillMissingElevation()
 		.then((n) => n && console.log(`Elevation backfilled for ${n} race(s)`))
 		.catch((err) => console.error('Elevation backfill failed', err));
-	await enqueueJob('race_end', {});
-	await enqueueJob('full_rescan', {});
-	await enqueueJob('poll_activities', {}, new Date(Date.now() + POLL_MS));
+	await scheduleRecurringJob('race_end');
+	await scheduleRecurringJob('full_rescan');
+	await scheduleRecurringJob('poll_activities', new Date(Date.now() + POLL_MS));
 	for (;;) {
 		const did = await handleJob();
 		if (!did) {

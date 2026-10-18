@@ -38,10 +38,10 @@ vi.mock('./strava', () => ({
 import { db, postgresClient } from './db';
 import { activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
 import { ingestUploadedGpx } from './upload';
-import { upsertAndMatchActivity } from './sync';
-import { getActivityStreams, stravaActivityDeleted } from './strava';
+import { backfillUser, upsertAndMatchActivity } from './sync';
+import { getActivityStreams, listActivities, stravaActivityDeleted } from './strava';
 import { deleteStravaActivityIfGone } from './activity-deletion';
-import { claimNextJob, enqueueJob, reclaimStuckJobs } from './jobs';
+import { claimNextJob, enqueueJob, reclaimStuckJobs, scheduleRecurringJob } from './jobs';
 
 const start = new Date('2026-01-01T00:00:00Z');
 const strava = {
@@ -184,6 +184,35 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			expect(await db.select().from(activities)).toHaveLength(0);
 			expect(await db.select().from(attempts)).toHaveLength(0);
 			expect(await deleteStravaActivityIfGone('runner', '100')).toBe(false);
+		});
+		it('skips Strava detail/stream calls for runs outside every race window (#225)', async () => {
+			vi.mocked(getActivityStreams).mockClear();
+			await upsertAndMatchActivity('runner', {
+				...strava,
+				id: 103,
+				start_date: '2020-01-01T00:00:00Z'
+			});
+			expect(getActivityStreams).not.toHaveBeenCalled();
+			expect(await db.select().from(activities)).toHaveLength(1);
+		});
+		it('uses only Strava activities for the incremental watermark (#225)', async () => {
+			await upsertAndMatchActivity('runner', strava);
+			await db.insert(activities).values({
+				userId: 'runner',
+				source: 'upload',
+				startedAt: new Date('2026-06-01T00:00:00Z')
+			});
+			vi.mocked(listActivities).mockResolvedValueOnce([]);
+			await backfillUser('runner');
+			expect(listActivities).toHaveBeenLastCalledWith('runner', 1, 50, +start / 1000);
+		});
+		it('keeps a single pending copy of each recurring job', async () => {
+			await scheduleRecurringJob('race_end');
+			await scheduleRecurringJob('race_end');
+			await scheduleRecurringJob('poll_activities');
+			const rows = await db.select().from(jobs);
+			expect(rows.filter((j) => j.type === 'race_end')).toHaveLength(1);
+			expect(rows.filter((j) => j.type === 'poll_activities')).toHaveLength(1);
 		});
 		it('requeues jobs left running by a dead worker (#234)', async () => {
 			await enqueueJob('backfill', { userId: 'runner' });
