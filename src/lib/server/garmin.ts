@@ -23,6 +23,13 @@ type TokenResponse = {
 	scope?: string;
 };
 
+/** Upper bound for any Garmin API call, so connect/disconnect cannot hang (#243). */
+export const GARMIN_TIMEOUT_MS = 10_000;
+
+function garminFetch(url: string, init: RequestInit): Promise<Response> {
+	return fetch(url, { ...init, signal: AbortSignal.timeout(GARMIN_TIMEOUT_MS) });
+}
+
 /** Account columns for a Garmin token response (authorization code or refresh). */
 function tokenColumns(tokens: TokenResponse, now = Date.now()) {
 	return {
@@ -44,7 +51,7 @@ export async function connectGarmin(opts: {
 	verifier: string;
 	redirectUri: string;
 }): Promise<void> {
-	const res = await fetch(GARMIN_TOKEN_URL, {
+	const res = await garminFetch(GARMIN_TOKEN_URL, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
 		body: new URLSearchParams({
@@ -59,7 +66,7 @@ export async function connectGarmin(opts: {
 	if (!res.ok) throw new Error(`Garmin token exchange failed (${res.status})`);
 	const tokens = (await res.json()) as TokenResponse;
 
-	const idRes = await fetch(GARMIN_USER_ID_URL, {
+	const idRes = await garminFetch(GARMIN_USER_ID_URL, {
 		headers: { Authorization: `Bearer ${tokens.access_token}` }
 	});
 	if (!idRes.ok) throw new Error(`Garmin user id lookup failed (${idRes.status})`);
@@ -105,8 +112,12 @@ type GarminAccountRow = NonNullable<Awaited<ReturnType<typeof garminAccountFor>>
  * expires within a minute (#241). Garmin access tokens last about 24 h and the
  * push model never needs them after connecting, so the stored one is usually stale
  * by the time a runner disconnects. Returns the stored token if refresh fails.
+ * Pass `persist: false` when the account is about to be deleted (#244).
  */
-export async function freshGarminAccessToken(row: GarminAccountRow): Promise<string | null> {
+export async function freshGarminAccessToken(
+	row: GarminAccountRow,
+	{ persist = true }: { persist?: boolean } = {}
+): Promise<string | null> {
 	const now = Date.now();
 	const expiresAt = row.accessTokenExpiresAt?.getTime();
 	if (row.accessToken && (expiresAt === undefined || expiresAt > now + 60_000)) {
@@ -115,7 +126,7 @@ export async function freshGarminAccessToken(row: GarminAccountRow): Promise<str
 	const refreshUsable =
 		row.refreshToken && (!row.refreshTokenExpiresAt || row.refreshTokenExpiresAt.getTime() > now);
 	if (!refreshUsable) return row.accessToken ?? null;
-	const res = await fetch(GARMIN_TOKEN_URL, {
+	const res = await garminFetch(GARMIN_TOKEN_URL, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
 		body: new URLSearchParams({
@@ -130,6 +141,7 @@ export async function freshGarminAccessToken(row: GarminAccountRow): Promise<str
 		return row.accessToken ?? null;
 	}
 	const tokens = (await res.json()) as TokenResponse;
+	if (!persist) return tokens.access_token;
 	// Garmin may rotate the refresh token; keep the old one if it does not send a new one.
 	const values = { ...tokenColumns(tokens, now) };
 	if (!tokens.refresh_token) {
@@ -149,9 +161,10 @@ export async function disconnectGarmin(userId: string): Promise<void> {
 	const row = await garminAccountFor(userId);
 	if (!row) return;
 	try {
-		const token = await freshGarminAccessToken(row);
+		// The row is deleted below, so don't save the refreshed token (#244).
+		const token = await freshGarminAccessToken(row, { persist: false });
 		if (token) {
-			const res = await fetch(GARMIN_REGISTRATION_URL, {
+			const res = await garminFetch(GARMIN_REGISTRATION_URL, {
 				method: 'DELETE',
 				headers: { Authorization: `Bearer ${token}` }
 			});
