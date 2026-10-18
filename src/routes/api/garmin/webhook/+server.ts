@@ -1,8 +1,16 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { json, text } from '@sveltejs/kit';
 import { garminEnabled, type GarminActivityDetail } from '$lib/garmin';
 import { enqueueJob } from '$lib/server/jobs';
 import { forgetGarminUser } from '$lib/server/garmin';
 import type { RequestHandler } from './$types';
+
+/** Constant-time secret check; hashing first gives equal-length inputs. */
+function secretMatches(given: string | null, expected: string | undefined): boolean {
+	if (!given || !expected) return false;
+	const digest = (value: string) => createHash('sha256').update(value).digest();
+	return timingSafeEqual(digest(given), digest(expected));
+}
 
 /**
  * Garmin Health/Activity API push endpoint. Configure in the Garmin developer
@@ -11,7 +19,10 @@ import type { RequestHandler } from './$types';
  * Garmin expects a fast 200, so matching happens in the worker.
  */
 export const POST: RequestHandler = async ({ request, url }) => {
-	if (!garminEnabled() || url.searchParams.get('secret') !== process.env.GARMIN_WEBHOOK_SECRET) {
+	if (
+		!garminEnabled() ||
+		!secretMatches(url.searchParams.get('secret'), process.env.GARMIN_WEBHOOK_SECRET)
+	) {
 		return text('Forbidden', { status: 403 });
 	}
 	const body = (await request.json().catch(() => ({}))) as {
