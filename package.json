@@ -23,6 +23,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"migrate:legacy": "tsx --env-file=.env src/scripts/migrate-legacy.ts",
+		"grant-admin": "tsx --env-file=.env src/scripts/grant-admin.ts",
 		"worker": "tsx --env-file=.env src/worker/index.ts"
 	},
 	"devDependencies": {

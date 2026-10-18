@@ -73,7 +73,12 @@ export async function stravaFetch<T>(userId: string, path: string): Promise<T | 
 	if (res.status === 429) {
 		throw new Error('STRAVA_RATE_LIMIT');
 	}
-	if (!res.ok) return null;
+	if (res.status === 404) return null;
+	if (!res.ok) {
+		// Surface failures so the worker retries instead of silently skipping the
+		// runner (#235). `STRAVA_HTTP_5xx` matches the worker's retry rule.
+		throw new Error(`STRAVA_HTTP_${res.status}`);
+	}
 	return (await res.json()) as T;
 }
 

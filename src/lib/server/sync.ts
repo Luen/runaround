@@ -374,6 +374,8 @@ export async function sendRaceEndEmails() {
 	const all = await db.select().from(races);
 	for (const race of all) {
 		if (race.endsAt >= now) continue;
+		// A draft is unpublished; never force it closed or email it (#237).
+		if (race.status === 'draft') continue;
 		// Race lifecycle is independent of the results/email embargo.
 		if (race.status !== 'closed') {
 			await db.update(races).set({ status: 'closed' }).where(eq(races.id, race.id));

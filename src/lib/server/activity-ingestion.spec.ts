@@ -33,6 +33,8 @@ import { db, postgresClient } from './db';
 import { activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
 import { ingestUploadedGpx } from './upload';
 import { upsertAndMatchActivity } from './sync';
+import { deleteStravaActivity } from './activity-deletion';
+import { claimNextJob, enqueueJob, reclaimStuckJobs } from './jobs';
 
 const start = new Date('2026-01-01T00:00:00Z');
 const strava = {
@@ -140,6 +142,24 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			});
 			expect(await db.select().from(activities)).toHaveLength(2);
 			expect(await db.select().from(attempts).where(eq(attempts.userId, 'runner'))).toHaveLength(2);
+		});
+		it('removes a deleted Strava activity and its attempts (#233)', async () => {
+			await upsertAndMatchActivity('runner', strava);
+			expect(await db.select().from(attempts)).toHaveLength(1);
+			expect(await deleteStravaActivity('100')).toBe(true);
+			expect(await db.select().from(activities)).toHaveLength(0);
+			expect(await db.select().from(attempts)).toHaveLength(0);
+			expect(await deleteStravaActivity('100')).toBe(false);
+		});
+		it('requeues jobs left running by a dead worker (#234)', async () => {
+			await enqueueJob('backfill', { userId: 'runner' });
+			expect(await claimNextJob()).not.toBeNull();
+			// A fresh lease is not reclaimed...
+			expect(await reclaimStuckJobs(900)).toBe(0);
+			// ...but a lease older than the threshold is put back to pending.
+			await db.execute(sql`update jobs set run_at = NOW() - INTERVAL '1 hour'`);
+			expect(await reclaimStuckJobs(900)).toBe(1);
+			expect((await db.select().from(jobs))[0].status).toBe('pending');
 		});
 	}
 );

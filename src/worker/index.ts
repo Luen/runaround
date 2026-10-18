@@ -1,4 +1,10 @@
-import { claimNextJob, completeJob, failJob, enqueueJob } from '../lib/server/jobs';
+import {
+	claimNextJob,
+	completeJob,
+	failJob,
+	enqueueJob,
+	reclaimStuckJobs
+} from '../lib/server/jobs';
 import {
 	backfillUser,
 	sendQueuedEmail,
@@ -57,6 +63,9 @@ async function handleJob() {
 
 async function loop() {
 	console.log('RunAround worker started');
+	// Recover jobs a previous (crashed) worker left mid-flight (#234).
+	const reclaimed = await reclaimStuckJobs();
+	if (reclaimed) console.log(`Requeued ${reclaimed} stuck job(s)`);
 	backfillMissingElevation()
 		.then((n) => n && console.log(`Elevation backfilled for ${n} race(s)`))
 		.catch((err) => console.error('Elevation backfill failed', err));

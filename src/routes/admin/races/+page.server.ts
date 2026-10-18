@@ -3,11 +3,10 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { geojsonToGpx, pointsFromLineString, type LineString } from '$lib/geo';
+import { geojsonToGpx, lineStringLengthMeters } from '$lib/geo';
 import { parseDrawnCourse } from '$lib/routing';
 import { routingAvailable } from '$lib/server/routing';
 import { processUploadedGpx } from '$lib/server/elevation';
-import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
 import { raceEditable } from '$lib/race-edit';
@@ -18,13 +17,6 @@ function slugify(value: string): string {
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, '-')
 		.replace(/^-|-$/g, '');
-}
-
-function distanceM(geojson: LineString): number {
-	const pts = pointsFromLineString(geojson);
-	let d = 0;
-	for (let i = 1; i < pts.length; i += 1) d += haversineMeters(pts[i - 1], pts[i]);
-	return d;
 }
 
 const raceSchema = z.object({
@@ -110,7 +102,7 @@ export const actions: Actions = {
 			teamMaxStartGapS: intField(parsed.data.teamMaxStartGapS, 300) ?? 300,
 			courseGeojson: course.courseGeojson,
 			gpx: course.gpx,
-			distanceM: distanceM(course.courseGeojson),
+			distanceM: lineStringLengthMeters(course.courseGeojson),
 			elevationGainM: course.elevationGainM
 		});
 		throw redirect(303, `/races/${slug}`);

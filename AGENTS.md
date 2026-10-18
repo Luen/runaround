@@ -34,6 +34,9 @@ Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
 - `git mv` when relocating tracked assets so history is preserved; do not copy-then-delete binaries.
 - Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec.
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Rank email only when `notified_rank` exists and the new place is strictly better.
+- Auth/admin: outside `dev`, `BETTER_AUTH_SECRET` is required (no committed fallback). Admin is never granted from the self-asserted onboarding email — provision it with `pnpm run grant-admin` (uses `ADMIN_EMAILS`).
+- Drafts: `races.status === 'draft'` is hidden from `/races`, the race page, `gpx` and `course.json` (admins still preview) and the worker never force-closes one.
+- Strava sync: `stravaFetch` throws on 5xx so the worker retries; the webhook handles `delete` by removing the activity and its attempts; the worker requeues `running` jobs whose lease (`run_at`) is older than 15 min.
 - SEO: per-page `<Seo />` in `src/lib/components/Seo.svelte` (title, description, canonical, Open Graph, Twitter, optional JSON-LD). Site origin from `ORIGIN` env via root `+layout.server.ts`.
 - Vercel Web Analytics + Speed Insights: both `injectAnalytics` / `injectSpeedInsights` live in `src/routes/+layout.ts` (no keys needed for basic setup).
 - Prefer relative imports in modules the worker loads (`src/worker`, `src/lib/server/sync.ts`, etc.).
