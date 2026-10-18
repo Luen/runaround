@@ -23,6 +23,20 @@ type TokenResponse = {
 	scope?: string;
 };
 
+/** Account columns for a Garmin token response (authorization code or refresh). */
+function tokenColumns(tokens: TokenResponse, now = Date.now()) {
+	return {
+		accessToken: tokens.access_token,
+		refreshToken: tokens.refresh_token ?? null,
+		accessTokenExpiresAt: tokens.expires_in ? new Date(now + tokens.expires_in * 1000) : null,
+		refreshTokenExpiresAt: tokens.refresh_token_expires_in
+			? new Date(now + tokens.refresh_token_expires_in * 1000)
+			: null,
+		scope: tokens.scope ?? null,
+		updatedAt: new Date(now)
+	};
+}
+
 /** Exchange the PKCE authorization code and link the Garmin user to `userId`. */
 export async function connectGarmin(opts: {
 	userId: string;
@@ -52,17 +66,7 @@ export async function connectGarmin(opts: {
 	const { userId: garminUserId } = (await idRes.json()) as { userId: string };
 	if (!garminUserId) throw new Error('Garmin did not return a user id');
 
-	const now = Date.now();
-	const values = {
-		accessToken: tokens.access_token,
-		refreshToken: tokens.refresh_token ?? null,
-		accessTokenExpiresAt: tokens.expires_in ? new Date(now + tokens.expires_in * 1000) : null,
-		refreshTokenExpiresAt: tokens.refresh_token_expires_in
-			? new Date(now + tokens.refresh_token_expires_in * 1000)
-			: null,
-		scope: tokens.scope ?? null,
-		updatedAt: new Date()
-	};
+	const values = tokenColumns(tokens);
 	const [existing] = await db
 		.select()
 		.from(account)
@@ -94,15 +98,67 @@ export async function garminAccountFor(userId: string) {
 	return row ?? null;
 }
 
-/** Disconnect: tell Garmin (best effort) and forget the tokens. */
+type GarminAccountRow = NonNullable<Awaited<ReturnType<typeof garminAccountFor>>>;
+
+/**
+ * A usable access token for `row`, refreshing it first when it has expired or
+ * expires within a minute (#241). Garmin access tokens last about 24 h and the
+ * push model never needs them after connecting, so the stored one is usually stale
+ * by the time a runner disconnects. Returns the stored token if refresh fails.
+ */
+export async function freshGarminAccessToken(row: GarminAccountRow): Promise<string | null> {
+	const now = Date.now();
+	const expiresAt = row.accessTokenExpiresAt?.getTime();
+	if (row.accessToken && (expiresAt === undefined || expiresAt > now + 60_000)) {
+		return row.accessToken;
+	}
+	const refreshUsable =
+		row.refreshToken && (!row.refreshTokenExpiresAt || row.refreshTokenExpiresAt.getTime() > now);
+	if (!refreshUsable) return row.accessToken ?? null;
+	const res = await fetch(GARMIN_TOKEN_URL, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+		body: new URLSearchParams({
+			grant_type: 'refresh_token',
+			refresh_token: row.refreshToken as string,
+			client_id: process.env.GARMIN_CLIENT_ID ?? '',
+			client_secret: process.env.GARMIN_CLIENT_SECRET ?? ''
+		})
+	});
+	if (!res.ok) {
+		console.warn(`Garmin token refresh failed (${res.status})`);
+		return row.accessToken ?? null;
+	}
+	const tokens = (await res.json()) as TokenResponse;
+	// Garmin may rotate the refresh token; keep the old one if it does not send a new one.
+	const values = { ...tokenColumns(tokens, now) };
+	if (!tokens.refresh_token) {
+		values.refreshToken = row.refreshToken;
+		values.refreshTokenExpiresAt = row.refreshTokenExpiresAt;
+	}
+	await db.update(account).set(values).where(eq(account.id, row.id));
+	return tokens.access_token;
+}
+
+/**
+ * Disconnect: deregister with Garmin so it stops pushing this runner's activities,
+ * then forget the tokens. The local link is removed even if Garmin is unreachable,
+ * but a failed deregistration is logged rather than hidden (#241).
+ */
 export async function disconnectGarmin(userId: string): Promise<void> {
 	const row = await garminAccountFor(userId);
 	if (!row) return;
-	if (row.accessToken) {
-		await fetch(GARMIN_REGISTRATION_URL, {
-			method: 'DELETE',
-			headers: { Authorization: `Bearer ${row.accessToken}` }
-		}).catch(() => undefined);
+	try {
+		const token = await freshGarminAccessToken(row);
+		if (token) {
+			const res = await fetch(GARMIN_REGISTRATION_URL, {
+				method: 'DELETE',
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			if (!res.ok) console.warn(`Garmin deregistration failed (${res.status})`);
+		}
+	} catch (err) {
+		console.warn('Garmin deregistration failed', err);
 	}
 	await db.delete(account).where(eq(account.id, row.id));
 }
