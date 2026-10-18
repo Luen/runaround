@@ -16,6 +16,8 @@ import {
 import { stravaUsers } from '../lib/server/strava';
 import { assertDatabaseConfigured } from '../lib/server/db';
 import { backfillMissingElevation } from '../lib/server/elevation-backfill';
+import { ingestGarminActivity } from '../lib/server/garmin';
+import type { GarminActivityDetail } from '../lib/garmin';
 import { deleteStravaActivityIfGone } from '../lib/server/activity-deletion';
 
 const POLL_MS = 15 * 60_000;
@@ -32,6 +34,9 @@ async function handleJob() {
 			await syncActivityById(String(job.payload.userId), String(job.payload.activityId));
 		} else if (job.type === 'delete_activity') {
 			await deleteStravaActivityIfGone(String(job.payload.userId), String(job.payload.activityId));
+		} else if (job.type === 'garmin_activity') {
+			const skipped = await ingestGarminActivity(job.payload.detail as GarminActivityDetail);
+			if (skipped) console.log(`Garmin activity skipped: ${skipped}`);
 		} else if (job.type === 'send_email') {
 			const result = await sendQueuedEmail(job.payload);
 			if (result && 'retry' in result && result.retry) {

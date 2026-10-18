@@ -54,6 +54,34 @@
 	</div>
 {/if}
 
+{#if data.garmin}
+	<section class="mt-6 max-w-xl rounded-xl border border-stone-200 bg-white p-4">
+		<h2 class="text-lg font-semibold">Garmin Connect</h2>
+		{#if data.garmin.status === 'failed'}
+			<p class="mt-2 text-red-700">Could not connect Garmin. Please try again.</p>
+		{/if}
+		{#if data.garmin.connected}
+			<p class="mt-1 text-sm text-stone-600">
+				Connected. New runs synced to Garmin Connect are matched automatically.
+			</p>
+			<form method="post" action="?/disconnectGarmin" use:enhance class="mt-3">
+				<button class="rounded-full border px-4 py-2 text-sm" type="submit"
+					>Disconnect Garmin</button
+				>
+			</form>
+		{:else}
+			<p class="mt-1 text-sm text-stone-600">
+				Connect Garmin to match runs from your watch without Strava.
+			</p>
+			<a
+				class="mt-3 inline-block rounded-full bg-black px-4 py-2 text-white"
+				href={resolve('/api/garmin/connect')}
+				data-sveltekit-reload>Connect Garmin</a
+			>
+		{/if}
+	</section>
+{/if}
+
 <section id="upload" class="mt-6 max-w-xl rounded-xl border border-stone-200 bg-white p-4">
 	<h2 class="text-lg font-semibold">Upload a run (GPX)</h2>
 	<p class="mt-1 text-sm text-stone-600">

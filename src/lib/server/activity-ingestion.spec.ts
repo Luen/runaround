@@ -36,7 +36,8 @@ vi.mock('./strava', () => ({
 }));
 
 import { db, postgresClient } from './db';
-import { activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
+import { account, activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
+import { ingestGarminActivity } from './garmin';
 import { ingestUploadedGpx } from './upload';
 import { backfillUser, upsertAndMatchActivity } from './sync';
 import { getActivityStreams, listActivities, stravaActivityDeleted } from './strava';
@@ -44,6 +45,16 @@ import { deleteStravaActivityIfGone } from './activity-deletion';
 import { claimNextJob, enqueueJob, reclaimStuckJobs, scheduleRecurringJob } from './jobs';
 
 const start = new Date('2026-01-01T00:00:00Z');
+const garmin = {
+	userId: 'garmin-runner',
+	activityId: 200,
+	summary: { activityType: 'RUNNING', startTimeInSeconds: +start / 1000 },
+	samples: [-19.3, -19.299, -19.298].map((lat, i) => ({
+		startTimeInSeconds: +start / 1000 + i * 60,
+		latitudeInDegree: lat,
+		longitudeInDegree: 146.75
+	}))
+};
 const strava = {
 	id: 100,
 	name: 'Run',
@@ -73,6 +84,13 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			await db
 				.insert(user)
 				.values({ id: 'runner', name: 'Runner', email: 'runner@example.test', needsEmail: false });
+			await db.insert(account).values({
+				id: 'garmin-link',
+				userId: 'runner',
+				providerId: 'garmin',
+				issuer: 'local:oauth:garmin',
+				accountId: 'garmin-runner'
+			});
 			await db.insert(races).values({
 				slug: 'test',
 				title: 'Test',
@@ -98,6 +116,47 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			expect((await ingestUploadedGpx('runner', file())).ok).toBe(true);
 			await upsertAndMatchActivity('runner', strava);
 			expect(await db.select().from(activities)).toHaveLength(1);
+			expect(await db.select().from(attempts)).toHaveLength(1);
+		});
+		it('resumes a previously stored Garmin activity and idempotently handles redelivery', async () => {
+			await db
+				.insert(activities)
+				.values({ userId: 'runner', garminActivityId: '200', source: 'garmin', startedAt: start });
+			expect(await ingestGarminActivity(garmin)).toBeNull();
+			expect(await ingestGarminActivity(garmin)).toBeNull();
+			expect(await db.select().from(activities)).toHaveLength(1);
+			expect(await db.select().from(attempts)).toHaveLength(1);
+		});
+		it.each(['garmin-first', 'strava-first'])(
+			'deduplicates Garmin and Strava: %s',
+			async (order) => {
+				if (order === 'garmin-first') {
+					await ingestGarminActivity(garmin);
+					await upsertAndMatchActivity('runner', strava);
+				} else {
+					await upsertAndMatchActivity('runner', strava);
+					expect(await ingestGarminActivity(garmin)).toBe('same run already synced');
+				}
+				expect(await db.select().from(activities)).toHaveLength(1);
+				expect(await db.select().from(attempts)).toHaveLength(1);
+			}
+		);
+		it('rolls back failed Garmin matching and succeeds on retry', async () => {
+			const [race] = await db.select().from(races);
+			await db
+				.insert(rankSnapshots)
+				.values({ userId: 'runner', raceId: race.id, board: 'race', rank: 5, notifiedRank: 5 });
+			await db.execute(
+				sql`create or replace function reject_test_job() returns trigger language plpgsql as $$ begin raise exception 'injected enqueue failure'; end $$`
+			);
+			await db.execute(
+				sql`create trigger reject_test_job before insert on jobs for each row execute function reject_test_job()`
+			);
+			await expect(ingestGarminActivity(garmin)).rejects.toThrow();
+			expect(await db.select().from(activities)).toHaveLength(0);
+			expect(await db.select().from(attempts)).toHaveLength(0);
+			await db.execute(sql`drop trigger reject_test_job on jobs`);
+			expect(await ingestGarminActivity(garmin)).toBeNull();
 			expect(await db.select().from(attempts)).toHaveLength(1);
 		});
 		it('deduplicates Strava then upload', async () => {
