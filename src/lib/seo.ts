@@ -58,3 +58,16 @@ export function personJsonLd(
 		...(person.sameAs?.length ? { sameAs: person.sameAs } : {})
 	};
 }
+
+/**
+ * Render a JSON-LD object as the full <script> tag. Svelte treats a literal
+ * `<script>` body as text, so `JSON.stringify` inside it was shipped verbatim
+ * (#224). Escaping `<` also stops a value containing `</script>` breaking out.
+ */
+export function jsonLdScript(item: Record<string, unknown>): string {
+	const json = JSON.stringify(item)
+		.replaceAll('<', '\\u003c')
+		.replaceAll('\u2028', '\\u2028')
+		.replaceAll('\u2029', '\\u2029');
+	return `<script type="application/ld+json">${json}</script>`;
+}

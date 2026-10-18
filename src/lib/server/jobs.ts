@@ -3,7 +3,13 @@ import { jobs } from './db/schema';
 import type { ActivityDatabase } from './activity-ingestion';
 
 export type JobType =
-	'backfill' | 'match_activity' | 'delete_activity' | 'send_email' | 'poll_activities' | 'race_end';
+	| 'backfill'
+	| 'match_activity'
+	| 'delete_activity'
+	| 'send_email'
+	| 'poll_activities'
+	| 'full_rescan'
+	| 'race_end';
 
 export async function enqueueJob(
 	type: JobType,
@@ -12,6 +18,20 @@ export async function enqueueJob(
 	database: ActivityDatabase = db
 ) {
 	await database.insert(jobs).values({ type, payload, runAt });
+}
+
+/**
+ * Schedule a self-rescheduling job (`race_end`, `poll_activities`, `full_rescan`)
+ * unless one is already pending. Every worker start and every run re-schedules
+ * through here, so duplicate chains left by earlier workers collapse into one
+ * instead of multiplying with each deploy.
+ */
+export async function scheduleRecurringJob(type: JobType, runAt = new Date()) {
+	await postgresClient`
+		INSERT INTO jobs (type, payload, run_at)
+		SELECT ${type}::text, '{}'::jsonb, ${runAt.toISOString()}::timestamptz
+		WHERE NOT EXISTS (SELECT 1 FROM jobs WHERE type = ${type} AND status = 'pending')
+	`;
 }
 
 function asPayload(raw: unknown): Record<string, unknown> {

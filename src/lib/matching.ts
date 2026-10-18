@@ -96,3 +96,32 @@ export function computeRaceStatus(startsAt: Date, endsAt: Date, now = new Date()
 export function inRaceWindow(startedAt: Date, startsAt: Date, endsAt: Date): boolean {
 	return startedAt >= startsAt && startedAt <= endsAt;
 }
+
+/**
+ * The status a race should display right now. Stored `status` can be stale because
+ * only the worker advances `upcoming → live → closed` (#221); draft races stay draft.
+ */
+export function effectiveRaceStatus(
+	race: { status: string; startsAt: Date; endsAt: Date },
+	now = new Date()
+): 'draft' | 'upcoming' | 'live' | 'closed' {
+	if (race.status === 'draft') return 'draft';
+	return computeRaceStatus(race.startsAt, race.endsAt, now);
+}
+
+/**
+ * Pair GPS points with their timestamps. Both streams are required: without real
+ * times a run cannot be timed, and fabricating indexes produced bogus times (#223).
+ */
+export function timedPointsFromStreams(
+	latlng: [number, number][] | undefined | null,
+	times: number[] | undefined | null
+): { timed: TimedPoint[]; hasTime: boolean } {
+	if (!latlng?.length || !times?.length) return { timed: [], hasTime: false };
+	const count = Math.min(latlng.length, times.length);
+	if (count < 2) return { timed: [], hasTime: false };
+	return {
+		hasTime: true,
+		timed: latlng.slice(0, count).map(([lat, lng], i) => ({ point: { lat, lng }, t: times[i] }))
+	};
+}

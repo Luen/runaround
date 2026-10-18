@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 import { attempts, races } from '$lib/server/db/schema';
 import { and, count, eq } from 'drizzle-orm';
 import { overallLeaderboard, raceLeaderboard, teamLeaderboard } from '$lib/server/leaderboard';
+import { effectiveRaceStatus } from '$lib/matching';
 import { ensureRaceElevation } from '$lib/server/elevation-backfill';
 import { canSeeResults, resultsHidden } from '$lib/reveal';
 import type { PageServerLoad } from './$types';
@@ -12,7 +13,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!row) error(404, 'Race not found');
 	// Drafts are not public (#237); admins can still preview them.
 	if (row.status === 'draft' && !locals.user?.isAdmin) error(404, 'Race not found');
-	const race = await ensureRaceElevation(row);
+	const stored = await ensureRaceElevation(row);
+	// Derive status from the clock (#221) so the page is correct even when the worker
+	// has not persisted the upcoming → live → closed transition yet.
+	const race = { ...stored, status: effectiveRaceStatus(stored) };
 	const hidden = resultsHidden(race);
 	const visible = canSeeResults(race, locals.user);
 

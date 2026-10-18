@@ -101,11 +101,13 @@ export async function stravaActivityDeleted(userId: string, activityId: string):
 export async function listActivities(
 	userId: string,
 	page = 1,
-	perPage = 50
+	perPage = 50,
+	after?: number
 ): Promise<StravaActivity[]> {
+	const afterParam = after === undefined ? '' : `&after=${after}`;
 	const data = await stravaFetch<StravaActivity[]>(
 		userId,
-		`/athlete/activities?page=${page}&per_page=${perPage}`
+		`/athlete/activities?page=${page}&per_page=${perPage}${afterParam}`
 	);
 	return data ?? [];
 }
