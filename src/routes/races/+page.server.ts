@@ -1,4 +1,6 @@
 import { filterRaceWindow, rankedLeaderboard } from '$lib/boards';
+import { effectiveRaceStatus } from '$lib/matching';
+import { canSeeResults } from '$lib/reveal';
 import { db } from '$lib/server/db';
 import { attempts, races } from '$lib/server/db/schema';
 import { desc, inArray } from 'drizzle-orm';
@@ -12,10 +14,13 @@ function leaderFromBoard(rows: Parameters<typeof rankedLeaderboard>[0]): BoardLe
 	return { name: top.name, timeMs: top.timeMs };
 }
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
 	const surface = url.searchParams.get('surface');
 	try {
-		const all = await db.select().from(races).orderBy(desc(races.startsAt));
+		// Drafts are never public (#237).
+		const all = (await db.select().from(races).orderBy(desc(races.startsAt))).filter(
+			(r) => r.status !== 'draft'
+		);
 		const filtered =
 			surface === 'road' || surface === 'trail' ? all.filter((r) => r.surface === surface) : all;
 
@@ -46,13 +51,17 @@ export const load: PageServerLoad = async ({ url }) => {
 		}
 
 		const racesWithSummaries = filtered.map((race) => {
-			const raceAttempts = byRace.get(race.id) ?? [];
+			// Derive status from the clock (#221) so a finished race shows its winner
+			// even before the worker persists the transition.
+			const status = effectiveRaceStatus(race);
+			// Embargoed races (#206) must not leak a leader or time in the listing.
+			const raceAttempts = canSeeResults(race, locals.user) ? (byRace.get(race.id) ?? []) : [];
 			const allTime = leaderFromBoard(raceAttempts);
 			const raceWinner =
-				race.status === 'closed'
+				status === 'closed'
 					? leaderFromBoard(filterRaceWindow(raceAttempts, race.startsAt, race.endsAt))
 					: null;
-			return { ...race, allTime, raceWinner };
+			return { ...race, status, allTime, raceWinner };
 		});
 
 		return {

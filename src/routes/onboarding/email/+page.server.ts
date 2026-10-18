@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
 import { and, eq, ne } from 'drizzle-orm';
-import { adminEmails } from '$lib/server/identity';
 import type { Actions, PageServerLoad } from './$types';
 
 const schema = z.object({
@@ -24,22 +23,35 @@ export const actions: Actions = {
 			return fail(400, { message: 'Enter a valid email address' });
 		}
 		const email = parsed.data.email.toLowerCase();
+
+		// `user.email` is unique; give a real error instead of a 500 (#230).
 		const [taken] = await db
 			.select({ id: user.id })
 			.from(user)
 			.where(and(eq(user.email, email), ne(user.id, locals.user.id)))
 			.limit(1);
-		if (taken) {
+		if (taken)
 			return fail(400, {
 				message:
 					'That email already has a RunAround account. Log out, sign in with that email, then use "Connect Strava" on My results.'
 			});
+
+		try {
+			await db
+				.update(user)
+				// Never grant admin from a self-asserted email (#229); admins are
+				// provisioned out of band with `pnpm run grant-admin`.
+				.set({ email, needsEmail: false, emailVerified: false, updatedAt: new Date() })
+				.where(eq(user.id, locals.user.id));
+		} catch (err) {
+			if ((err as { code?: string }).code === '23505') {
+				return fail(400, {
+					message:
+						'That email already has a RunAround account. Log out, sign in with that email, then use "Connect Strava" on My results.'
+				});
+			}
+			throw err;
 		}
-		const isAdmin = adminEmails().includes(email);
-		await db
-			.update(user)
-			.set({ email, needsEmail: false, emailVerified: false, isAdmin, updatedAt: new Date() })
-			.where(eq(user.id, locals.user.id));
 		throw redirect(302, '/me');
 	}
 };

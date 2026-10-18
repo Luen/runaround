@@ -27,7 +27,10 @@ function authSecret(): string {
 	if (building) return buildSecret;
 	const secret = process.env['BETTER_AUTH_SECRET'];
 	if (secret && secret !== devSecret) return secret;
-	return devSecret;
+	// Never sign sessions with the repo-committed dev secret in production (#231):
+	// anyone who can read this repo could forge a session cookie.
+	if (dev) return devSecret;
+	throw new Error('BETTER_AUTH_SECRET must be set to a unique secret in production');
 }
 
 export const auth = betterAuth({

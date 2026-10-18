@@ -2,9 +2,12 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import Seo from '$lib/components/Seo.svelte';
+	import CourseDrawer from '$lib/components/CourseDrawer.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let courseMode = $state<'upload' | 'draw'>('upload');
+	let courseBusy = $state(false);
 </script>
 
 <Seo
@@ -23,7 +26,9 @@
 	action="?/create"
 	enctype="multipart/form-data"
 	class="mt-6 space-y-3 rounded-xl border border-stone-200 bg-white p-4"
-	use:enhance
+	use:enhance={({ cancel }) => {
+		if (courseMode === 'draw' && courseBusy) cancel();
+	}}
 >
 	<h2 class="font-semibold">New race</h2>
 	<label class="block text-sm"
@@ -61,20 +66,81 @@
 		/>
 	</label>
 	<label class="block text-sm"
+		>Hide results until (optional, Brisbane time)
+		<input
+			class="mt-1 w-full rounded-md border px-3 py-2"
+			type="datetime-local"
+			name="resultsRevealAt"
+		/>
+		<span class="text-xs text-stone-500"
+			>Times and places stay hidden from everyone except admins until this moment.</span
+		>
+	</label>
+	<fieldset class="grid gap-3 rounded-md border border-stone-200 p-3 sm:grid-cols-3">
+		<legend class="px-1 text-sm font-medium">Team board (optional)</legend>
+		<label class="block text-sm"
+			>Team size
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="number"
+				min="2"
+				max="20"
+				name="teamSize"
+				placeholder="Off"
+			/>
+		</label>
+		<label class="block text-sm"
+			>Max separation (m)
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="number"
+				min="50"
+				name="teamMaxSeparationM"
+				value="1000"
+			/>
+		</label>
+		<label class="block text-sm"
+			>Max start/finish gap (s)
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="number"
+				min="10"
+				name="teamMaxStartGapS"
+				value="300"
+			/>
+		</label>
+	</fieldset>
+	<label class="block text-sm"
 		>Optional Strava segment ID
 		<input class="mt-1 w-full rounded-md border px-3 py-2" name="stravaSegmentId" />
 	</label>
-	<label class="block text-sm"
-		>Course GPX
-		<input
-			class="mt-1 w-full"
-			type="file"
-			name="gpx"
-			accept=".gpx,application/gpx+xml,text/xml"
-			required
-		/>
-	</label>
-	<button class="rounded-full bg-green-800 px-4 py-2 text-white" type="submit">Publish race</button>
+	<fieldset class="space-y-3">
+		<legend class="text-sm font-medium">Course</legend>
+		<div class="flex gap-4 text-sm">
+			<label class="flex items-center gap-1"
+				><input type="radio" bind:group={courseMode} value="upload" /> Upload GPX</label
+			>
+			<label class="flex items-center gap-1"
+				><input type="radio" bind:group={courseMode} value="draw" /> Draw on map</label
+			>
+		</div>
+		{#if courseMode === 'upload'}
+			<input
+				class="w-full"
+				type="file"
+				name="gpx"
+				accept=".gpx,application/gpx+xml,text/xml"
+				required
+			/>
+		{:else}
+			<CourseDrawer routingAvailable={data.routingAvailable} bind:busy={courseBusy} />
+		{/if}
+	</fieldset>
+	<button
+		class="rounded-full bg-green-800 px-4 py-2 text-white"
+		type="submit"
+		disabled={courseMode === 'draw' && courseBusy}>Publish race</button
+	>
 	{#if form?.message}
 		<p class="text-red-700">{form.message}</p>
 	{/if}

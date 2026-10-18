@@ -3,11 +3,13 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { races } from '$lib/server/db/schema';
 import { desc } from 'drizzle-orm';
-import { pointsFromLineString, type LineString } from '$lib/geo';
+import { geojsonToGpx, lineStringLengthMeters } from '$lib/geo';
+import { parseDrawnCourse } from '$lib/routing';
+import { routingAvailable } from '$lib/server/routing';
 import { processUploadedGpx } from '$lib/server/elevation';
-import { haversineMeters } from '$lib/geo';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
+import { effectiveRaceStatus } from '$lib/matching';
 import { raceEditable } from '$lib/race-edit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -18,25 +20,32 @@ function slugify(value: string): string {
 		.replace(/^-|-$/g, '');
 }
 
-function distanceM(geojson: LineString): number {
-	const pts = pointsFromLineString(geojson);
-	let d = 0;
-	for (let i = 1; i < pts.length; i += 1) d += haversineMeters(pts[i - 1], pts[i]);
-	return d;
-}
-
 const raceSchema = z.object({
 	title: z.string().min(2),
 	description: z.string().min(1),
 	surface: z.enum(['road', 'trail']),
 	startsAt: z.string(),
 	endsAt: z.string(),
-	stravaSegmentId: z.string().optional()
+	stravaSegmentId: z.string().optional(),
+	resultsRevealAt: z.string().optional(),
+	teamSize: z.string().optional(),
+	teamMaxSeparationM: z.string().optional(),
+	teamMaxStartGapS: z.string().optional()
 });
+
+/** Optional positive integer form field; '' / missing → fallback. */
+function intField(value: string | undefined, fallback: number | null): number | null {
+	const n = Number.parseInt(value ?? '', 10);
+	return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 export const load: PageServerLoad = async () => {
 	const all = await db.select().from(races).orderBy(desc(races.startsAt));
-	return { races: all.map((r) => ({ ...r, editable: raceEditable(r) })) };
+	return {
+		// Show status from the clock (#221); editability is judged on the stored race.
+		races: all.map((r) => ({ ...r, status: effectiveRaceStatus(r), editable: raceEditable(r) })),
+		routingAvailable: routingAvailable()
+	};
 };
 
 export const actions: Actions = {
@@ -45,10 +54,16 @@ export const actions: Actions = {
 		const parsed = raceSchema.safeParse(Object.fromEntries(form));
 		if (!parsed.success) return fail(400, { message: 'Check the race details' });
 		const file = form.get('gpx');
-		if (!(file instanceof File) || file.size === 0) {
-			return fail(400, { message: 'Upload a GPX course' });
+		const drawn = parseDrawnCourse(form.get('drawnCourse'));
+		let xml: string;
+		if (file instanceof File && file.size > 0) {
+			xml = await file.text();
+		} else if (drawn) {
+			// #209: a drawn course goes through the exact same pipeline as an uploaded GPX.
+			xml = geojsonToGpx(parsed.data.title, drawn);
+		} else {
+			return fail(400, { message: 'Upload a GPX course or draw one on the map' });
 		}
-		const xml = await file.text();
 		let course: Awaited<ReturnType<typeof processUploadedGpx>>;
 		try {
 			course = await processUploadedGpx(parsed.data.title, xml);
@@ -64,6 +79,14 @@ export const actions: Actions = {
 		} catch {
 			return fail(400, { message: 'Check the race dates' });
 		}
+		let resultsRevealAt: Date | null = null;
+		if (parsed.data.resultsRevealAt?.trim()) {
+			try {
+				resultsRevealAt = parseBrisbaneInputValue(parsed.data.resultsRevealAt);
+			} catch {
+				return fail(400, { message: 'Check the results reveal date' });
+			}
+		}
 		const slugBase = slugify(parsed.data.title) || 'race';
 		const slug = `${slugBase}-${Date.now().toString(36)}`;
 		await db.insert(races).values({
@@ -75,9 +98,13 @@ export const actions: Actions = {
 			endsAt,
 			status: computeRaceStatus(startsAt, endsAt),
 			stravaSegmentId: parsed.data.stravaSegmentId || null,
+			resultsRevealAt,
+			teamSize: intField(parsed.data.teamSize, null),
+			teamMaxSeparationM: intField(parsed.data.teamMaxSeparationM, 1000) ?? 1000,
+			teamMaxStartGapS: intField(parsed.data.teamMaxStartGapS, 300) ?? 300,
 			courseGeojson: course.courseGeojson,
 			gpx: course.gpx,
-			distanceM: distanceM(course.courseGeojson),
+			distanceM: lineStringLengthMeters(course.courseGeojson),
 			elevationGainM: course.elevationGainM
 		});
 		throw redirect(303, `/races/${slug}`);

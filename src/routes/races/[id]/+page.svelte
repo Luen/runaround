@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { formatDateRange } from '$lib/dates';
+	import { formatDateRange, formatDateTime } from '$lib/dates';
 	import ChallengeFriend from '$lib/components/ChallengeFriend.svelte';
 	import { challengeUrl } from '$lib/challenge';
 	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
+	import TeamLeaderboardTable from '$lib/components/TeamLeaderboardTable.svelte';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { raceCourseJsonUrl } from '$lib/geo';
@@ -11,7 +12,7 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	let tab = $state<'race' | 'overall'>('race');
+	let tab = $state<'race' | 'overall' | 'teams'>('race');
 	const myBestMs = $derived(
 		data.user ? (data.overall.find((r) => r.userId === data.user?.id)?.timeMs ?? null) : null
 	);
@@ -65,29 +66,63 @@
 	/>
 </div>
 
-<div class="mt-8 flex gap-3">
-	<button
-		type="button"
-		class={['rounded-full px-4 py-1.5', tab === 'race' ? 'bg-green-800 text-white' : 'border']}
-		onclick={() => (tab = 'race')}>Race results</button
-	>
-	<button
-		type="button"
-		class={['rounded-full px-4 py-1.5', tab === 'overall' ? 'bg-green-800 text-white' : 'border']}
-		onclick={() => (tab = 'overall')}>Overall</button
-	>
-</div>
+{#if data.resultsHidden}
+	<div class="mt-8 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
+		<p class="font-semibold">
+			Results are hidden until {formatDateTime(data.race.resultsRevealAt ?? data.race.endsAt)}.
+		</p>
+		<p class="mt-1 text-sm">
+			Times and places are revealed when the race wraps up.
+			{#if data.user}
+				{#if data.myAttempts > 0}
+					Attempt received ✔ — we have {data.myAttempts} matched run{data.myAttempts === 1
+						? ''
+						: 's'} from you.
+				{:else}
+					No matched run from you yet.
+				{/if}
+			{/if}
+		</p>
+		{#if data.resultsVisible}
+			<p class="mt-1 text-sm">You are an admin, so the boards below are visible to you only.</p>
+		{/if}
+	</div>
+{/if}
 
-<div class="mt-4">
-	{#if tab === 'race'}
-		<LeaderboardTable title="Race window" rows={data.raceBoard} />
-	{:else}
-		<LeaderboardTable title="Overall (all-time)" rows={data.overall} />
-	{/if}
-</div>
+{#if data.resultsVisible}
+	<div class="mt-8 flex gap-3">
+		<button
+			type="button"
+			class={['rounded-full px-4 py-1.5', tab === 'race' ? 'bg-green-800 text-white' : 'border']}
+			onclick={() => (tab = 'race')}>Race results</button
+		>
+		<button
+			type="button"
+			class={['rounded-full px-4 py-1.5', tab === 'overall' ? 'bg-green-800 text-white' : 'border']}
+			onclick={() => (tab = 'overall')}>Overall</button
+		>
+		{#if data.race.teamSize}
+			<button
+				type="button"
+				class={['rounded-full px-4 py-1.5', tab === 'teams' ? 'bg-green-800 text-white' : 'border']}
+				onclick={() => (tab = 'teams')}>Teams of {data.race.teamSize}</button
+			>
+		{/if}
+	</div>
+
+	<div class="mt-4">
+		{#if tab === 'race'}
+			<LeaderboardTable title="Race window" rows={data.raceBoard} />
+		{:else if tab === 'teams' && data.race.teamSize}
+			<TeamLeaderboardTable title="Teams" teams={data.teams} teamSize={data.race.teamSize} />
+		{:else}
+			<LeaderboardTable title="Overall (all-time)" rows={data.overall} />
+		{/if}
+	</div>
+{/if}
 
 <ChallengeFriend
 	raceTitle={data.race.title}
 	url={challengeUrl(data.origin, data.race.slug)}
-	timeMs={myBestMs}
+	timeMs={data.resultsHidden ? null : myBestMs}
 />

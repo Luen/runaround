@@ -3,8 +3,8 @@
 	import { enhance } from '$app/forms';
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
-	import { toBrisbaneInputValue } from '$lib/dates';
-	import { raceCourseJsonUrl } from '$lib/geo';
+	import { formatDateTime, toBrisbaneInputValue } from '$lib/dates';
+	import { formatDuration, raceCourseJsonUrl } from '$lib/geo';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -86,6 +86,53 @@
 			/>
 		</label>
 		<label class="block text-sm"
+			>Hide results until (optional, Brisbane time)
+			<input
+				class="mt-1 w-full rounded-md border px-3 py-2"
+				type="datetime-local"
+				name="resultsRevealAt"
+				value={data.race.resultsRevealAt ? toBrisbaneInputValue(data.race.resultsRevealAt) : ''}
+			/>
+			<span class="text-xs text-stone-500"
+				>Times and places stay hidden from everyone except admins until this moment.</span
+			>
+		</label>
+		<fieldset class="grid gap-3 rounded-md border border-stone-200 p-3 sm:grid-cols-3">
+			<legend class="px-1 text-sm font-medium">Team board (optional)</legend>
+			<label class="block text-sm"
+				>Team size
+				<input
+					class="mt-1 w-full rounded-md border px-3 py-2"
+					type="number"
+					min="2"
+					max="20"
+					name="teamSize"
+					placeholder="Off"
+					value={data.race.teamSize ?? ''}
+				/>
+			</label>
+			<label class="block text-sm"
+				>Max separation (m)
+				<input
+					class="mt-1 w-full rounded-md border px-3 py-2"
+					type="number"
+					min="50"
+					name="teamMaxSeparationM"
+					value={data.race.teamMaxSeparationM}
+				/>
+			</label>
+			<label class="block text-sm"
+				>Max start/finish gap (s)
+				<input
+					class="mt-1 w-full rounded-md border px-3 py-2"
+					type="number"
+					min="10"
+					name="teamMaxStartGapS"
+					value={data.race.teamMaxStartGapS}
+				/>
+			</label>
+		</fieldset>
+		<label class="block text-sm"
 			>Strava segment ID
 			<input
 				class="mt-1 w-full rounded-md border px-3 py-2"
@@ -112,3 +159,29 @@
 		<p class="text-red-700">{form.message}</p>
 	{/if}
 </form>
+
+<section class="mt-8 space-y-2">
+	<h2 class="text-xl font-semibold">Uploaded GPX attempts</h2>
+	{#if data.uploads.length === 0}
+		<p class="text-stone-600">No runner uploads on this race.</p>
+	{:else}
+		<ul class="space-y-2">
+			{#each data.uploads as up (up.id)}
+				<li
+					class="flex flex-wrap items-center gap-3 rounded-lg border border-stone-200 bg-white p-3"
+				>
+					<span class="font-medium">{up.name ?? 'Runner'}</span>
+					<span>{formatDuration(up.timeMs)}</span>
+					<span class="text-sm text-stone-500">{formatDateTime(up.startedAt)} · {up.fileName}</span>
+					<form method="post" action="?/removeUpload" use:enhance>
+						<input type="hidden" name="attemptId" value={up.id} />
+						<button
+							class="rounded-full border border-red-300 px-3 py-1 text-sm text-red-700"
+							type="submit">Remove</button
+						>
+					</form>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+</section>

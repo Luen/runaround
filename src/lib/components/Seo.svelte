@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DEFAULT_OG_IMAGE, SITE_NAME, canonicalUrl } from '$lib/seo';
+	import { DEFAULT_OG_IMAGE, SITE_NAME, canonicalUrl, jsonLdScript } from '$lib/seo';
 
 	let {
 		title,
@@ -46,8 +46,7 @@
 	<meta name="twitter:description" content={description} />
 	<meta name="twitter:image" content={imageUrl} />
 	{#each ld as item (item['@type'])}
-		<script type="application/ld+json">
-			{JSON.stringify(item)}
-		</script>
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -- jsonLdScript escapes `<` and emits only JSON-LD -->
+		{@html jsonLdScript(item)}
 	{/each}
 </svelte:head>
