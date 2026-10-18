@@ -5,9 +5,11 @@ import { eq } from 'drizzle-orm';
 import { geojsonToGpx } from '$lib/geo';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
 	const [race] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
 	if (!race) error(404, 'Race not found');
+	// Drafts are not public (#237); admins can still download the course.
+	if (race.status === 'draft' && !locals.user?.isAdmin) error(404, 'Race not found');
 	const gpx = race.gpx ?? geojsonToGpx(race.title, race.courseGeojson);
 	return new Response(gpx, {
 		headers: {

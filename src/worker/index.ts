@@ -1,4 +1,10 @@
-import { claimNextJob, completeJob, failJob, enqueueJob } from '../lib/server/jobs';
+import {
+	claimNextJob,
+	completeJob,
+	failJob,
+	enqueueJob,
+	reclaimStuckJobs
+} from '../lib/server/jobs';
 import {
 	backfillUser,
 	sendQueuedEmail,
@@ -10,6 +16,7 @@ import { db } from '../lib/server/db';
 import { activities } from '../lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { backfillMissingElevation } from '../lib/server/elevation-backfill';
+import { deleteStravaActivityIfGone } from '../lib/server/activity-deletion';
 
 const POLL_MS = 15 * 60_000;
 const RACE_END_MS = 60_000;
@@ -30,6 +37,8 @@ async function handleJob() {
 				.limit(1);
 			const detailed = await getActivity(userId, activityId);
 			await upsertAndMatchActivity(userId, detailed ?? (existing as never));
+		} else if (job.type === 'delete_activity') {
+			await deleteStravaActivityIfGone(String(job.payload.userId), String(job.payload.activityId));
 		} else if (job.type === 'send_email') {
 			const result = await sendQueuedEmail(job.payload);
 			if (result && 'retry' in result && result.retry) {
@@ -57,6 +66,9 @@ async function handleJob() {
 
 async function loop() {
 	console.log('RunAround worker started');
+	// Recover jobs a previous (crashed) worker left mid-flight (#234).
+	const reclaimed = await reclaimStuckJobs();
+	if (reclaimed) console.log(`Requeued ${reclaimed} stuck job(s)`);
 	backfillMissingElevation()
 		.then((n) => n && console.log(`Elevation backfilled for ${n} race(s)`))
 		.catch((err) => console.error('Elevation backfill failed', err));

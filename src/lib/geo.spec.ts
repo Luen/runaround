@@ -9,7 +9,8 @@ import {
 	colorForRaceId,
 	raceCourseJsonUrl,
 	isJsonLikeContentType,
-	lineFromCoursePayload
+	lineFromCoursePayload,
+	lineStringLengthMeters
 } from '$lib/geo';
 import {
 	courseCoverage,
@@ -220,5 +221,24 @@ describe('colorForRaceId', () => {
 
 	it('varies by id', () => {
 		expect(colorForRaceId('a')).not.toBe(colorForRaceId('b'));
+	});
+});
+
+describe('lineStringLengthMeters', () => {
+	it('sums the haversine length along the line', () => {
+		const line: import('$lib/geo').LineString = {
+			type: 'LineString',
+			coordinates: [
+				[146.81, -19.26],
+				[146.82, -19.26]
+			]
+		};
+		// 0.01° of longitude at this latitude is ~1.05 km.
+		expect(lineStringLengthMeters(line)).toBeGreaterThan(1000);
+		expect(lineStringLengthMeters(line)).toBeLessThan(1100);
+	});
+
+	it('is zero for a degenerate line', () => {
+		expect(lineStringLengthMeters({ type: 'LineString', coordinates: [[146.81, -19.26]] })).toBe(0);
 	});
 });
