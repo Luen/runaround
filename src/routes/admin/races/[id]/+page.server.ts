@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import { activities, attempts, races } from '$lib/server/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 import { removeUploadedAttempt } from '$lib/server/upload';
-import { geojsonToGpx } from '$lib/geo';
+import { geojsonToGpx, lineStringLengthMeters } from '$lib/geo';
 import { courseElevation, processUploadedGpx } from '$lib/server/elevation';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
@@ -49,9 +49,14 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	removeUpload: async ({ request }) => {
+	removeUpload: async ({ request, params }) => {
 		const id = String((await request.formData()).get('attemptId') ?? '');
-		if (!id || !(await removeUploadedAttempt(id))) {
+		const [race] = await db
+			.select({ id: races.id })
+			.from(races)
+			.where(eq(races.slug, params.id))
+			.limit(1);
+		if (!race || !id || !(await removeUploadedAttempt(id, race.id))) {
 			return fail(400, { message: 'Could not remove that upload' });
 		}
 		return { removed: true };
@@ -124,6 +129,8 @@ export const actions: Actions = {
 				teamMaxStartGapS: intField(parsed.data.teamMaxStartGapS, 300) ?? 300,
 				courseGeojson,
 				gpx,
+				// Keep distance in sync when the course is replaced (#232).
+				distanceM: lineStringLengthMeters(courseGeojson),
 				elevationGainM,
 				updatedAt: new Date()
 			})

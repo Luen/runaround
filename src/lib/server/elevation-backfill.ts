@@ -16,16 +16,18 @@ export async function backfillRaceElevation(race: RaceRow): Promise<number | nul
 	if (!needsElevationBackfill(race)) return null;
 	const xml = race.gpx ?? geojsonToGpx(race.title, race.courseGeojson);
 	const { elevations, elevationGainM } = await courseElevation(xml, race.courseGeojson);
-	if (elevationGainM <= 0) return null;
+	const gain = elevationGainM > 0 ? elevationGainM : 0;
+	// Persist the enriched GPX even for a genuine 0 m gain so the DEM is not
+	// re-sampled on every view (#236). Still guarded to only fill a 0 gain.
 	await db
 		.update(races)
 		.set({
-			elevationGainM,
+			elevationGainM: gain,
 			gpx: geojsonToGpx(race.title, race.courseGeojson, elevations),
 			updatedAt: new Date()
 		})
 		.where(and(eq(races.id, race.id), eq(races.elevationGainM, 0)));
-	return elevationGainM;
+	return gain > 0 ? gain : null;
 }
 
 /**

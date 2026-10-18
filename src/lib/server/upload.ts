@@ -89,9 +89,11 @@ export async function ingestUploadedGpx(userId: string, file: File): Promise<Upl
 }
 
 /** Admin removal of an uploaded attempt (and its activity when nothing else uses it). */
-export async function removeUploadedAttempt(attemptId: string): Promise<boolean> {
+export async function removeUploadedAttempt(attemptId: string, raceId?: string): Promise<boolean> {
 	const [a] = await db.select().from(attempts).where(eq(attempts.id, attemptId)).limit(1);
 	if (!a?.activityId) return false;
+	// Only remove an attempt that belongs to the race being edited (#239).
+	if (raceId && a.raceId !== raceId) return false;
 	const [act] = await db.select().from(activities).where(eq(activities.id, a.activityId)).limit(1);
 	if (act?.source !== 'upload') return false;
 	await db.delete(attempts).where(eq(attempts.id, attemptId));
