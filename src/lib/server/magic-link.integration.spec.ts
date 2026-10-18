@@ -128,5 +128,33 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			});
 			expect(await db.select().from(jobs)).toHaveLength(1);
 		});
+		it('moves an athlete id orphaned by email-proof cleanup to the new Strava login', async () => {
+			await db.insert(user).values([
+				{
+					id: 'old',
+					name: 'Old',
+					email: 'old@example.test',
+					needsEmail: false,
+					stravaAthleteId: '123'
+				},
+				{
+					id: 'fresh',
+					name: 'Fresh',
+					email: 'strava-123@users.runaround.invalid',
+					needsEmail: true
+				}
+			]);
+			const ctx = await auth.$context;
+			await ctx.internalAdapter.createAccount({
+				userId: 'fresh',
+				issuer: 'local:oauth:strava',
+				providerId: 'strava',
+				accountId: '123',
+				accessToken: 'token'
+			});
+			const rows = await db.select().from(user);
+			expect(rows.find((r) => r.id === 'fresh')?.stravaAthleteId).toBe('123');
+			expect(rows.find((r) => r.id === 'old')?.stravaAthleteId).toBeNull();
+		});
 	}
 );

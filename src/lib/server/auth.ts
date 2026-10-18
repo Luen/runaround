@@ -9,7 +9,7 @@ import { authBaseUrl } from '$lib/origin';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
 import * as schema from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { enqueueJob } from './jobs';
 import { sendEmail } from './email';
 import { adminEmails, isPlaceholderEmail } from './identity';
@@ -142,6 +142,19 @@ export const auth = betterAuth({
 						.where(eq(schema.user.id, created.userId))
 						.limit(1);
 					if (!u) return;
+					// `user.strava_athlete_id` is unique. A runner whose Strava link was removed by
+					// email-proof cleanup still holds the id; this account just proved ownership
+					// through OAuth, so release it instead of failing the callback on the constraint.
+					await db
+						.update(schema.user)
+						.set({ stravaAthleteId: null })
+						.where(
+							and(
+								eq(schema.user.stravaAthleteId, created.accountId),
+								ne(schema.user.id, u.id),
+								sql`not exists (select 1 from ${schema.account} where ${schema.account.userId} = ${schema.user.id} and ${schema.account.providerId} = 'strava')`
+							)
+						);
 					await db
 						.update(schema.user)
 						.set({ stravaAthleteId: created.accountId })

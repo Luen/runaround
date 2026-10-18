@@ -36,6 +36,9 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
+					// Postgres regression files share the one runaround_test DB and truncate
+					// tables in beforeEach, so they must not run concurrently.
+					fileParallelism: false,
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
