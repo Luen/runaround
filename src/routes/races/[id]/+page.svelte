@@ -9,14 +9,25 @@
 	import Seo from '$lib/components/Seo.svelte';
 	import { raceCourseJsonUrl } from '$lib/geo';
 	import { sportsEventJsonLd } from '$lib/seo';
+	import { googleCalendarEventUrl } from '$lib/calendar';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+	const calendarUrl = $derived(resolve('/races/[id]/calendar.ics', { id: data.race.slug }));
 	let tab = $state<'race' | 'overall' | 'teams'>('race');
 	const myBestMs = $derived(
 		data.user ? (data.overall.find((r) => r.userId === data.user?.id)?.timeMs ?? null) : null
 	);
 </script>
+
+<svelte:head>
+	<link
+		rel="alternate"
+		type="text/calendar"
+		title="{data.race.title} race window"
+		href={calendarUrl}
+	/>
+</svelte:head>
 
 <Seo
 	title={`${data.race.title} — RunAround`}
@@ -48,6 +59,20 @@
 		data-sveltekit-reload
 		data-sveltekit-preload-data="off">Download GPX</a
 	>
+	<a
+		class="rounded-full border border-stone-300 px-4 py-2"
+		href={calendarUrl}
+		data-sveltekit-reload
+		data-sveltekit-preload-data="off">Add to calendar (.ics)</a
+	>
+	<!-- eslint-disable svelte/no-navigation-without-resolve -- external calendar URL -->
+	<a
+		class="rounded-full border border-stone-300 px-4 py-2"
+		href={googleCalendarEventUrl(data.origin, data.race)}
+		target="_blank"
+		rel="noreferrer">Add to Google Calendar</a
+	>
+	<!-- eslint-enable svelte/no-navigation-without-resolve -->
 	{#if data.race.stravaSegmentId}
 		<a
 			class="rounded-full border border-stone-300 px-4 py-2"

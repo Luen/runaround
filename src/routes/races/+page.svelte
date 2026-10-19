@@ -5,10 +5,16 @@
 	import RaceMap from '$lib/components/RaceMap.svelte';
 	import Seo from '$lib/components/Seo.svelte';
 	import { formatDuration } from '$lib/geo';
+	import { calendarFeedUrl, googleCalendarSubscribeUrl, webcalFeedUrl } from '$lib/calendar';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+	const feedUrl = $derived(calendarFeedUrl(data.origin));
 </script>
+
+<svelte:head>
+	<link rel="alternate" type="text/calendar" title="RunAround race windows" href={feedUrl} />
+</svelte:head>
 
 <Seo
 	title="Races — RunAround"
@@ -27,6 +33,25 @@
 	<a class="underline" href="{racesHref}?surface=road">Road</a>
 	<a class="underline" href="{racesHref}?surface=trail">Trail</a>
 </div>
+
+<p class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-stone-600">
+	<span>Add race windows to your calendar:</span>
+	<a
+		class="underline"
+		href={resolve('/calendar.ics')}
+		data-sveltekit-reload
+		data-sveltekit-preload-data="off">Apple / Outlook (.ics)</a
+	>
+	<!-- eslint-disable svelte/no-navigation-without-resolve -- external calendar URLs -->
+	<a
+		class="underline"
+		href={googleCalendarSubscribeUrl(data.origin)}
+		target="_blank"
+		rel="noreferrer">Google Calendar</a
+	>
+	<a class="underline" href={webcalFeedUrl(data.origin)}>Subscribe</a>
+	<!-- eslint-enable svelte/no-navigation-without-resolve -->
+</p>
 
 <ul class="mt-6 space-y-3">
 	{#each data.races as race (race.id)}
