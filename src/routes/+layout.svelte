@@ -55,7 +55,7 @@
 					<a
 						href={resolve('/login')}
 						class="inline-flex min-h-11 items-center rounded-full bg-green-800 px-4 py-2 text-white hover:bg-green-900"
-						>Log in with Strava</a
+						>Log in</a
 					>
 				{/if}
 			</nav>

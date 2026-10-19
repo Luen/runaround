@@ -19,6 +19,7 @@ import { backfillMissingElevation } from '../lib/server/elevation-backfill';
 import { ingestGarminActivity } from '../lib/server/garmin';
 import type { GarminActivityDetail } from '../lib/garmin';
 import { deleteStravaActivityIfGone } from '../lib/server/activity-deletion';
+import { ensureMonthlyNewsletter, sendNewsletterIssue } from '../lib/server/newsletter';
 
 const POLL_MS = 15 * 60_000;
 const RACE_END_MS = 60_000;
@@ -62,6 +63,11 @@ async function handleJob() {
 				await enqueueJob('backfill', { userId: u.id, full: true });
 			}
 			await scheduleRecurringJob('full_rescan', new Date(Date.now() + FULL_RESCAN_MS));
+		} else if (job.type === 'newsletter') {
+			const queued = await sendNewsletterIssue(job.payload);
+			console.log(`Newsletter ${String(job.payload.issue)} queued for ${queued} runner(s)`);
+			// Queue next month (and recover this month after an outage).
+			await ensureMonthlyNewsletter();
 		}
 		await completeJob(job.id);
 	} catch (err) {
@@ -84,6 +90,7 @@ async function loop() {
 	await scheduleRecurringJob('race_end');
 	await scheduleRecurringJob('full_rescan');
 	await scheduleRecurringJob('poll_activities', new Date(Date.now() + POLL_MS));
+	await ensureMonthlyNewsletter();
 	for (;;) {
 		const did = await handleJob();
 		if (!did) {

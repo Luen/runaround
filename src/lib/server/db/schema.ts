@@ -29,7 +29,10 @@ export const user = pgTable('user', {
 	updatedAt: timestamp('updated_at').notNull().defaultNow(),
 	stravaAthleteId: text('strava_athlete_id').unique(),
 	isAdmin: boolean('is_admin').notNull().default(false),
-	needsEmail: boolean('needs_email').notNull().default(true)
+	needsEmail: boolean('needs_email').notNull().default(true),
+	/** Monthly newsletter (#168); only set from an explicit opt-in. */
+	newsletterOptIn: boolean('newsletter_opt_in').notNull().default(false),
+	newsletterOptInAt: timestamp('newsletter_opt_in_at', { withTimezone: true })
 }).enableRLS();
 
 export const session = pgTable('session', {
@@ -160,6 +163,8 @@ export const attempts = pgTable(
 		effortUrl: text('effort_url'),
 		/** Downsampled on-course trace [epoch ms, lat, lng][] for team linking (#207). */
 		trace: jsonb('trace').$type<import('$lib/teams').TracePoint[]>(),
+		/** Why an uploaded attempt looks suspicious (#248); admins review or clear it. */
+		flaggedReason: text('flagged_reason'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [
@@ -207,3 +212,26 @@ export const emailSuppressions = pgTable('email_suppressions', {
 	reason: text('reason').notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }).enableRLS();
+
+/**
+ * Consent given on the email-first login form before the user row exists (#168).
+ * It is claimed by the magic-link create hook, or by /me for an existing runner.
+ */
+export const newsletterPendingOptIns = pgTable('newsletter_pending_opt_ins', {
+	email: text('email').primaryKey(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}).enableRLS();
+
+/** One row per runner and newsletter issue, so retries never send twice (#168). */
+export const newsletterSends = pgTable(
+	'newsletter_sends',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		issue: text('issue').notNull(),
+		sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('newsletter_sends_user_issue_idx').on(t.userId, t.issue)]
+).enableRLS();

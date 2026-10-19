@@ -6,12 +6,16 @@ import { and, eq, ne } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 const schema = z.object({
-	email: z.string().email()
+	email: z.string().email(),
+	newsletter: z.string().optional()
 });
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(302, '/login');
-	return { email: locals.user.needsEmail ? '' : locals.user.email };
+	return {
+		email: locals.user.needsEmail ? '' : locals.user.email,
+		newsletterOptIn: Boolean(locals.user.newsletterOptIn)
+	};
 };
 
 export const actions: Actions = {
@@ -41,7 +45,14 @@ export const actions: Actions = {
 				.update(user)
 				// Never grant admin from a self-asserted email (#229); admins are
 				// provisioned out of band with `pnpm run grant-admin`.
-				.set({ email, needsEmail: false, emailVerified: false, updatedAt: new Date() })
+				.set({
+					email,
+					needsEmail: false,
+					emailVerified: false,
+					newsletterOptIn: parsed.data.newsletter === 'on',
+					newsletterOptInAt: parsed.data.newsletter === 'on' ? new Date() : null,
+					updatedAt: new Date()
+				})
 				.where(eq(user.id, locals.user.id));
 		} catch (err) {
 			if ((err as { code?: string }).code === '23505') {
