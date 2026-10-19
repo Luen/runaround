@@ -24,6 +24,8 @@ services:
     environment:
       POSTGRES_URL: postgres://runaround:runaround@db:5432/runaround
       ORIGIN: ${ORIGIN:-http://localhost:4008}
+      # adapter-node defaults to 512 KB; GPX uploads need up to 4 MB (#247).
+      BODY_SIZE_LIMIT: 5M
     command: sh -c "pnpm exec drizzle-kit migrate && node build"
     depends_on:
       db:
