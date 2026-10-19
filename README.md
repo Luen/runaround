@@ -25,6 +25,8 @@ Onboarding email: `{ORIGIN}/onboarding/email` — new runners are sent here to a
 
 `docker compose up --build` starts `db`, `web` (port 4008), and `worker`.
 
+The Docker image sets `BODY_SIZE_LIMIT=5M` (adapter-node's default is 512 KB) so runner GPX uploads up to the 4 MB limit reach the app. Override the variable if you change the upload cap. Vercel does not need it: its function body limit is already 4.5 MB.
+
 ## Branches
 
 `develop` is staging (PRs merge here). `main` is production (promote with a PR from `develop`).

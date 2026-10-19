@@ -26,7 +26,7 @@ pnpm run test:unit -- --run
 pnpm exec playwright test     # builds + preview
 ```
 
-Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`).
+Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`). `Dockerfile` and `compose.yaml` set `BODY_SIZE_LIMIT=5M` because adapter-node defaults to 512 KB but runner uploads allow 4 MB (#247); Vercel functions already accept 4.5 MB.
 
 ## Conventions
 
