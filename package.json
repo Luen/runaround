@@ -72,7 +72,8 @@
 			"cookie": "0.7.2",
 			"devalue": "5.9.4",
 			"esbuild": "^0.28.2",
-			"@tailwindcss/typography>postcss-selector-parser": "6.1.4"
+			"postcss-selector-parser": "^7.1.6",
+			"source-map-js": "^1.2.2"
 		}
 	},
 	"packageManager": "pnpm@10.33.0"
