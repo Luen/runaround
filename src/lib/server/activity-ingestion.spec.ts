@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { eq, sql } from 'drizzle-orm';
+
+const fitFixture = readFileSync(new URL('../__fixtures__/tiny.fit', import.meta.url));
 
 // Never read the app's POSTGRES_URL or .env in database tests.
 vi.mock('./db', async () => {
@@ -38,7 +41,7 @@ vi.mock('./strava', () => ({
 import { db, postgresClient } from './db';
 import { account, activities, attempts, jobs, races, rankSnapshots, user } from './db/schema';
 import { ingestGarminActivity } from './garmin';
-import { ingestUploadedGpx } from './upload';
+import { ingestUploadedActivity, ingestUploadedGpx } from './upload';
 import { backfillUser, upsertAndMatchActivity } from './sync';
 import { getActivityStreams, listActivities, stravaActivityDeleted } from './strava';
 import { deleteStravaActivityIfGone } from './activity-deletion';
@@ -115,6 +118,15 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 		it('deduplicates upload then Strava', async () => {
 			expect((await ingestUploadedGpx('runner', file())).ok).toBe(true);
 			await upsertAndMatchActivity('runner', strava);
+			expect(await db.select().from(activities)).toHaveLength(1);
+			expect(await db.select().from(attempts)).toHaveLength(1);
+		});
+		it('ingests a FIT upload through the same matching path (#213)', async () => {
+			const result = await ingestUploadedActivity(
+				'runner',
+				new File([fitFixture], 'morning.fit', { type: 'application/octet-stream' })
+			);
+			expect(result.ok).toBe(true);
 			expect(await db.select().from(activities)).toHaveLength(1);
 			expect(await db.select().from(attempts)).toHaveLength(1);
 		});
@@ -274,7 +286,8 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			expect(rows.filter((j) => j.type === 'poll_activities')).toHaveLength(1);
 		});
 		it('requeues jobs left running by a dead worker (#234)', async () => {
-			await enqueueJob('backfill', { userId: 'runner' });
+			// A tiny past run_at avoids Node/Postgres clock skew making the job not due yet.
+			await enqueueJob('backfill', { userId: 'runner' }, new Date(Date.now() - 1000));
 			expect(await claimNextJob()).not.toBeNull();
 			// A fresh lease is not reclaimed...
 			expect(await reclaimStuckJobs(900)).toBe(0);
