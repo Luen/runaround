@@ -3,7 +3,7 @@ import { db } from '$lib/server/db';
 import { account, attempts, races } from '$lib/server/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 import { resultsHidden } from '$lib/reveal';
-import { ingestUploadedGpx } from '$lib/server/upload';
+import { ingestUploadedActivity } from '$lib/server/upload';
 import { garminEnabled } from '$lib/garmin';
 import { disconnectGarmin, garminAccountFor } from '$lib/server/garmin';
 import type { Actions, PageServerLoad } from './$types';
@@ -55,8 +55,9 @@ export const actions: Actions = {
 	upload: async ({ request, locals }) => {
 		if (!locals.user) throw redirect(302, '/login');
 		const file = (await request.formData()).get('activity');
-		if (!(file instanceof File)) return fail(400, { uploadError: 'Choose a GPX file to upload.' });
-		const result = await ingestUploadedGpx(locals.user.id, file);
+		if (!(file instanceof File))
+			return fail(400, { uploadError: 'Choose a GPX or FIT file to upload.' });
+		const result = await ingestUploadedActivity(locals.user.id, file);
 		if (!result.ok) return fail(400, { uploadError: result.message });
 		return { uploaded: result.matched };
 	}
