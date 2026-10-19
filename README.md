@@ -46,4 +46,5 @@ Cloudflare DNS should CNAME `@` and `www` to `cname.vercel-dns.com` (proxied ora
 - Admins publish Road or Trail races with a GPX course.
 - Runners log in with Strava. Activities are GPS-matched to the course (and to a Strava segment on migrated races).
 - Each race has a **race window** leaderboard and an **overall** all-time board.
+- Race windows are available as an iCalendar subscription (`/calendar.ics`) and a per-race `.ics` download.
 - Emails go out via Cloudflare Email Sending when a runner gains a place, and when the race window closes.
