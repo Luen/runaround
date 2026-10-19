@@ -11,6 +11,7 @@ import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
 import { effectiveRaceStatus } from '$lib/matching';
 import { raceEditable } from '$lib/race-edit';
+import { enqueueNewRaceNewsletter } from '$lib/server/newsletter';
 import type { Actions, PageServerLoad } from './$types';
 
 function slugify(value: string): string {
@@ -89,6 +90,7 @@ export const actions: Actions = {
 		}
 		const slugBase = slugify(parsed.data.title) || 'race';
 		const slug = `${slugBase}-${Date.now().toString(36)}`;
+		const status = computeRaceStatus(startsAt, endsAt);
 		await db.insert(races).values({
 			slug,
 			title: parsed.data.title,
@@ -96,7 +98,7 @@ export const actions: Actions = {
 			surface: parsed.data.surface,
 			startsAt,
 			endsAt,
-			status: computeRaceStatus(startsAt, endsAt),
+			status,
 			stravaSegmentId: parsed.data.stravaSegmentId || null,
 			resultsRevealAt,
 			teamSize: intField(parsed.data.teamSize, null),
@@ -107,6 +109,15 @@ export const actions: Actions = {
 			distanceM: lineStringLengthMeters(course.courseGeojson),
 			elevationGainM: course.elevationGainM
 		});
+		// Announce a newly published race (#168); closed test races are not news.
+		if (status === 'upcoming' || status === 'live') {
+			try {
+				await enqueueNewRaceNewsletter();
+			} catch (err) {
+				// The race is already saved; a failed announcement must not hide that.
+				console.error('New-race newsletter could not be queued', err);
+			}
+		}
 		throw redirect(303, `/races/${slug}`);
 	}
 };

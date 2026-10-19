@@ -168,11 +168,24 @@
 		<ul class="space-y-2">
 			{#each data.uploads as up (up.id)}
 				<li
-					class="flex flex-wrap items-center gap-3 rounded-lg border border-stone-200 bg-white p-3"
+					class="flex flex-wrap items-center gap-3 rounded-lg border bg-white p-3 {up.flaggedReason
+						? 'border-amber-400'
+						: 'border-stone-200'}"
 				>
 					<span class="font-medium">{up.name ?? 'Runner'}</span>
 					<span>{formatDuration(up.timeMs)}</span>
 					<span class="text-sm text-stone-500">{formatDateTime(up.startedAt)} · {up.fileName}</span>
+					{#if up.flaggedReason}
+						<span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900"
+							>Flagged: {up.flaggedReason}</span
+						>
+						<form method="post" action="?/clearUploadFlag" use:enhance>
+							<input type="hidden" name="attemptId" value={up.id} />
+							<button class="rounded-full border border-amber-300 px-3 py-1 text-sm" type="submit"
+								>Mark reviewed</button
+							>
+						</form>
+					{/if}
 					<form method="post" action="?/removeUpload" use:enhance>
 						<input type="hidden" name="attemptId" value={up.id} />
 						<button
@@ -183,5 +196,8 @@
 				</li>
 			{/each}
 		</ul>
+	{/if}
+	{#if form?.message}
+		<p class="text-red-700">{form.message}</p>
 	{/if}
 </section>

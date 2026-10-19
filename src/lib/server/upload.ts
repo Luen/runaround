@@ -1,6 +1,6 @@
 import { db } from './db';
 import { activities, attempts } from './db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { findSameRun, withActivityIngestion } from './activity-ingestion';
 import {
 	parseFitActivity,
@@ -10,6 +10,7 @@ import {
 	MAX_UPLOAD_BYTES,
 	type ParsedActivity
 } from '../activity-file';
+import { reviewUpload } from '../upload-review';
 import { matchActivityToRaces } from './sync';
 
 export type UploadResult =
@@ -74,13 +75,24 @@ export async function ingestUploadedActivity(userId: string, file: File): Promis
 			.returning();
 		if (!row) return { ok: false, message: 'You have already uploaded this file.' };
 
+		// #248: flag, never reject, uploads that look fabricated or copied.
+		const [otherRunner] = await database
+			.select({ id: activities.id })
+			.from(activities)
+			.where(and(eq(activities.uploadHash, hash), ne(activities.userId, userId)))
+			.limit(1);
+		const flaggedReason = reviewUpload(parsed, {
+			duplicateByOtherRunner: Boolean(otherRunner)
+		});
+
 		const matched = await matchActivityToRaces(
 			userId,
 			row,
 			parsed.timed,
 			true,
 			undefined,
-			database
+			database,
+			flaggedReason
 		);
 		if (matched.length === 0) {
 			// Keep nothing that did not count, so the runner can retry with a better file.

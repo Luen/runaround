@@ -31,6 +31,13 @@
 			required
 		/>
 	</label>
+	<label class="flex items-start gap-2 text-sm text-stone-700">
+		<input class="mt-1" type="checkbox" name="newsletter" checked={data.newsletterOptIn} />
+		<span
+			>Email me the monthly RunAround newsletter with upcoming races and recent winners. You can
+			unsubscribe at any time.</span
+		>
+	</label>
 	<button class="rounded-full bg-green-800 px-4 py-2 text-white" type="submit">Save email</button>
 	{#if form?.message}
 		<p class="text-red-700">{form.message}</p>

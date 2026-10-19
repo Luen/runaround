@@ -19,7 +19,7 @@ vi.mock('better-auth/svelte-kit', () => ({ sveltekitCookies: () => ({ id: 'test-
 vi.mock('./email', () => ({ sendEmail: vi.fn(async () => ({ ok: true })) }));
 
 import { db, postgresClient } from './db';
-import { account, attempts, jobs, races, user } from './db/schema';
+import { account, attempts, newsletterPendingOptIns, jobs, races, user } from './db/schema';
 import { sendEmail } from './email';
 import { auth } from './auth';
 import { load } from '../../routes/me/+page.server';
@@ -51,11 +51,21 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 		});
 		beforeEach(async () => {
 			vi.clearAllMocks();
-			await db.execute(sql`truncate table "user", races, jobs, verification cascade`);
+			await db.execute(
+				sql`truncate table "user", races, jobs, verification, newsletter_pending_opt_ins cascade`
+			);
 		});
 		afterAll(async () => {
 			vi.unstubAllEnvs();
 			await postgresClient.end();
+		});
+		it('claims newsletter consent ticked before the account existed (#168)', async () => {
+			await db.insert(newsletterPendingOptIns).values({ email: 'new@example.test' });
+			await verifyEmail('new@example.test');
+			const [runner] = await db.select().from(user);
+			expect(runner.newsletterOptIn).toBe(true);
+			expect(runner.newsletterOptInAt).not.toBeNull();
+			expect(await db.select().from(newsletterPendingOptIns)).toHaveLength(0);
 		});
 		it('does not claim athlete 123 through a strava-123 email local part', async () => {
 			const [race] = await db

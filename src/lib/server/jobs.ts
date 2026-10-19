@@ -10,7 +10,8 @@ export type JobType =
 	| 'poll_activities'
 	| 'full_rescan'
 	| 'race_end'
-	| 'garmin_activity';
+	| 'garmin_activity'
+	| 'newsletter';
 
 export async function enqueueJob(
 	type: JobType,
