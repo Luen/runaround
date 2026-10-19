@@ -83,10 +83,10 @@
 {/if}
 
 <section id="upload" class="mt-6 max-w-xl rounded-xl border border-stone-200 bg-white p-4">
-	<h2 class="text-lg font-semibold">Upload a run (GPX)</h2>
+	<h2 class="text-lg font-semibold">Upload a run (GPX or FIT)</h2>
 	<p class="mt-1 text-sm text-stone-600">
-		Export the recorded activity from your watch or app as GPX. It needs timestamps and has to cover
-		most of a published course. Matched runs count on the leaderboards like Strava runs.
+		Export the recorded activity from your watch or app as GPX or FIT. It needs timestamps and has
+		to cover most of a published course. Matched runs count on the leaderboards like Strava runs.
 	</p>
 	<form
 		method="post"
@@ -101,7 +101,12 @@
 			};
 		}}
 	>
-		<input type="file" name="activity" accept=".gpx,application/gpx+xml" required />
+		<input
+			type="file"
+			name="activity"
+			accept=".gpx,.fit,application/gpx+xml,application/octet-stream"
+			required
+		/>
 		<button
 			class="rounded-full bg-green-800 px-4 py-2 text-white disabled:opacity-60"
 			type="submit"
