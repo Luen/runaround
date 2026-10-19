@@ -4,7 +4,7 @@ Virtual running races in Townsville, North Queensland.
 
 ## Stack
 
-SvelteKit (adapter-node), PostgreSQL/PostGIS, Drizzle, Better Auth (Strava), MapLibre, Tailwind, Cloudflare Email Sending, Docker Compose.
+SvelteKit (adapter-node), PostgreSQL/PostGIS, Drizzle, Better Auth (magic link + Strava), MapLibre, Tailwind, Cloudflare Email Sending, Docker Compose.
 
 ## Local setup
 
@@ -19,7 +19,9 @@ Strava OAuth callback: `{ORIGIN}/api/auth/callback/strava`
 
 Webhook: `{ORIGIN}/api/strava/webhook`
 
-Onboarding email: `{ORIGIN}/onboarding/email` — new runners are sent here to add an email address, since Strava does not share one. Leave before adding an email and you keep getting redirected back here.
+Onboarding email: `{ORIGIN}/onboarding/email` — Strava runners are sent here to add an email address, since Strava does not share one. Leave before adding an email and you keep getting redirected back here.
+
+Magic-link login (`MAGIC_LINK_ENABLED=true` + Cloudflare email env): `{ORIGIN}/login` presents email first. New runners can opt in to the monthly newsletter on that form, in onboarding, or later on `/me`; every newsletter includes a signed `{ORIGIN}/newsletter/unsubscribe` link.
 
 ## Docker
 
@@ -44,6 +46,8 @@ Cloudflare DNS should CNAME `@` and `www` to `cname.vercel-dns.com` (proxied ora
 ## Product
 
 - Admins publish Road or Trail races with a GPX course.
-- Runners log in with Strava. Activities are GPS-matched to the course (and to a Strava segment on migrated races).
+- Runners log in with an email magic link (or Strava). Strava and Garmin are optional activity connections; GPX uploads work without either.
+- Activities are GPS-matched to the course (and to a Strava segment on migrated races).
 - Each race has a **race window** leaderboard and an **overall** all-time board.
-- Emails go out via Cloudflare Email Sending when a runner gains a place, and when the race window closes.
+- Emails go out via Cloudflare Email Sending when a runner gains a place, when the race window closes, and for the opt-in monthly newsletter.
+- Suspicious uploads are flagged for admin review on `/admin/races/:slug`; admins can clear the flag or remove the upload.

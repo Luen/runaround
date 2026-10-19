@@ -1,6 +1,14 @@
 import { siteOrigin } from '../origin';
 import { db } from './db';
-import { activities, attempts, emailSuppressions, races, rankSnapshots, user } from './db/schema';
+import {
+	activities,
+	attempts,
+	emailSuppressions,
+	newsletterSends,
+	races,
+	rankSnapshots,
+	user
+} from './db/schema';
 import { getActivity, getActivityStreams, listActivities } from './strava';
 import {
 	matchActivityToCourse,
@@ -21,6 +29,8 @@ import { and, desc, eq } from 'drizzle-orm';
 import { isPlaceholderEmail } from './identity';
 import { resultsHidden } from '../reveal';
 import { findSameRun, withActivityIngestion, type ActivityDatabase } from './activity-ingestion';
+import { buildNewsletterDigest, newsletterUnsubscribeUrl } from './newsletter';
+import { newsletterEmail, type NewsletterKind } from '../newsletter';
 
 const RUN_SPORTS = new Set(['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']);
 
@@ -153,7 +163,8 @@ export async function matchActivityToRaces(
 	timed: TimedPoint[],
 	hasTime: boolean,
 	segmentEfforts?: { segment?: { id: number }; elapsed_time: number }[],
-	database: ActivityDatabase = db
+	database: ActivityDatabase = db,
+	flaggedReason: string | null = null
 ) {
 	const published = await database.select().from(races);
 	const matched: {
@@ -212,7 +223,7 @@ export async function matchActivityToRaces(
 		if (prior) {
 			await database
 				.update(attempts)
-				.set({ timeMs, matchMethod: method, coveragePct: coverage, trace })
+				.set({ timeMs, matchMethod: method, coveragePct: coverage, trace, flaggedReason })
 				.where(eq(attempts.id, prior.id));
 		} else {
 			const [u] = await database.select().from(user).where(eq(user.id, userId)).limit(1);
@@ -227,7 +238,8 @@ export async function matchActivityToRaces(
 				matchMethod: method,
 				coveragePct: coverage,
 				source: 'live',
-				trace
+				trace,
+				flaggedReason
 			});
 		}
 
@@ -405,6 +417,42 @@ export async function sendQueuedEmail(payload: Record<string, unknown>) {
 				.insert(emailSuppressions)
 				.values({ email: u.email.toLowerCase(), reason: result.error })
 				.onConflictDoNothing();
+			return { skip: true as const };
+		}
+		return result;
+	}
+
+	if (kind === 'newsletter') {
+		if (!u.newsletterOptIn) return { skip: true as const };
+		const issue = String(payload.issue ?? '');
+		if (!issue) return { skip: true as const };
+		const [alreadySent] = await db
+			.select({ id: newsletterSends.id })
+			.from(newsletterSends)
+			.where(and(eq(newsletterSends.userId, userId), eq(newsletterSends.issue, issue)))
+			.limit(1);
+		if (alreadySent) return { skip: true as const };
+
+		const site = origin();
+		const digest = await buildNewsletterDigest();
+		const content = newsletterEmail({
+			name: u.name,
+			kind: (payload.issueKind === 'monthly' ? 'monthly' : 'new_race') satisfies NewsletterKind,
+			digest,
+			unsubscribeUrl: newsletterUnsubscribeUrl(userId, site),
+			origin: site
+		});
+		const result = await sendEmail({ to: u.email, ...content });
+		if (result.ok) {
+			await db.insert(newsletterSends).values({ userId, issue }).onConflictDoNothing();
+			return { sent: true as const };
+		}
+		if (result.suppressed) {
+			await db
+				.insert(emailSuppressions)
+				.values({ email: u.email.toLowerCase(), reason: result.error })
+				.onConflictDoNothing();
+			await db.insert(newsletterSends).values({ userId, issue }).onConflictDoNothing();
 			return { skip: true as const };
 		}
 		return result;

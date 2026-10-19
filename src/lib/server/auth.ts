@@ -14,6 +14,7 @@ import { enqueueJob } from './jobs';
 import { sendEmail } from './email';
 import { adminEmails, isPlaceholderEmail } from './identity';
 import { MAGIC_LINK_EXPIRES_S, magicLinkEmail, magicLinkEnabled } from './magic-link';
+import { claimPendingNewsletterOptIn } from './newsletter';
 
 // Empty/unset ORIGIN must not fall back to localhost in production: better-auth's
 // SvelteKit handler only serves /api/auth/* when the request origin matches
@@ -55,7 +56,9 @@ export const auth = betterAuth({
 		additionalFields: {
 			stravaAthleteId: { type: 'string', required: false, input: false },
 			isAdmin: { type: 'boolean', required: false, defaultValue: false, input: false },
-			needsEmail: { type: 'boolean', required: false, defaultValue: true, input: false }
+			needsEmail: { type: 'boolean', required: false, defaultValue: true, input: false },
+			newsletterOptIn: { type: 'boolean', required: false, defaultValue: false, input: false },
+			newsletterOptInAt: { type: 'date', required: false, input: false }
 		}
 	},
 	plugins: [
@@ -179,6 +182,15 @@ export const auth = betterAuth({
 							isAdmin: Boolean(verified && adminEmails().includes(created.email.toLowerCase()))
 						}
 					};
+				},
+				after: async (created) => {
+					// Consent ticked on the login form before this row existed (#168).
+					try {
+						await claimPendingNewsletterOptIn(created.id, created.email);
+					} catch (err) {
+						// Never fail sign-up because the newsletter preference could not be stored.
+						console.error('Newsletter consent could not be claimed', err);
+					}
 				}
 			}
 		}

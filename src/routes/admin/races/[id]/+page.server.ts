@@ -9,6 +9,7 @@ import { courseElevation, processUploadedGpx } from '$lib/server/elevation';
 import { computeRaceStatus } from '$lib/server/sync';
 import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
 import { raceEditable } from '$lib/race-edit';
+import { enqueueNewRaceNewsletter } from '$lib/server/newsletter';
 import type { Actions, PageServerLoad } from './$types';
 
 const schema = z.object({
@@ -39,7 +40,8 @@ export const load: PageServerLoad = async ({ params }) => {
 			name: attempts.importedName,
 			timeMs: attempts.timeMs,
 			startedAt: attempts.startedAt,
-			fileName: activities.name
+			fileName: activities.name,
+			flaggedReason: attempts.flaggedReason
 		})
 		.from(attempts)
 		.innerJoin(activities, eq(attempts.activityId, activities.id))
@@ -60,6 +62,20 @@ export const actions: Actions = {
 			return fail(400, { message: 'Could not remove that upload' });
 		}
 		return { removed: true };
+	},
+	clearUploadFlag: async ({ request, params }) => {
+		const id = String((await request.formData()).get('attemptId') ?? '');
+		const [race] = await db
+			.select({ id: races.id })
+			.from(races)
+			.where(eq(races.slug, params.id))
+			.limit(1);
+		if (!race || !id) return fail(400, { message: 'Could not clear that flag' });
+		await db
+			.update(attempts)
+			.set({ flaggedReason: null })
+			.where(and(eq(attempts.id, id), eq(attempts.raceId, race.id)));
+		return { flagCleared: true };
 	},
 	update: async ({ request, params }) => {
 		const [race] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
@@ -135,6 +151,16 @@ export const actions: Actions = {
 				updatedAt: new Date()
 			})
 			.where(eq(races.id, race.id));
+		// Draft → published is the only update that counts as a new race (#168).
+		const status = computeRaceStatus(startsAt, endsAt);
+		if (race.status === 'draft' && (status === 'upcoming' || status === 'live')) {
+			try {
+				await enqueueNewRaceNewsletter();
+			} catch (err) {
+				// The race is already saved; a failed announcement must not hide that.
+				console.error('New-race newsletter could not be queued', err);
+			}
+		}
 		throw redirect(303, `/races/${race.slug}`);
 	}
 };

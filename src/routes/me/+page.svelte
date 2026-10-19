@@ -82,6 +82,34 @@
 	</section>
 {/if}
 
+<section class="mt-6 max-w-xl rounded-xl border border-stone-200 bg-white p-4">
+	<h2 class="text-lg font-semibold">Newsletter</h2>
+	{#if data.newsletter.needsEmail}
+		<p class="mt-1 text-sm text-stone-600">
+			<a class="underline" href={resolve('/onboarding/email')}>Add an email address</a> to receive the
+			monthly newsletter.
+		</p>
+	{:else}
+		<p class="mt-1 text-sm text-stone-600">
+			One email a month with upcoming races and recent winners. Sent to {data.newsletter.email}.
+		</p>
+		<form method="post" action="?/newsletter" use:enhance class="mt-3 space-y-3">
+			<label class="flex items-start gap-2 text-sm text-stone-700">
+				<input class="mt-1" type="checkbox" name="enabled" checked={data.newsletter.optIn} />
+				<span>Email me the monthly RunAround newsletter. You can unsubscribe at any time.</span>
+			</label>
+			<button class="rounded-full border px-4 py-2 text-sm" type="submit"
+				>Save newsletter preference</button
+			>
+		</form>
+		{#if form?.newsletterUpdated !== undefined}
+			<p class="mt-2 text-green-800" role="status">
+				{form.newsletterUpdated ? 'You are subscribed.' : 'You are unsubscribed.'}
+			</p>
+		{/if}
+	{/if}
+</section>
+
 <section id="upload" class="mt-6 max-w-xl rounded-xl border border-stone-200 bg-white p-4">
 	<h2 class="text-lg font-semibold">Upload a run (GPX)</h2>
 	<p class="mt-1 text-sm text-stone-600">
