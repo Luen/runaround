@@ -59,7 +59,7 @@
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/speed-insights": "^2.0.0",
 		"better-auth": "^1.7.2",
-		"drizzle-orm": "^0.45.2",
+		"drizzle-orm": "^0.45.4",
 		"maplibre-gl": "^6.6.0",
 		"postgres": "^3.4.9",
 		"sharp": "^0.35.5",
