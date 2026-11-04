@@ -63,6 +63,16 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      # Schedule runs from develop (default branch); main may lag and lack these
+      # helpers. Restore them from the workflow commit; do not commit them here.
+      - name: Load nightly release helpers
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin "${{ github.sha }}"
+          git checkout "${{ github.sha }}" -- \
+            scripts/nightly-release-check.mjs \
+            scripts/nightlyRelease.mjs
+
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
