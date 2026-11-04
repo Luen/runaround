@@ -180,7 +180,7 @@ export const auth = betterAuth({
 							isAdmin: Boolean(verified && adminEmails().includes(created.email.toLowerCase()))
 						}
 					};
-				},
+				}
 			}
 		}
 	}
