@@ -34,6 +34,7 @@
 {#if data.fetchError}
 	<p class="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
 		Could not load release notes from GitHub right now. See
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external GitHub URL -->
 		<a class="underline" href="https://github.com/Luen/runaround/releases"
 			>github.com/Luen/runaround/releases</a
 		>.
@@ -46,6 +47,7 @@
 			<li class="border-b border-stone-200 pb-8 last:border-0">
 				<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
 					<h2 class="text-xl font-semibold text-green-900">
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external GitHub release URL -->
 						<a class="underline" href={release.url} rel="noreferrer">{release.name}</a>
 					</h2>
 					{#if release.prerelease}
