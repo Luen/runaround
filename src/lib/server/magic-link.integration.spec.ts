@@ -12,7 +12,7 @@ vi.mock('./db', async () => {
 	const postgresClient = postgres(configured ?? 'postgres://unused@127.0.0.1:1/runaround_test');
 	return { postgresClient, db: drizzle(postgresClient, { schema }) };
 });
-vi.mock('$app/environment', () => ({ building: false, dev: true }));
+vi.mock('$app/env', () => ({ building: false, dev: true }));
 vi.mock('../origin', () => ({ authBaseUrl: () => 'http://localhost:5173' }));
 vi.mock('$app/server', () => ({ getRequestEvent: vi.fn() }));
 vi.mock('better-auth/svelte-kit', () => ({ sveltekitCookies: () => ({ id: 'test-cookies' }) }));

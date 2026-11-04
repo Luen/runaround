@@ -11,7 +11,7 @@ import {
 	isJsonLikeContentType,
 	lineFromCoursePayload,
 	lineStringLengthMeters
-} from '$lib/geo';
+} from '#lib/geo.js';
 import {
 	courseCoverage,
 	matchActivityToCourse,
@@ -21,7 +21,7 @@ import {
 	effectiveRaceStatus,
 	timedPointsFromStreams,
 	ROAD_BUFFER_M
-} from '$lib/matching';
+} from '#lib/matching.js';
 
 describe('polyline and time helpers', () => {
 	it('decodes a short polyline', () => {
@@ -158,7 +158,7 @@ describe('timedPointsFromStreams', () => {
 });
 
 describe('courseOverlayFeatureCollection', () => {
-	const line: import('$lib/geo').LineString = {
+	const line: import('#lib/geo.js').LineString = {
 		type: 'LineString',
 		coordinates: [
 			[146.81, -19.26],
@@ -167,7 +167,7 @@ describe('courseOverlayFeatureCollection', () => {
 	};
 
 	it('returns a deep-cloned plain FeatureCollection for MapLibre', () => {
-		const proxiedLine = new Proxy(line, {}) as import('$lib/geo').LineString;
+		const proxiedLine = new Proxy(line, {}) as import('#lib/geo.js').LineString;
 		const races = [
 			{
 				id: 'r1',
@@ -228,7 +228,7 @@ describe('isJsonLikeContentType', () => {
 });
 
 describe('lineFromCoursePayload', () => {
-	const line: import('$lib/geo').LineString = {
+	const line: import('#lib/geo.js').LineString = {
 		type: 'LineString',
 		coordinates: [
 			[146.81, -19.26],
@@ -272,7 +272,7 @@ describe('colorForRaceId', () => {
 
 describe('lineStringLengthMeters', () => {
 	it('sums the haversine length along the line', () => {
-		const line: import('$lib/geo').LineString = {
+		const line: import('#lib/geo.js').LineString = {
 			type: 'LineString',
 			coordinates: [
 				[146.81, -19.26],

@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { races } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { races } from '#lib/server/db/schema.js';
 import { eq } from 'drizzle-orm';
-import { geojsonToGpx } from '$lib/geo';
+import { geojsonToGpx } from '#lib/geo.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {

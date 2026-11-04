@@ -1,15 +1,15 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
-import { db } from '$lib/server/db';
-import { activities, attempts, races } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { activities, attempts, races } from '#lib/server/db/schema.js';
 import { and, desc, eq } from 'drizzle-orm';
-import { removeUploadedAttempt } from '$lib/server/upload';
-import { geojsonToGpx, lineStringLengthMeters } from '$lib/geo';
-import { courseElevation, processUploadedGpx } from '$lib/server/elevation';
-import { computeRaceStatus } from '$lib/server/sync';
-import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
-import { raceEditable } from '$lib/race-edit';
-import { enqueueNewRaceNewsletter } from '$lib/server/newsletter';
+import { removeUploadedAttempt } from '#lib/server/upload.js';
+import { geojsonToGpx, lineStringLengthMeters } from '#lib/geo.js';
+import { courseElevation, processUploadedGpx } from '#lib/server/elevation.js';
+import { computeRaceStatus } from '#lib/server/sync.js';
+import { endOfBrisbaneDay, parseBrisbaneInputValue } from '#lib/dates.js';
+import { raceEditable } from '#lib/race-edit.js';
+import { enqueueNewRaceNewsletter } from '#lib/server/newsletter.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const schema = z.object({

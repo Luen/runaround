@@ -93,7 +93,7 @@ export const races = pgTable(
 		endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
 		status: raceStatus('status').notNull().default('draft'),
 		stravaSegmentId: text('strava_segment_id'),
-		courseGeojson: jsonb('course_geojson').$type<import('$lib/geo').LineString>().notNull(),
+		courseGeojson: jsonb('course_geojson').$type<import('#lib/geo.js').LineString>().notNull(),
 		gpx: text('gpx'),
 		distanceM: real('distance_m').notNull().default(0),
 		elevationGainM: real('elevation_gain_m').notNull().default(0),
@@ -162,7 +162,7 @@ export const attempts = pgTable(
 		source: attemptSource('source').notNull().default('live'),
 		effortUrl: text('effort_url'),
 		/** Downsampled on-course trace [epoch ms, lat, lng][] for team linking (#207). */
-		trace: jsonb('trace').$type<import('$lib/teams').TracePoint[]>(),
+		trace: jsonb('trace').$type<import('#lib/teams.js').TracePoint[]>(),
 		/** Why an uploaded attempt looks suspicious (#248); admins review or clear it. */
 		flaggedReason: text('flagged_reason'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()

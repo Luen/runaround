@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { CourseEditor } from '$lib/course-editor';
-	import { env } from '$env/dynamic/public';
+	import { CourseEditor } from '#lib/course-editor.js';
+	import { PUBLIC_MAPTILER_API_KEY } from '$app/env/public';
 	import { resolve } from '$app/paths';
-	import { outdoorsStyle, WANDERSTORIES_ATTRIBUTION } from '$lib/basemaps';
-	import { GeoJSONSource, Map, Marker, NavigationControl } from '$lib/maplibre';
-	import { joinLegs, lineDistanceM, type Coord } from '$lib/routing';
+	import { outdoorsStyle, WANDERSTORIES_ATTRIBUTION } from '#lib/basemaps.js';
+	import { GeoJSONSource, Map, Marker, NavigationControl } from '#lib/maplibre.js';
+	import { joinLegs, lineDistanceM, type Coord } from '#lib/routing.js';
 
 	let {
 		routingAvailable,
@@ -114,7 +114,7 @@
 	});
 
 	onMount(() => {
-		const key = env.PUBLIC_MAPTILER_API_KEY?.trim() || null;
+		const key = PUBLIC_MAPTILER_API_KEY?.trim() || null;
 		map = new Map({
 			container,
 			style: outdoorsStyle(key),

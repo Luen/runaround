@@ -24,17 +24,7 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			// Vercel sets VERCEL=1 at build time; Docker/local use adapter-node.
-			adapter: process.env.VERCEL === '1' ? adapterVercel() : adapterNode(),
-			env: {
-				// Explicit so Vercel's Sensitive env UI can verify the public prefix.
-				publicPrefix: 'PUBLIC_',
-				privatePrefix: ''
-			},
-			typescript: {
-				config: (config) => {
-					config.include.push('../drizzle.config.ts');
-				}
-			}
+			adapter: process.env.VERCEL === '1' ? adapterVercel() : adapterNode()
 		})
 	],
 	test: {

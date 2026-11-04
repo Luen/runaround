@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { authClient } from '$lib/auth-client';
-	import Seo from '$lib/components/Seo.svelte';
+	import { authClient } from '#lib/auth-client.js';
+	import Seo from '#lib/components/Seo.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();

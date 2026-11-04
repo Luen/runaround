@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { formatDateRange, formatDateTime } from '$lib/dates';
-	import ChallengeFriend from '$lib/components/ChallengeFriend.svelte';
-	import { challengeUrl } from '$lib/challenge';
-	import LeaderboardTable from '$lib/components/LeaderboardTable.svelte';
-	import TeamLeaderboardTable from '$lib/components/TeamLeaderboardTable.svelte';
-	import RaceMap from '$lib/components/RaceMap.svelte';
-	import Seo from '$lib/components/Seo.svelte';
-	import { raceCourseJsonUrl } from '$lib/geo';
-	import { sportsEventJsonLd } from '$lib/seo';
-	import { googleCalendarEventUrl } from '$lib/calendar';
+	import { formatDateRange, formatDateTime } from '#lib/dates.js';
+	import ChallengeFriend from '#lib/components/ChallengeFriend.svelte';
+	import { challengeUrl } from '#lib/challenge.js';
+	import LeaderboardTable from '#lib/components/LeaderboardTable.svelte';
+	import TeamLeaderboardTable from '#lib/components/TeamLeaderboardTable.svelte';
+	import RaceMap from '#lib/components/RaceMap.svelte';
+	import Seo from '#lib/components/Seo.svelte';
+	import { raceCourseJsonUrl } from '#lib/geo.js';
+	import { sportsEventJsonLd } from '#lib/seo.js';
+	import { googleCalendarEventUrl } from '#lib/calendar.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

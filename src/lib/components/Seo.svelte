@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { DEFAULT_OG_IMAGE, SITE_NAME, canonicalUrl, jsonLdScript } from '$lib/seo';
+	import { DEFAULT_OG_IMAGE, SITE_NAME, canonicalUrl, jsonLdScript } from '#lib/seo.js';
 
 	let {
 		title,

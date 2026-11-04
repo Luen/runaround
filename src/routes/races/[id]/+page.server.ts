@@ -1,11 +1,11 @@
 import { error } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { attempts, races } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { attempts, races } from '#lib/server/db/schema.js';
 import { and, count, eq } from 'drizzle-orm';
-import { overallLeaderboard, raceLeaderboard, teamLeaderboard } from '$lib/server/leaderboard';
-import { effectiveRaceStatus } from '$lib/matching';
-import { ensureRaceElevation } from '$lib/server/elevation-backfill';
-import { canSeeResults, resultsHidden } from '$lib/reveal';
+import { overallLeaderboard, raceLeaderboard, teamLeaderboard } from '#lib/server/leaderboard.js';
+import { effectiveRaceStatus } from '#lib/matching.js';
+import { ensureRaceElevation } from '#lib/server/elevation-backfill.js';
+import { canSeeResults, resultsHidden } from '#lib/reveal.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {

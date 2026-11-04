@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { formatDate } from '$lib/dates';
-	import { formatDuration } from '$lib/geo';
+	import { formatDate } from '#lib/dates.js';
+	import { formatDuration } from '#lib/geo.js';
 	import {
 		defaultSortDir,
 		safeHttpUrl,
 		sortRankedRows,
 		type SortDir,
 		type SortKey
-	} from '$lib/boards';
+	} from '#lib/boards.js';
 
 	type Row = {
 		rank: number;

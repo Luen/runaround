@@ -1,4 +1,4 @@
-import { siteOrigin } from '$lib/origin';
+import { siteOrigin } from '#lib/origin.js';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {

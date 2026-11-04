@@ -1,8 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db';
-import { user } from '$lib/server/db/schema';
-import { setNewsletterOptIn, verifyNewsletterUnsubscribe } from '$lib/server/newsletter';
+import { db } from '#lib/server/db/index.js';
+import { user } from '#lib/server/db/schema.js';
+import { setNewsletterOptIn, verifyNewsletterUnsubscribe } from '#lib/server/newsletter.js';
 import type { Actions, PageServerLoad } from './$types';
 
 function linkParams(url: URL) {

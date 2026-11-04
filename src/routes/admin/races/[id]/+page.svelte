@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import RaceMap from '$lib/components/RaceMap.svelte';
-	import Seo from '$lib/components/Seo.svelte';
-	import { formatDateTime, toBrisbaneInputValue } from '$lib/dates';
-	import { formatDuration, raceCourseJsonUrl } from '$lib/geo';
+	import RaceMap from '#lib/components/RaceMap.svelte';
+	import Seo from '#lib/components/Seo.svelte';
+	import { formatDateTime, toBrisbaneInputValue } from '#lib/dates.js';
+	import { formatDuration, raceCourseJsonUrl } from '#lib/geo.js';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();

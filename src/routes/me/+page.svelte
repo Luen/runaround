@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { formatDate } from '$lib/dates';
-	import { formatDuration } from '$lib/geo';
-	import Seo from '$lib/components/Seo.svelte';
+	import { formatDate } from '#lib/dates.js';
+	import { formatDuration } from '#lib/geo.js';
+	import Seo from '#lib/components/Seo.svelte';
 	import { enhance } from '$app/forms';
-	import { authClient } from '$lib/auth-client';
+	import { authClient } from '#lib/auth-client.js';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();

@@ -1,8 +1,8 @@
-import { filterRaceWindow, rankedLeaderboard } from '$lib/boards';
-import { effectiveRaceStatus } from '$lib/matching';
-import { canSeeResults } from '$lib/reveal';
-import { db } from '$lib/server/db';
-import { attempts, races } from '$lib/server/db/schema';
+import { filterRaceWindow, rankedLeaderboard } from '#lib/boards.js';
+import { effectiveRaceStatus } from '#lib/matching.js';
+import { canSeeResults } from '#lib/reveal.js';
+import { db } from '#lib/server/db/index.js';
+import { attempts, races } from '#lib/server/db/schema.js';
 import { desc, inArray } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 

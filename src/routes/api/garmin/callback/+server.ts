@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
-import { garminEnabled } from '$lib/garmin';
-import { connectGarmin } from '$lib/server/garmin';
+import { garminEnabled } from '#lib/garmin.js';
+import { connectGarmin } from '#lib/server/garmin.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals, url, cookies }) => {

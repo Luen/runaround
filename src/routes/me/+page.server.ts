@@ -1,12 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { db } from '$lib/server/db';
-import { account, attempts, races, user } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { account, attempts, races, user } from '#lib/server/db/schema.js';
 import { and, desc, eq } from 'drizzle-orm';
-import { resultsHidden } from '$lib/reveal';
-import { ingestUploadedActivity } from '$lib/server/upload';
-import { setNewsletterOptIn } from '$lib/server/newsletter';
-import { garminEnabled } from '$lib/garmin';
-import { disconnectGarmin, garminAccountFor } from '$lib/server/garmin';
+import { resultsHidden } from '#lib/reveal.js';
+import { ingestUploadedActivity } from '#lib/server/upload.js';
+import { setNewsletterOptIn } from '#lib/server/newsletter.js';
+import { garminEnabled } from '#lib/garmin.js';
+import { disconnectGarmin, garminAccountFor } from '#lib/server/garmin.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
