@@ -6,7 +6,7 @@ Living instructions for coding agents working on this repository. Not a human RE
 
 ## Project
 
-Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node` (Docker) or `@sveltejs/adapter-vercel` when `VERCEL=1` (selected in `svelte.config.js`), Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7 generic OAuth (Strava; `account.issuer` is `local:oauth:strava`), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`: the DB client (`src/lib/server/db/index.ts`) is `$app`-free and `assertDatabaseConfigured()` fails fast at runtime (not build) when `POSTGRES_URL` is missing. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`pnpm exec sv migrate` is major-version only).
+Townsville virtual races ([runaround.com.au](https://runaround.com.au)). SvelteKit 2 + Svelte 5 (runes) + TypeScript 6, `@sveltejs/adapter-node` (Docker) or `@sveltejs/adapter-vercel` when `VERCEL=1` (selected in `svelte.config.js`), Tailwind 4, Drizzle + Postgres (PostGIS image; course geometry is JSON LineString in JS), Better Auth 1.7.2 generic OAuth (Strava; `account.issuer` is `local:oauth:strava` via `accountIssuer` — stay on 1.7.2 until the issuer/schema migration for ≥1.7.3 is done), MapLibre, Zod, Vitest, Playwright. Runtime is Node 24 LTS (`Dockerfile`, `.nvmrc`, `package.json` `engines`). App and worker share `src/lib/server` except the worker must not import `$app/*`: the DB client (`src/lib/server/db/index.ts`) is `$app`-free and `assertDatabaseConfigured()` fails fast at runtime (not build) when `POSTGRES_URL` is missing. Stay on Kit 2 and TypeScript 6 until `svelte-check` peers TS 7 and Kit 3 is stable (`pnpm exec sv migrate` is major-version only).
 
 **DB URL:** Production (Vercel/Supabase) must set `POSTGRES_URL` (pooled). Optional fallback `POSTGRES_URL_NON_POOLING` for direct/migrate. Resolution lives in `src/lib/server/db/postgres-url.ts` (used by runtime and `drizzle.config.ts`). Do not use `DATABASE_URL`.
 
@@ -26,7 +26,13 @@ pnpm run test:unit -- --run
 pnpm exec playwright test     # builds + preview
 ```
 
-Docker: `docker compose up --build` (`db`, `web` on 4008, `worker`). `Dockerfile` and `compose.yaml` set `BODY_SIZE_LIMIT=5M` because adapter-node defaults to 512 KB but runner uploads allow 4 MB (#247); Vercel functions already accept 4.5 MB.
+Docker (local): `docker compose up --build` (`db`, `web` on 4008, `worker`). `Dockerfile` and `compose.yaml` set `BODY_SIZE_LIMIT=5M` because adapter-node defaults to 512 KB but runner uploads allow 4 MB (#247); Vercel functions already accept 4.5 MB.
+
+## Deploy / release
+
+- **Primary:** Vercel (adapter-vercel when `VERCEL=1`). Staging tracks `develop`; production tracks `main`.
+- **Optional self-host:** GHCR image `ghcr.io/luen/runaround` via `.github/workflows/docker-release.yml` (tag `v*` / dispatch / nightly call). Use `compose.ghcr.yml` with a **remote** `POSTGRES_URL` (no bundled Postgres). Same image runs `web` (migrate + `node build`) and `worker` (`tsx src/worker/index.ts`).
+- **Nightly deps:** `.github/workflows/nightly-minor-deps-release.yml` on `main` runs in-major `npm-check-updates` (3-day cooldown), commits tooling-only bumps, and on shipping changes patch-tags + GitHub Release + GHCR. Decision rules: `scripts/nightlyRelease.mjs`. Dependabot still opens review PRs to `develop`.
 
 ## Conventions
 
