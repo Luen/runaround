@@ -67,6 +67,9 @@ describe('parseFitActivity', () => {
 		expect(a.timed.length).toBe(61);
 		expect(a.timed.at(-1)?.t).toBe(120);
 		expect(a.timed[0].point.lat).toBeCloseTo(-19.3, 5);
+		// Fixture uses a non-zero timestamp&0x1f base, developer fields on records,
+		// and a prior event timestamp — all of which used to misalign the parser.
+		expect(a.timed[1].t).toBe(2);
 	});
 
 	it('rejects non-FIT data', () => {
