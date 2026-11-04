@@ -31,6 +31,8 @@ export const raceListingColumns = {
 export function withoutCourseBlobs<T extends { gpx?: unknown; courseGeojson?: unknown }>(
 	race: T
 ): Omit<T, 'gpx' | 'courseGeojson'> {
-	const { gpx: _gpx, courseGeojson: _course, ...rest } = race;
+	const rest = { ...race };
+	delete rest.gpx;
+	delete rest.courseGeojson;
 	return rest;
 }
