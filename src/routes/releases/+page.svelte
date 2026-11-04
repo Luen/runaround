@@ -34,7 +34,8 @@
 {#if data.fetchError}
 	<p class="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
 		Could not load release notes from GitHub right now. See
-		<a class="underline" href="https://github.com/Luen/runaround/releases">github.com/Luen/runaround/releases</a
+		<a class="underline" href="https://github.com/Luen/runaround/releases"
+			>github.com/Luen/runaround/releases</a
 		>.
 	</p>
 {:else if data.releases.length === 0}
@@ -48,7 +49,9 @@
 						<a class="underline" href={release.url} rel="noreferrer">{release.name}</a>
 					</h2>
 					{#if release.prerelease}
-						<span class="text-xs font-medium tracking-wide text-amber-800 uppercase">Pre-release</span>
+						<span class="text-xs font-medium tracking-wide text-amber-800 uppercase"
+							>Pre-release</span
+						>
 					{/if}
 					{#if release.publishedAt}
 						<span class="text-sm text-stone-500">{formatPublished(release.publishedAt)}</span>

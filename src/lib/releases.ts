@@ -32,7 +32,10 @@ export function parseGithubReleases(payload: unknown): ReleaseNote[] {
 			tag,
 			name: (typeof r.name === 'string' && r.name.trim()) || tag,
 			publishedAt: typeof r.published_at === 'string' ? r.published_at : null,
-			url: typeof r.html_url === 'string' ? r.html_url : `https://github.com/Luen/runaround/releases/tag/${encodeURIComponent(tag)}`,
+			url:
+				typeof r.html_url === 'string'
+					? r.html_url
+					: `https://github.com/Luen/runaround/releases/tag/${encodeURIComponent(tag)}`,
 			body: typeof r.body === 'string' ? r.body.trim() : '',
 			prerelease: Boolean(r.prerelease)
 		});
