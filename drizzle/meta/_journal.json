@@ -50,6 +50,13 @@
       "when": 1792115049420,
       "tag": "0006_garmin_activities",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792417701158,
+      "tag": "0007_newsletter_and_upload_review",
+      "breakpoints": true
     }
   ]
 }

@@ -19,17 +19,17 @@ vi.mock('better-auth/svelte-kit', () => ({ sveltekitCookies: () => ({ id: 'test-
 vi.mock('./email', () => ({ sendEmail: vi.fn(async () => ({ ok: true })) }));
 
 import { db, postgresClient } from './db';
-import { account, attempts, jobs, races, user } from './db/schema';
+import { account, attempts, newsletterPendingOptIns, jobs, races, user } from './db/schema';
 import { sendEmail } from './email';
 import { auth } from './auth';
 import { load } from '../../routes/me/+page.server';
 
-async function verifyEmail(email: string) {
+async function verifyEmail(email: string, callbackURL = '/me') {
 	const res = await auth.handler(
 		new Request('http://localhost:5173/api/auth/sign-in/magic-link', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:5173' },
-			body: JSON.stringify({ email, name: 'Runner', callbackURL: '/me' })
+			body: JSON.stringify({ email, name: 'Runner', callbackURL })
 		})
 	);
 	expect(res.status).toBe(200);
@@ -38,6 +38,13 @@ async function verifyEmail(email: string) {
 	const verified = await auth.handler(new Request(url));
 	expect(verified.status).toBe(302);
 	return verified;
+}
+
+function meLoad(runner: { id: string } & Record<string, unknown>, path = '/me') {
+	return load({
+		locals: { user: runner },
+		url: new URL(path, 'http://localhost:5173')
+	} as never);
 }
 
 describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
@@ -51,11 +58,30 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 		});
 		beforeEach(async () => {
 			vi.clearAllMocks();
-			await db.execute(sql`truncate table "user", races, jobs, verification cascade`);
+			await db.execute(
+				sql`truncate table "user", races, jobs, verification, newsletter_pending_opt_ins cascade`
+			);
 		});
 		afterAll(async () => {
 			vi.unstubAllEnvs();
 			await postgresClient.end();
+		});
+		it('applies newsletter consent from the magic-link callback (#168)', async () => {
+			await verifyEmail('new@example.test', '/me?newsletter=1');
+			const [runner] = await db.select().from(user);
+			await meLoad(runner, '/me?newsletter=1');
+			const [updated] = await db.select().from(user).where(eq(user.id, runner.id));
+			expect(updated.newsletterOptIn).toBe(true);
+			expect(updated.newsletterOptInAt).not.toBeNull();
+		});
+
+		it('does not subscribe from a pending email alone', async () => {
+			await db.insert(newsletterPendingOptIns).values({ email: 'new@example.test' });
+			await verifyEmail('new@example.test', '/me');
+			const [runner] = await db.select().from(user);
+			await meLoad(runner, '/me');
+			expect(runner.newsletterOptIn).toBe(false);
+			expect(await db.select().from(newsletterPendingOptIns)).toHaveLength(1);
 		});
 		it('does not claim athlete 123 through a strava-123 email local part', async () => {
 			const [race] = await db
@@ -111,7 +137,7 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			await verifyEmail('existing@example.test');
 			const [runner] = await db.select().from(user).where(eq(user.id, 'existing'));
 			expect(await db.select().from(account)).toHaveLength(0);
-			const data = await load({ locals: { user: runner } } as never);
+			const data = await meLoad(runner);
 			expect(data).toMatchObject({ hasStrava: false, stravaNeedsReconnect: true });
 			// Simulate the authenticated provider callback writing its verified account binding.
 			const ctx = await auth.$context;
@@ -122,7 +148,7 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 				accountId: '123',
 				accessToken: 'new-token'
 			});
-			expect(await load({ locals: { user: runner } } as never)).toMatchObject({
+			expect(await meLoad(runner)).toMatchObject({
 				hasStrava: true,
 				stravaNeedsReconnect: false
 			});

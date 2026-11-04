@@ -130,6 +130,19 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			expect(await db.select().from(activities)).toHaveLength(1);
 			expect(await db.select().from(attempts)).toHaveLength(1);
 		});
+		it('flags the same track uploaded by another runner (#248)', async () => {
+			await db
+				.insert(user)
+				.values({ id: 'other', name: 'Other', email: 'other@example.test', needsEmail: false });
+			expect((await ingestUploadedGpx('runner', file())).ok).toBe(true);
+			expect((await ingestUploadedGpx('other', file())).ok).toBe(true);
+			const rows = await db
+				.select({ userId: attempts.userId, flaggedReason: attempts.flaggedReason })
+				.from(attempts);
+			expect(rows).toHaveLength(2);
+			expect(rows.find((r) => r.userId === 'runner')?.flaggedReason).toBeNull();
+			expect(rows.find((r) => r.userId === 'other')?.flaggedReason).toMatch(/another runner/);
+		});
 		it('resumes a previously stored Garmin activity and idempotently handles redelivery', async () => {
 			await db
 				.insert(activities)

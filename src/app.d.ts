@@ -7,6 +7,8 @@ declare global {
 				stravaAthleteId?: string | null;
 				isAdmin?: boolean;
 				needsEmail?: boolean;
+				newsletterOptIn?: boolean;
+				newsletterOptInAt?: Date | null;
 			};
 			session?: Session;
 		}
