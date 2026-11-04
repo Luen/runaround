@@ -86,6 +86,10 @@
 				<a class="underline" href="https://www.facebook.com/RunAroundAUS">Facebook</a>
 				·
 				<a class="underline" href="https://www.instagram.com/runaroundaus/">Instagram</a>
+				·
+				<a class="underline" data-sveltekit-preload-code="viewport" href={resolve('/releases')}
+					>Release notes (v{data.appVersion})</a
+				>
 			</p>
 			<p><i>Townsville, North Queensland, Australia</i></p>
 			<p>

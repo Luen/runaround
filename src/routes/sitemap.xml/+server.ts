@@ -22,7 +22,8 @@ export const GET: RequestHandler = async () => {
 		'/about',
 		'/about/luen-warneke',
 		'/about/sidney-willis',
-		'/contact'
+		'/contact',
+		'/releases'
 	];
 	const urls = [
 		...staticPages.map((p) => loc(p)),
