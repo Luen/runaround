@@ -54,7 +54,8 @@ export const account = pgTable(
 		id: text('id').primaryKey(),
 		accountId: text('account_id').notNull(),
 		providerId: text('provider_id').notNull(),
-		issuer: text('issuer').notNull(),
+		/** Legacy Better Auth 1.7.0–1.7.2 column; nullable after 1.7.3+ (#security). */
+		issuer: text('issuer'),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
@@ -68,7 +69,7 @@ export const account = pgTable(
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		updatedAt: timestamp('updated_at').notNull().defaultNow()
 	},
-	(t) => [uniqueIndex('account_issuer_accountId_uidx').on(t.issuer, t.accountId)]
+	(t) => [uniqueIndex('account_provider_accountId_uidx').on(t.providerId, t.accountId)]
 ).enableRLS();
 
 export const verification = pgTable('verification', {
