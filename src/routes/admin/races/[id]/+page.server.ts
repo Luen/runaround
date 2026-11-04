@@ -155,7 +155,10 @@ export const actions: Actions = {
 		const status = computeRaceStatus(startsAt, endsAt);
 		if (race.status === 'draft' && (status === 'upcoming' || status === 'live')) {
 			try {
-				await enqueueNewRaceNewsletter();
+				await enqueueNewRaceNewsletter({
+					slug: race.slug,
+					title: parsed.data.title
+				});
 			} catch (err) {
 				// The race is already saved; a failed announcement must not hide that.
 				console.error('New-race newsletter could not be queued', err);

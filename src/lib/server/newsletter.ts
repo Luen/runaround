@@ -71,7 +71,8 @@ export async function setNewsletterOptIn(userId: string, enabled: boolean): Prom
 export async function enqueueNewsletterOnce(
 	issue: string,
 	kind: NewsletterKind,
-	runAt: Date = new Date()
+	runAt: Date = new Date(),
+	extra: Record<string, unknown> = {}
 ): Promise<boolean> {
 	const [existing] = await db
 		.select({ id: jobs.id })
@@ -85,7 +86,7 @@ export async function enqueueNewsletterOnce(
 		)
 		.limit(1);
 	if (existing) return false;
-	await enqueueJob('newsletter', { issue, kind }, runAt);
+	await enqueueJob('newsletter', { issue, kind, ...extra }, runAt);
 	return true;
 }
 
@@ -103,8 +104,50 @@ export async function ensureMonthlyNewsletter(now: Date = new Date()): Promise<v
 }
 
 /** Trigger a prompt announcement after a race is published. */
-export async function enqueueNewRaceNewsletter(now: Date = new Date()): Promise<boolean> {
-	return enqueueNewsletterOnce(newRaceIssue(now), 'new_race', now);
+export async function enqueueNewRaceNewsletter(
+	race: { slug: string; title: string },
+	now: Date = new Date()
+): Promise<boolean> {
+	return enqueueNewsletterOnce(newRaceIssue(race.slug, now), 'new_race', now, {
+		raceSlug: race.slug,
+		raceTitle: race.title
+	});
+}
+
+/** JSON-safe digest for job payloads (Dates → ISO strings). */
+export function serializeNewsletterDigest(digest: NewsletterDigest) {
+	return {
+		upcoming: digest.upcoming.map((race) => ({
+			...race,
+			startsAt: race.startsAt.toISOString(),
+			endsAt: race.endsAt.toISOString()
+		})),
+		winners: digest.winners
+	};
+}
+
+export function reviveNewsletterDigest(raw: unknown): NewsletterDigest | null {
+	if (!raw || typeof raw !== 'object') return null;
+	const upcoming = (raw as { upcoming?: unknown }).upcoming;
+	const winners = (raw as { winners?: unknown }).winners;
+	if (!Array.isArray(upcoming) || !Array.isArray(winners)) return null;
+	return {
+		upcoming: upcoming.map((race) => {
+			const r = race as NewsletterDigest['upcoming'][number] & {
+				startsAt: string | Date;
+				endsAt: string | Date;
+			};
+			return {
+				slug: String(r.slug),
+				title: String(r.title),
+				surface: String(r.surface),
+				distanceM: Number(r.distanceM),
+				startsAt: new Date(r.startsAt),
+				endsAt: new Date(r.endsAt)
+			};
+		}),
+		winners: winners as NewsletterDigest['winners']
+	};
 }
 
 /** Upcoming/live races plus top-three finishers from races closed in the last month. */
@@ -173,6 +216,31 @@ export async function sendNewsletterIssue(payload: Record<string, unknown>): Pro
 		).map((row) => row.userId)
 	);
 
+	// Build once per issue so every recipient shares the same content and we
+	// avoid N races+leaderboard scans during a bulk send.
+	const digest = await buildNewsletterDigest();
+	const raceSlug = typeof payload.raceSlug === 'string' ? payload.raceSlug : null;
+	const raceTitle = typeof payload.raceTitle === 'string' ? payload.raceTitle : null;
+	if (kind === 'new_race' && raceSlug) {
+		const featured = digest.upcoming.find((race) => race.slug === raceSlug);
+		if (featured) {
+			digest.upcoming = [featured, ...digest.upcoming.filter((race) => race.slug !== raceSlug)];
+		} else if (raceTitle) {
+			digest.upcoming = [
+				{
+					slug: raceSlug,
+					title: raceTitle,
+					surface: 'road',
+					distanceM: 0,
+					startsAt: new Date(),
+					endsAt: new Date()
+				},
+				...digest.upcoming
+			];
+		}
+	}
+
+	const digestPayload = serializeNewsletterDigest(digest);
 	let queued = 0;
 	for (const runner of recipients) {
 		if (!runner.email || isPlaceholderEmail(runner.email) || sent.has(runner.id)) continue;
@@ -180,7 +248,9 @@ export async function sendNewsletterIssue(payload: Record<string, unknown>): Pro
 			kind: 'newsletter',
 			userId: runner.id,
 			issue,
-			issueKind: kind
+			issueKind: kind,
+			digest: digestPayload,
+			featuredRaceTitle: raceTitle
 		});
 		queued += 1;
 	}

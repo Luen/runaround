@@ -25,9 +25,16 @@ describe('newsletter schedule (#168)', () => {
 		expect(nextMonthlySendAt(before).toISOString()).toBe('2026-09-30T22:00:00.000Z');
 	});
 
-	it('keeps new-race announcements to one per Brisbane day', () => {
-		expect(newRaceIssue(new Date('2026-10-18T13:00:00Z'))).toBe('races-2026-10-18');
-		expect(newRaceIssue(new Date('2026-10-18T14:00:00Z'))).toBe('races-2026-10-19');
+	it('keys new-race announcements per slug and Brisbane day', () => {
+		expect(newRaceIssue('river-run', new Date('2026-10-18T13:00:00Z'))).toBe(
+			'race-river-run-2026-10-18'
+		);
+		expect(newRaceIssue('hill-climb', new Date('2026-10-18T13:00:00Z'))).toBe(
+			'race-hill-climb-2026-10-18'
+		);
+		expect(newRaceIssue('river-run', new Date('2026-10-18T14:00:00Z'))).toBe(
+			'race-river-run-2026-10-19'
+		);
 	});
 });
 
@@ -65,15 +72,17 @@ describe('newsletterEmail', () => {
 		);
 	});
 
-	it('prefers the new race in the subject for announcements', () => {
+	it('prefers the featured race in the subject for announcements', () => {
 		const email = newsletterEmail({
 			name: 'Runner',
 			kind: 'new_race',
 			digest,
 			unsubscribeUrl: 'https://runaround.com.au/newsletter/unsubscribe?u=x&s=y',
-			origin: 'https://runaround.com.au'
+			origin: 'https://runaround.com.au',
+			featuredRaceTitle: 'Just Published'
 		});
-		expect(email.subject).toContain('River Run');
+		expect(email.subject).toContain('Just Published');
+		expect(email.subject).not.toContain('River Run');
 	});
 
 	it('escapes HTML in user-provided names', () => {

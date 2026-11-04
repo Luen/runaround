@@ -2,10 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import { auth } from '$lib/server/auth';
 import { magicLinkEnabled, safeNextPath } from '$lib/server/magic-link';
-import {
-	forgetPendingNewsletterOptIn,
-	rememberPendingNewsletterOptIn
-} from '$lib/server/newsletter';
+import { magicLinkRateLimited } from '$lib/server/magic-link-rate-limit';
 import type { Actions, PageServerLoad } from './$types';
 
 const signInSchema = z.object({
@@ -13,6 +10,14 @@ const signInSchema = z.object({
 	name: z.string().trim().max(100).optional(),
 	newsletter: z.string().optional()
 });
+
+/** Attach newsletter consent to the magic-link callback the requester must click. */
+function callbackWithNewsletter(next: string, newsletter: boolean): string {
+	if (!newsletter) return next;
+	const url = new URL(next, 'http://runaround.invalid');
+	url.searchParams.set('newsletter', '1');
+	return `${url.pathname}${url.search}`;
+}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (locals.user) throw redirect(302, '/me');
@@ -24,8 +29,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 export const actions: Actions = {
-	/** Email-first sign-in (#219). Consent is stored before the user row exists (#168). */
-	default: async ({ request, locals, url }) => {
+	/** Email-first sign-in (#219). Consent rides on the magic-link callback (#168). */
+	default: async ({ request, locals, url, getClientAddress }) => {
 		if (locals.user) throw redirect(303, '/me');
 		if (!magicLinkEnabled()) {
 			return fail(404, { emailError: 'Email sign-in is not enabled.' });
@@ -35,19 +40,20 @@ export const actions: Actions = {
 			return fail(400, { emailError: 'Enter a valid email address.' });
 		}
 		const email = parsed.data.email.toLowerCase();
-		if (parsed.data.newsletter === 'on') {
-			await rememberPendingNewsletterOptIn(email);
-		} else {
-			// Somebody who unticks the box must not inherit an abandoned opt-in.
-			await forgetPendingNewsletterOptIn(email);
+		const ip = getClientAddress();
+		if (magicLinkRateLimited(ip, email)) {
+			return fail(429, { emailError: 'Too many requests. Wait a minute and try again.' });
 		}
+
+		const next = safeNextPath(url.searchParams.get('next'));
+		const callbackURL = callbackWithNewsletter(next, parsed.data.newsletter === 'on');
 
 		try {
 			await auth.api.signInMagicLink({
 				body: {
 					email,
 					name: parsed.data.name || undefined,
-					callbackURL: safeNextPath(url.searchParams.get('next')),
+					callbackURL,
 					errorCallbackURL: '/login'
 				},
 				headers: request.headers

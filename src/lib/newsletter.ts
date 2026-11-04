@@ -50,9 +50,9 @@ export function nextMonthlySendAt(now: Date = new Date()): Date {
 	return new Date(Date.UTC(year, month, 1, 8 - 10));
 }
 
-/** Announcements published on the same Brisbane day collapse into one email. */
-export function newRaceIssue(now: Date = new Date()): string {
-	return `races-${toBrisbaneInputValue(now).slice(0, 10)}`;
+/** One announcement per race per Brisbane day (multiple publishes the same day stay distinct). */
+export function newRaceIssue(slug: string, now: Date = new Date()): string {
+	return `race-${slug}-${toBrisbaneInputValue(now).slice(0, 10)}`;
 }
 
 function escapeHtml(value: string): string {
@@ -65,14 +65,18 @@ export function newsletterEmail(opts: {
 	digest: NewsletterDigest;
 	unsubscribeUrl: string;
 	origin: string;
+	/** Featured race for new_race announcements (not merely the soonest upcoming). */
+	featuredRaceTitle?: string | null;
 }): { subject: string; html: string; text: string } {
-	const { name, kind, digest, unsubscribeUrl, origin } = opts;
+	const { name, kind, digest, unsubscribeUrl, origin, featuredRaceTitle } = opts;
 	const subject =
 		kind === 'monthly'
 			? 'Your RunAround monthly — races and recent results'
-			: digest.upcoming[0]
-				? `New RunAround race: ${digest.upcoming[0].title}`
-				: 'A new RunAround race is open';
+			: featuredRaceTitle
+				? `New RunAround race: ${featuredRaceTitle}`
+				: digest.upcoming[0]
+					? `New RunAround race: ${digest.upcoming[0].title}`
+					: 'A new RunAround race is open';
 
 	const raceLines = digest.upcoming.map(
 		(race) =>

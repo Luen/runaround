@@ -14,8 +14,6 @@ import { enqueueJob } from './jobs';
 import { sendEmail } from './email';
 import { adminEmails, isPlaceholderEmail } from './identity';
 import { MAGIC_LINK_EXPIRES_S, magicLinkEmail, magicLinkEnabled } from './magic-link';
-import { claimPendingNewsletterOptIn } from './newsletter';
-
 // Empty/unset ORIGIN must not fall back to localhost in production: better-auth's
 // SvelteKit handler only serves /api/auth/* when the request origin matches
 // baseURL, so a wrong baseURL 404s every auth route. Undefined = infer per request.
@@ -183,15 +181,6 @@ export const auth = betterAuth({
 						}
 					};
 				},
-				after: async (created) => {
-					// Consent ticked on the login form before this row existed (#168).
-					try {
-						await claimPendingNewsletterOptIn(created.id, created.email);
-					} catch (err) {
-						// Never fail sign-up because the newsletter preference could not be stored.
-						console.error('Newsletter consent could not be claimed', err);
-					}
-				}
 			}
 		}
 	}

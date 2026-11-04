@@ -29,7 +29,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { isPlaceholderEmail } from './identity';
 import { resultsHidden } from '../reveal';
 import { findSameRun, withActivityIngestion, type ActivityDatabase } from './activity-ingestion';
-import { buildNewsletterDigest, newsletterUnsubscribeUrl } from './newsletter';
+import { newsletterUnsubscribeUrl, reviveNewsletterDigest } from './newsletter';
 import { newsletterEmail, type NewsletterKind } from '../newsletter';
 
 const RUN_SPORTS = new Set(['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']);
@@ -434,13 +434,16 @@ export async function sendQueuedEmail(payload: Record<string, unknown>) {
 		if (alreadySent) return { skip: true as const };
 
 		const site = origin();
-		const digest = await buildNewsletterDigest();
+		const digest = reviveNewsletterDigest(payload.digest);
+		if (!digest) return { skip: true as const };
 		const content = newsletterEmail({
 			name: u.name,
 			kind: (payload.issueKind === 'monthly' ? 'monthly' : 'new_race') satisfies NewsletterKind,
 			digest,
 			unsubscribeUrl: newsletterUnsubscribeUrl(userId, site),
-			origin: site
+			origin: site,
+			featuredRaceTitle:
+				typeof payload.featuredRaceTitle === 'string' ? payload.featuredRaceTitle : null
 		});
 		const result = await sendEmail({ to: u.email, ...content });
 		if (result.ok) {

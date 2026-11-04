@@ -112,7 +112,7 @@ export const actions: Actions = {
 		// Announce a newly published race (#168); closed test races are not news.
 		if (status === 'upcoming' || status === 'live') {
 			try {
-				await enqueueNewRaceNewsletter();
+				await enqueueNewRaceNewsletter({ slug, title: parsed.data.title });
 			} catch (err) {
 				// The race is already saved; a failed announcement must not hide that.
 				console.error('New-race newsletter could not be queued', err);
