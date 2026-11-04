@@ -1,5 +1,5 @@
 import { error, redirect } from '@sveltejs/kit';
-import { garminAuthorizeUrl, garminEnabled, pkceChallenge, randomToken } from '$lib/garmin';
+import { garminAuthorizeUrl, garminEnabled, pkceChallenge, randomToken } from '#lib/garmin.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals, url, cookies }) => {

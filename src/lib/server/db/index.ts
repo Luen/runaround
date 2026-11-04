@@ -38,7 +38,7 @@ function databaseUrl(): string {
  * Fail fast in deployed runtimes when POSTGRES_URL is missing.
  *
  * This lives outside a top-level throw so the module stays importable during the
- * SvelteKit build (no `$app/environment`) and by the worker, which must not import
+ * SvelteKit build (no `$app/env`) and by the worker, which must not import
  * `$app/*`. Call it at server/work start; it throws only against a deployed env.
  */
 export function assertDatabaseConfigured(): void {

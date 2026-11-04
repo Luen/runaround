@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import RaceMap from '$lib/components/RaceMap.svelte';
-	import Seo from '$lib/components/Seo.svelte';
-	import { raceCourseJsonUrl } from '$lib/geo';
-	import { websiteJsonLd } from '$lib/seo';
+	import RaceMap from '#lib/components/RaceMap.svelte';
+	import Seo from '#lib/components/Seo.svelte';
+	import { raceCourseJsonUrl } from '#lib/geo.js';
+	import { websiteJsonLd } from '#lib/seo.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

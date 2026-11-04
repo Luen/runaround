@@ -1,8 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
-import { auth } from '$lib/server/auth';
-import { magicLinkEnabled, safeNextPath } from '$lib/server/magic-link';
-import { magicLinkRateLimited } from '$lib/server/magic-link-rate-limit';
+import { auth } from '#lib/server/auth.js';
+import { magicLinkEnabled, safeNextPath } from '#lib/server/magic-link.js';
+import { magicLinkRateLimited } from '#lib/server/magic-link-rate-limit.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const signInSchema = z.object({

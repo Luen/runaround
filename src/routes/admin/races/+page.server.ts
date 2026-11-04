@@ -1,17 +1,17 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
-import { db } from '$lib/server/db';
-import { races } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/index.js';
+import { races } from '#lib/server/db/schema.js';
 import { desc } from 'drizzle-orm';
-import { geojsonToGpx, lineStringLengthMeters } from '$lib/geo';
-import { parseDrawnCourse } from '$lib/routing';
-import { routingAvailable } from '$lib/server/routing';
-import { processUploadedGpx } from '$lib/server/elevation';
-import { computeRaceStatus } from '$lib/server/sync';
-import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
-import { effectiveRaceStatus } from '$lib/matching';
-import { raceEditable } from '$lib/race-edit';
-import { enqueueNewRaceNewsletter } from '$lib/server/newsletter';
+import { geojsonToGpx, lineStringLengthMeters } from '#lib/geo.js';
+import { parseDrawnCourse } from '#lib/routing.js';
+import { routingAvailable } from '#lib/server/routing.js';
+import { processUploadedGpx } from '#lib/server/elevation.js';
+import { computeRaceStatus } from '#lib/server/sync.js';
+import { endOfBrisbaneDay, parseBrisbaneInputValue } from '#lib/dates.js';
+import { effectiveRaceStatus } from '#lib/matching.js';
+import { raceEditable } from '#lib/race-edit.js';
+import { enqueueNewRaceNewsletter } from '#lib/server/newsletter.js';
 import type { Actions, PageServerLoad } from './$types';
 
 function slugify(value: string): string {

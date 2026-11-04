@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
+	import { PUBLIC_MAPTILER_API_KEY } from '$app/env/public';
 	import type { ResolvedPathname } from '$app/types';
 	import {
 		BASEMAP_OPTIONS,
@@ -7,16 +7,16 @@
 		styleForBasemap,
 		WANDERSTORIES_ATTRIBUTION,
 		type BasemapId
-	} from '$lib/basemaps';
-	import { GeoJSONSource, LngLatBounds, Map, NavigationControl, Popup } from '$lib/maplibre';
+	} from '#lib/basemaps.js';
+	import { GeoJSONSource, LngLatBounds, Map, NavigationControl, Popup } from '#lib/maplibre.js';
 	import {
 		courseOverlayFeatureCollection,
 		isJsonLikeContentType,
 		lineFromCoursePayload,
 		type CourseFeatureCollection,
 		type LineString
-	} from '$lib/geo';
-	import { routeEndpointFeatures } from '$lib/routeMarkers';
+	} from '#lib/geo.js';
+	import { routeEndpointFeatures } from '#lib/routeMarkers.js';
 
 	type RaceOverlay = {
 		id: string;
@@ -192,7 +192,7 @@
 
 	/** Non-empty MapTiler key for Outdoors (Wanderstories) + Satellite; null uses OSM raster and hides Satellite. */
 	function maptilerKey(): string | null {
-		const key = env.PUBLIC_MAPTILER_API_KEY?.trim();
+		const key = PUBLIC_MAPTILER_API_KEY?.trim();
 		return key ? key : null;
 	}
 

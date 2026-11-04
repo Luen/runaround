@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { z } from 'zod';
-import { routeLeg } from '$lib/server/routing';
+import { routeLeg } from '#lib/server/routing.js';
 import type { RequestHandler } from './$types';
 
 const coord = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);

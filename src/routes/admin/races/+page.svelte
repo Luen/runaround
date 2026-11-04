@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import Seo from '$lib/components/Seo.svelte';
-	import CourseDrawer from '$lib/components/CourseDrawer.svelte';
+	import Seo from '#lib/components/Seo.svelte';
+	import CourseDrawer from '#lib/components/CourseDrawer.svelte';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();

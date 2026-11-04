@@ -1,8 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { json, text } from '@sveltejs/kit';
-import { garminEnabled, type GarminActivityDetail } from '$lib/garmin';
-import { enqueueJob } from '$lib/server/jobs';
-import { forgetGarminUser } from '$lib/server/garmin';
+import { garminEnabled, type GarminActivityDetail } from '#lib/garmin.js';
+import { enqueueJob } from '#lib/server/jobs.js';
+import { forgetGarminUser } from '#lib/server/garmin.js';
 import type { RequestHandler } from './$types';
 
 /** Constant-time secret check; hashing first gives equal-length inputs. */

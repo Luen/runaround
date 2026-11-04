@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { challengeMessage, challengeText } from '$lib/challenge';
+	import { challengeMessage, challengeText } from '#lib/challenge.js';
 
 	let {
 		raceTitle,

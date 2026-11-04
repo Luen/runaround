@@ -11,7 +11,7 @@ import { resolvePostgresUrl } from '../lib/server/db/postgres-url';
  *   pnpm run grant-admin                      # every email in ADMIN_EMAILS
  *   pnpm run grant-admin -- someone@example.com
  *
- * Uses a raw client (not `$lib/server/db`) so it runs under tsx without `$app`.
+ * Uses a raw client (not `#lib/server/db`) so it runs under tsx without `$app`.
  */
 async function main() {
 	const cliEmails = process.argv

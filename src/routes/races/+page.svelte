@@ -2,10 +2,10 @@
 	import { resolve } from '$app/paths';
 
 	const racesHref = resolve('/races');
-	import RaceMap from '$lib/components/RaceMap.svelte';
-	import Seo from '$lib/components/Seo.svelte';
-	import { formatDuration, raceCourseJsonUrl } from '$lib/geo';
-	import { calendarFeedUrl, googleCalendarSubscribeUrl, webcalFeedUrl } from '$lib/calendar';
+	import RaceMap from '#lib/components/RaceMap.svelte';
+	import Seo from '#lib/components/Seo.svelte';
+	import { formatDuration, raceCourseJsonUrl } from '#lib/geo.js';
+	import { calendarFeedUrl, googleCalendarSubscribeUrl, webcalFeedUrl } from '#lib/calendar.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();

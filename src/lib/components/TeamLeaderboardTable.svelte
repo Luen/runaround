@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { formatDate } from '$lib/dates';
-	import { formatDuration } from '$lib/geo';
+	import { formatDate } from '#lib/dates.js';
+	import { formatDuration } from '#lib/geo.js';
 
 	type Team = {
 		rank: number;

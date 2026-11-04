@@ -1,5 +1,5 @@
 import { json, text } from '@sveltejs/kit';
-import { enqueueJob } from '$lib/server/jobs';
+import { enqueueJob } from '#lib/server/jobs.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -26,8 +26,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			body.aspect_type === 'update' ||
 			body.aspect_type === 'delete')
 	) {
-		const { db } = await import('$lib/server/db');
-		const { user } = await import('$lib/server/db/schema');
+		const { db } = await import('#lib/server/db/index.js');
+		const { user } = await import('#lib/server/db/schema.js');
 		const { eq } = await import('drizzle-orm');
 		const [u] = await db
 			.select()

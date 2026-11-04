@@ -1,4 +1,4 @@
-import { races } from '$lib/server/db/schema';
+import { races } from '#lib/server/db/schema.js';
 
 /**
  * Public listing / map pages must not ship `gpx` (large XML) or `courseGeojson`

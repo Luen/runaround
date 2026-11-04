@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Seo from '$lib/components/Seo.svelte';
-	import { personJsonLd } from '$lib/seo';
+	import Seo from '#lib/components/Seo.svelte';
+	import { personJsonLd } from '#lib/seo.js';
 	import { page } from '$app/state';
 
 	const description =

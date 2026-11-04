@@ -1,8 +1,8 @@
-import { raceListingColumns } from '$lib/server/race-select';
-import { db } from '$lib/server/db';
-import { races } from '$lib/server/db/schema';
+import { raceListingColumns } from '#lib/server/race-select.js';
+import { db } from '#lib/server/db/index.js';
+import { races } from '#lib/server/db/schema.js';
 import { desc } from 'drizzle-orm';
-import { effectiveRaceStatus } from '$lib/matching';
+import { effectiveRaceStatus } from '#lib/matching.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
