@@ -57,6 +57,13 @@
       "when": 1792417701158,
       "tag": "0007_newsletter_and_upload_review",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793773273016,
+      "tag": "0008_account_issuer_cleanup",
+      "breakpoints": true
     }
   ]
 }

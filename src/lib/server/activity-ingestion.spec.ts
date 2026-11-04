@@ -91,7 +91,6 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 				id: 'garmin-link',
 				userId: 'runner',
 				providerId: 'garmin',
-				issuer: 'local:oauth:garmin',
 				accountId: 'garmin-runner'
 			});
 			await db.insert(races).values({

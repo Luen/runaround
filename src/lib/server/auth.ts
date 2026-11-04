@@ -65,11 +65,11 @@ export const auth = betterAuth({
 				{
 					providerId: 'strava',
 					name: 'Strava',
-					accountIssuer: 'local:oauth:strava',
 					clientId: process.env.STRAVA_CLIENT_ID ?? '',
 					clientSecret: process.env.STRAVA_CLIENT_SECRET ?? '',
 					authorizationUrl: 'https://www.strava.com/oauth/authorize',
 					tokenUrl: 'https://www.strava.com/oauth/token',
+					// Strava rejects PKCE; Better Auth 1.7.3+ defaults pkce on for generic OAuth.
 					pkce: false,
 					scopes: ['read', 'activity:read_all', 'profile:read_all'],
 					authorizationUrlParams: { approval_prompt: 'auto' },

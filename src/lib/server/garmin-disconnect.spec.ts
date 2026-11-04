@@ -27,7 +27,6 @@ async function linkGarmin(expiresAt: Date) {
 		id: 'garmin-link',
 		userId: 'runner',
 		providerId: 'garmin',
-		issuer: 'local:oauth:garmin',
 		accountId: 'garmin-user',
 		accessToken: 'stale-token',
 		refreshToken: 'refresh-token',

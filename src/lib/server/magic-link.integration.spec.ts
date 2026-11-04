@@ -129,7 +129,6 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			await db.insert(account).values({
 				id: 'old',
 				userId: 'existing',
-				issuer: 'local:oauth:strava',
 				providerId: 'strava',
 				accountId: '123',
 				accessToken: 'old-token'
@@ -143,7 +142,6 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			const ctx = await auth.$context;
 			await ctx.internalAdapter.createAccount({
 				userId: runner.id,
-				issuer: 'local:oauth:strava',
 				providerId: 'strava',
 				accountId: '123',
 				accessToken: 'new-token'
@@ -173,7 +171,6 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			const ctx = await auth.$context;
 			await ctx.internalAdapter.createAccount({
 				userId: 'fresh',
-				issuer: 'local:oauth:strava',
 				providerId: 'strava',
 				accountId: '123',
 				accessToken: 'token'

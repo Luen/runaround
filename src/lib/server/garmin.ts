@@ -13,7 +13,6 @@ import {
 import { matchActivityToRaces } from './sync';
 
 export const GARMIN_PROVIDER = 'garmin';
-const GARMIN_ISSUER = 'local:oauth:garmin';
 
 type TokenResponse = {
 	access_token: string;
@@ -77,7 +76,7 @@ export async function connectGarmin(opts: {
 	const [existing] = await db
 		.select()
 		.from(account)
-		.where(and(eq(account.issuer, GARMIN_ISSUER), eq(account.accountId, garminUserId)))
+		.where(and(eq(account.providerId, GARMIN_PROVIDER), eq(account.accountId, garminUserId)))
 		.limit(1);
 	if (existing && existing.userId !== opts.userId) {
 		throw new Error('That Garmin account is already connected to another RunAround runner');
@@ -89,7 +88,6 @@ export async function connectGarmin(opts: {
 			id: crypto.randomUUID(),
 			accountId: garminUserId,
 			providerId: GARMIN_PROVIDER,
-			issuer: GARMIN_ISSUER,
 			userId: opts.userId,
 			...values
 		});
@@ -180,7 +178,7 @@ export async function disconnectGarmin(userId: string): Promise<void> {
 export async function forgetGarminUser(garminUserId: string): Promise<void> {
 	await db
 		.delete(account)
-		.where(and(eq(account.issuer, GARMIN_ISSUER), eq(account.accountId, garminUserId)));
+		.where(and(eq(account.providerId, GARMIN_PROVIDER), eq(account.accountId, garminUserId)));
 }
 
 /** Worker: store one pushed Garmin activity and match it. Returns why it was skipped, if it was. */
@@ -190,7 +188,7 @@ export async function ingestGarminActivity(detail: GarminActivityDetail): Promis
 	const [link] = await db
 		.select()
 		.from(account)
-		.where(and(eq(account.issuer, GARMIN_ISSUER), eq(account.accountId, detail.userId)))
+		.where(and(eq(account.providerId, GARMIN_PROVIDER), eq(account.accountId, detail.userId)))
 		.limit(1);
 	if (!link) return 'unknown garmin user';
 	const parsed = parseGarminActivity(detail);
