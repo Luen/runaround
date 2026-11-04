@@ -22,6 +22,7 @@ Canonical race URLs are `/races/:id` (legacy segment ids still work as slugs). P
 - [robots.txt](https://runaround.com.au/robots.txt): Crawl policy
 - [sitemap.xml](https://runaround.com.au/sitemap.xml): Indexable URLs
 - [humans.txt](https://runaround.com.au/humans.txt): Credits
+- [Web app manifest](https://runaround.com.au/manifest.webmanifest): PWA install metadata
 
 ## Optional
 
