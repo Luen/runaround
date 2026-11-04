@@ -62,8 +62,9 @@ describe('parseFitActivity', () => {
 		expect(a.name).toBe('Tiny FIT');
 		expect(a.startedAt.toISOString()).toBe('2026-03-06T21:00:00.000Z');
 		expect(a.elapsedS).toBe(120);
-		expect(a.distanceM).toBeGreaterThan(1200);
-		expect(a.distanceM).toBeLessThan(1500);
+		// Fixture follows the short ingestion-test course (~220 m) at lng 146.75.
+		expect(a.distanceM).toBeGreaterThan(200);
+		expect(a.distanceM).toBeLessThan(500);
 		expect(a.timed.length).toBe(61);
 		expect(a.timed.at(-1)?.t).toBe(120);
 		expect(a.timed[0].point.lat).toBeCloseTo(-19.3, 5);
