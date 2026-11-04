@@ -113,7 +113,8 @@ This repo uses **pnpm** (`packageManager` in `package.json`).
 
 - Install: `pnpm install` (do not use npm/yarn for installs in this repo).
 - Scripts: `pnpm run <script>` / `pnpm exec <bin>`.
-- Lockfile: `pnpm-lock.yaml` only â€” do not commit `package-lock.json` or `yarn.lock`.
+- Lockfile: `pnpm-lock.yaml` only — do not commit `package-lock.json` or `yarn.lock`.
 - Local disk: pnpm's content-addressable store shares package contents across checkouts on the same machine.
+- Do not pin `cookie` below `^2` in `pnpm.overrides`: SvelteKit 3 imports `parseCookie` from cookie 2.x; overriding to 0.7.x 500s every request.
 
 Course drawing edits are serialized by `CourseEditor` (`src/lib/course-editor.ts`); the parent form blocks publish while routing is pending.
