@@ -21,13 +21,17 @@
 	type RaceOverlay = {
 		id: string;
 		title: string;
-		geojson: LineString;
+		/** Inline geometry, or omit and set `courseUrl` so the client fetches it (#260). */
+		geojson?: LineString | null;
+		courseUrl?: string | null;
 		href?: string | null;
 		surface?: string | null;
 		status?: string | null;
 		distanceM?: number | null;
 		color?: string | null;
 	};
+
+	type ResolvedOverlay = RaceOverlay & { geojson: LineString };
 
 	let {
 		races = [],
@@ -54,6 +58,8 @@
 	let mapReady = $state(false);
 	/** LineString extracted from a successful `courseUrl` fetch. */
 	let fetchedFocus = $state<LineString | null>(null);
+	/** Client-fetched overlay geometry keyed by race id (#260 listing maps). */
+	let fetchedById = $state<Record<string, LineString>>({});
 	let basemap = $state<BasemapId>(DEFAULT_BASEMAP);
 	/** Bumps when a basemap style finishes loading so overlay $effect can retry. */
 	let styleGeneration = $state(0);
@@ -63,6 +69,7 @@
 	let prevOverlayRaces: RaceOverlay[] | undefined;
 	let prevOverlayFocus: LineString | null | undefined;
 	let prevOverlayFetched: LineString | null | undefined;
+	let prevFetchedById: Record<string, LineString> | undefined;
 
 	const SOURCE_ID = 'courses';
 	const CASING_LAYER_ID = 'courses-casing';
@@ -328,9 +335,18 @@
 		}
 	}
 
+	function resolvedOverlays(): ResolvedOverlay[] {
+		const out: ResolvedOverlay[] = [];
+		for (const r of races) {
+			const geojson = r.geojson ?? fetchedById[r.id] ?? null;
+			if (geojson) out.push({ ...r, geojson });
+		}
+		return out;
+	}
+
 	function drawCourses(
 		map: Map,
-		overlayRaces: RaceOverlay[],
+		overlayRaces: ResolvedOverlay[],
 		focusLine: LineString | null,
 		options: { fit?: boolean } = {}
 	) {
@@ -362,7 +378,7 @@
 	}
 
 	function repaintCourses(map: Map, fit: boolean) {
-		drawCourses(map, races, currentFocus(), { fit });
+		drawCourses(map, resolvedOverlays(), currentFocus(), { fit });
 	}
 
 	function applyBasemap(map: Map, id: BasemapId, fitAfter: boolean) {
@@ -459,6 +475,7 @@
 			prevOverlayRaces = undefined;
 			prevOverlayFocus = undefined;
 			prevOverlayFetched = undefined;
+			prevFetchedById = undefined;
 			map.remove();
 		};
 	}
@@ -495,12 +512,45 @@
 	});
 
 	$effect(() => {
+		const need = races.filter((r) => !r.geojson && r.courseUrl);
+		if (need.length === 0) {
+			fetchedById = {};
+			return;
+		}
+		let cancelled = false;
+		(async () => {
+			const next: Record<string, LineString> = {};
+			await Promise.all(
+				need.map(async (r) => {
+					const url = r.courseUrl;
+					if (!url) return;
+					try {
+						const res = await fetch(url, { credentials: 'same-origin' });
+						if (cancelled || !res.ok) return;
+						const contentType = res.headers.get('content-type') ?? '';
+						if (!isJsonLikeContentType(contentType)) return;
+						const line = lineFromCoursePayload(await res.json());
+						if (line) next[r.id] = line;
+					} catch {
+						// Leave missing — map draws whatever resolved.
+					}
+				})
+			);
+			if (!cancelled) fetchedById = next;
+		})();
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	$effect(() => {
 		const map = mapRef;
 		if (!map || !mapReady) return;
 		// Overlay data deps.
 		const r = races;
 		const f = focus;
 		const ff = fetchedFocus;
+		const fo = fetchedById;
 		// Re-run after basemap style.load (styleGeneration bump from applyBasemap).
 		void styleGeneration;
 		// During setStyle, sources are gone until style.load re-adds them.
@@ -508,10 +558,14 @@
 		// Fit only when overlay data changed — not on styleGeneration-only retries
 		// (basemap switch must keep the camera; applyBasemap already painted with fitAfter).
 		const dataChanged =
-			r !== prevOverlayRaces || f !== prevOverlayFocus || ff !== prevOverlayFetched;
+			r !== prevOverlayRaces ||
+			f !== prevOverlayFocus ||
+			ff !== prevOverlayFetched ||
+			fo !== prevFetchedById;
 		prevOverlayRaces = r;
 		prevOverlayFocus = f;
 		prevOverlayFetched = ff;
+		prevFetchedById = fo;
 		repaintCourses(map, dataChanged);
 	});
 </script>
