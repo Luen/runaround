@@ -3,10 +3,12 @@ import { activities, attempts } from './db/schema';
 import { eq } from 'drizzle-orm';
 import { findSameRun, withActivityIngestion } from './activity-ingestion';
 import {
+	parseFitActivity,
 	parseGpxActivity,
 	trackFingerprint,
 	UploadError,
-	MAX_UPLOAD_BYTES
+	MAX_UPLOAD_BYTES,
+	type ParsedActivity
 } from '../activity-file';
 import { matchActivityToRaces } from './sync';
 
@@ -14,22 +16,35 @@ export type UploadResult =
 	| { ok: true; matched: { slug: string; title: string; timeMs: number | null }[] }
 	| { ok: false; message: string };
 
-/** Runner GPX upload (#205): validate, store as an activity, run the course matcher. */
-export async function ingestUploadedGpx(userId: string, file: File): Promise<UploadResult> {
-	if (file.size === 0) return { ok: false, message: 'Choose a GPX file to upload.' };
+/** True when the filename or leading bytes identify a FIT activity. */
+function isFitFile(file: File, bytes: Uint8Array): boolean {
+	if (/\.fit$/i.test(file.name)) return true;
+	// Some watches/phones drop the extension; check the `.FIT` header signature.
+	return (
+		bytes.length >= 12 &&
+		bytes[8] === 0x2e &&
+		bytes[9] === 0x46 &&
+		bytes[10] === 0x49 &&
+		bytes[11] === 0x54
+	);
+}
+
+/** Runner activity upload (#205/#213): validate, store and run the course matcher. */
+export async function ingestUploadedActivity(userId: string, file: File): Promise<UploadResult> {
+	if (file.size === 0) return { ok: false, message: 'Choose a GPX or FIT file to upload.' };
 	if (file.size > MAX_UPLOAD_BYTES)
 		return {
 			ok: false,
 			message:
 				'That file is too large (4 MB max). Try trimming it or exporting without extra sensor data.'
 		};
-	if (/\.fit$/i.test(file.name)) {
-		return { ok: false, message: 'FIT files are not supported yet. Export the activity as GPX.' };
-	}
 
-	let parsed;
+	let parsed: ParsedActivity;
 	try {
-		parsed = parseGpxActivity(await file.text());
+		const bytes = new Uint8Array(await file.arrayBuffer());
+		parsed = isFitFile(file, bytes)
+			? parseFitActivity(bytes, file.name.replace(/\.fit$/i, '') || 'Uploaded run')
+			: parseGpxActivity(new TextDecoder().decode(bytes));
 	} catch (err) {
 		if (err instanceof UploadError) return { ok: false, message: err.message };
 		throw err;
@@ -87,6 +102,9 @@ export async function ingestUploadedGpx(userId: string, file: File): Promise<Upl
 		};
 	});
 }
+
+/** Kept for callers/tests written before FIT support; the pipeline is identical. */
+export const ingestUploadedGpx = ingestUploadedActivity;
 
 /** Admin removal of an uploaded attempt (and its activity when nothing else uses it). */
 export async function removeUploadedAttempt(attemptId: string, raceId?: string): Promise<boolean> {

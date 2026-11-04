@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { parseGpxActivity, trackFingerprint, UploadError } from './activity-file';
+import { parseFitActivity, parseGpxActivity, trackFingerprint, UploadError } from './activity-file';
+
+const fitFixture = readFileSync(new URL('./__fixtures__/tiny.fit', import.meta.url));
 
 const now = new Date('2027-03-10T00:00:00Z');
 
@@ -50,6 +53,35 @@ describe('parseGpxActivity', () => {
 		const a = parseGpxActivity(gpx([...run].reverse()), now);
 		expect(a.timed[0].t).toBe(0);
 		expect(a.timed[0].point.lat).toBeCloseTo(-19.3);
+	});
+});
+
+describe('parseFitActivity', () => {
+	it('parses positions, timestamps and compressed timestamp records', () => {
+		const a = parseFitActivity(fitFixture, 'Tiny FIT', now);
+		expect(a.name).toBe('Tiny FIT');
+		expect(a.startedAt.toISOString()).toBe('2026-03-06T21:00:00.000Z');
+		expect(a.elapsedS).toBe(120);
+		// Fixture follows the short ingestion-test course (~220 m) at lng 146.75.
+		expect(a.distanceM).toBeGreaterThan(200);
+		expect(a.distanceM).toBeLessThan(500);
+		expect(a.timed.length).toBe(61);
+		expect(a.timed.at(-1)?.t).toBe(120);
+		expect(a.timed[0].point.lat).toBeCloseTo(-19.3, 5);
+		// Fixture uses a non-zero timestamp&0x1f base, developer fields on records,
+		// and a prior event timestamp — all of which used to misalign the parser.
+		expect(a.timed[1].t).toBe(2);
+	});
+
+	it('rejects non-FIT data', () => {
+		expect(() => parseFitActivity(new Uint8Array([1, 2, 3]))).toThrow(UploadError);
+		expect(() => parseFitActivity(new Uint8Array(20))).toThrow(/not a FIT file/);
+	});
+
+	it('rejects a track dated in the future', () => {
+		expect(() =>
+			parseFitActivity(fitFixture, 'Tiny FIT', new Date('2026-01-01T00:00:00Z'))
+		).toThrow(/future/);
 	});
 });
 
