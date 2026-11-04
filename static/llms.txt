@@ -13,6 +13,7 @@ Canonical race URLs are `/races/:id` (legacy segment ids still work as slugs). P
 - [Race calendar](https://runaround.com.au/calendar.ics): Subscribe to every published race window (iCalendar)
 - [About](https://runaround.com.au/about): What RunAround is and how to enter
 - [Contact](https://runaround.com.au/contact): How to get in touch
+- [Release notes](https://runaround.com.au/releases): Version history from GitHub Releases
 - [Luen Warneke](https://runaround.com.au/about/luen-warneke): Site builder
 - [Sidney Willis](https://runaround.com.au/about/sidney-willis): Series founder (Hungry Runner Coaching)
 

@@ -3,6 +3,7 @@ import adapterVercel from '@sveltejs/adapter-vercel';
 import tailwindcss from '@tailwindcss/vite';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { readFileSync } from 'node:fs';
 import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 
@@ -10,6 +11,9 @@ const loaded = loadEnv('', process.cwd(), '');
 for (const [key, value] of Object.entries(loaded)) {
 	if (process.env[key] === undefined) process.env[key] = value;
 }
+
+const packageVersion = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
+	.version as string;
 
 export default defineConfig({
 	optimizeDeps: {
@@ -23,6 +27,8 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
+			// Keep `$app/env` `version` aligned with package.json / footer (#151).
+			version: { name: packageVersion },
 			// Vercel sets VERCEL=1 at build time; Docker/local use adapter-node.
 			adapter: process.env.VERCEL === '1' ? adapterVercel() : adapterNode()
 		})
