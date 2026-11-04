@@ -73,18 +73,41 @@ export async function stravaFetch<T>(userId: string, path: string): Promise<T | 
 	if (res.status === 429) {
 		throw new Error('STRAVA_RATE_LIMIT');
 	}
-	if (!res.ok) return null;
+	if (res.status === 404) return null;
+	if (!res.ok) {
+		// Surface failures so the worker retries instead of silently skipping the
+		// runner (#235). `STRAVA_HTTP_5xx` matches the worker's retry rule.
+		throw new Error(`STRAVA_HTTP_${res.status}`);
+	}
 	return (await res.json()) as T;
+}
+
+/**
+ * True only when Strava confirms, with the runner's own token, that the activity
+ * no longer exists (404). Webhook events are unsigned, so a delete is never
+ * trusted on its own (#233). No token / 401 / 403 → false (keep the activity).
+ */
+export async function stravaActivityDeleted(userId: string, activityId: string): Promise<boolean> {
+	const token = await refreshIfNeeded(userId);
+	if (!token) return false;
+	const res = await fetch(`${STRAVA}/activities/${encodeURIComponent(activityId)}`, {
+		headers: { Authorization: `Bearer ${token}` }
+	});
+	if (res.status === 429) throw new Error('STRAVA_RATE_LIMIT');
+	if (res.status >= 500) throw new Error(`STRAVA_HTTP_${res.status}`);
+	return res.status === 404;
 }
 
 export async function listActivities(
 	userId: string,
 	page = 1,
-	perPage = 50
+	perPage = 50,
+	after?: number
 ): Promise<StravaActivity[]> {
+	const afterParam = after === undefined ? '' : `&after=${after}`;
 	const data = await stravaFetch<StravaActivity[]>(
 		userId,
-		`/athlete/activities?page=${page}&per_page=${perPage}`
+		`/athlete/activities?page=${page}&per_page=${perPage}${afterParam}`
 	);
 	return data ?? [];
 }

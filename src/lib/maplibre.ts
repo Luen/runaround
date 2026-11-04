@@ -8,6 +8,7 @@ import {
 	GeoJSONSource,
 	LngLatBounds,
 	Map,
+	Marker,
 	NavigationControl,
 	Popup,
 	setWorkerUrl
@@ -17,4 +18,4 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 setWorkerUrl(workerUrl);
 
-export { GeoJSONSource, LngLatBounds, Map, NavigationControl, Popup };
+export { GeoJSONSource, LngLatBounds, Map, Marker, NavigationControl, Popup };

@@ -1,12 +1,20 @@
-/** True when a race has a course but no stored elevation gain yet. */
+import { hasUsableElevation, parseGpxElevations } from './elevation';
+
+/**
+ * True when a race has a course but no stored elevation gain yet. A race whose
+ * stored GPX already carries usable `<ele>` has been enriched — even when the
+ * gain is a genuine 0 m — so it must not trigger the DEM lookup again (#236).
+ */
 export function needsElevationBackfill(race: {
 	elevationGainM: number | null;
 	courseGeojson: { coordinates?: unknown[] } | null;
+	gpx?: string | null;
 }): boolean {
-	return (
-		!(race.elevationGainM && race.elevationGainM > 0) &&
-		(race.courseGeojson?.coordinates?.length ?? 0) >= 2
-	);
+	if (race.elevationGainM && race.elevationGainM > 0) return false;
+	const pointCount = race.courseGeojson?.coordinates?.length ?? 0;
+	if (pointCount < 2) return false;
+	if (race.gpx && hasUsableElevation(parseGpxElevations(race.gpx), pointCount)) return false;
+	return true;
 }
 
 /** Reject if `promise` hasn't settled within `ms` (the work itself keeps running). */

@@ -1,6 +1,6 @@
-import { siteOrigin } from '$lib/origin';
-import { db } from '$lib/server/db';
-import { races } from '$lib/server/db/schema';
+import { siteOrigin } from '#lib/origin.js';
+import { db } from '#lib/server/db/index.js';
+import { races } from '#lib/server/db/schema.js';
 import { inArray } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 
@@ -22,7 +22,8 @@ export const GET: RequestHandler = async () => {
 		'/about',
 		'/about/luen-warneke',
 		'/about/sidney-willis',
-		'/contact'
+		'/contact',
+		'/releases'
 	];
 	const urls = [
 		...staticPages.map((p) => loc(p)),

@@ -1,5 +1,5 @@
 import { json, text } from '@sveltejs/kit';
-import { enqueueJob } from '$lib/server/jobs';
+import { enqueueJob } from '#lib/server/jobs.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -21,10 +21,13 @@ export const POST: RequestHandler = async ({ request }) => {
 	};
 	if (
 		body.object_type === 'activity' &&
-		(body.aspect_type === 'create' || body.aspect_type === 'update')
+		body.object_id &&
+		(body.aspect_type === 'create' ||
+			body.aspect_type === 'update' ||
+			body.aspect_type === 'delete')
 	) {
-		const { db } = await import('$lib/server/db');
-		const { user } = await import('$lib/server/db/schema');
+		const { db } = await import('#lib/server/db/index.js');
+		const { user } = await import('#lib/server/db/schema.js');
 		const { eq } = await import('drizzle-orm');
 		const [u] = await db
 			.select()
@@ -32,7 +35,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			.where(eq(user.stravaAthleteId, String(body.owner_id)))
 			.limit(1);
 		if (u) {
-			await enqueueJob('match_activity', { userId: u.id, activityId: String(body.object_id) });
+			// Events are unsigned: a delete is only a hint the worker verifies with
+			// Strava before removing the run (#233).
+			const type = body.aspect_type === 'delete' ? 'delete_activity' : 'match_activity';
+			await enqueueJob(type, { userId: u.id, activityId: String(body.object_id) });
 		}
 	}
 	return json({ ok: true });

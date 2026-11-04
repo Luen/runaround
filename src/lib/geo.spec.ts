@@ -9,16 +9,19 @@ import {
 	colorForRaceId,
 	raceCourseJsonUrl,
 	isJsonLikeContentType,
-	lineFromCoursePayload
-} from '$lib/geo';
+	lineFromCoursePayload,
+	lineStringLengthMeters
+} from '#lib/geo.js';
 import {
 	courseCoverage,
 	matchActivityToCourse,
 	rankImproved,
 	inRaceWindow,
 	computeRaceStatus,
+	effectiveRaceStatus,
+	timedPointsFromStreams,
 	ROAD_BUFFER_M
-} from '$lib/matching';
+} from '#lib/matching.js';
 
 describe('polyline and time helpers', () => {
 	it('decodes a short polyline', () => {
@@ -108,10 +111,54 @@ describe('leaderboard rules', () => {
 		expect(computeRaceStatus(start, end, new Date('2022-01-15T00:00:00Z'))).toBe('live');
 		expect(computeRaceStatus(start, end, new Date('2022-02-01T00:00:00Z'))).toBe('closed');
 	});
+
+	it('derives displayed status from the clock but keeps drafts', () => {
+		const race = {
+			status: 'upcoming',
+			startsAt: new Date('2022-01-10T00:00:00Z'),
+			endsAt: new Date('2022-01-20T00:00:00Z')
+		};
+		expect(effectiveRaceStatus(race, new Date('2022-01-15T00:00:00Z'))).toBe('live');
+		expect(effectiveRaceStatus(race, new Date('2022-02-01T00:00:00Z'))).toBe('closed');
+		expect(
+			effectiveRaceStatus({ ...race, status: 'draft' }, new Date('2022-01-15T00:00:00Z'))
+		).toBe('draft');
+	});
+});
+
+describe('timedPointsFromStreams', () => {
+	it('requires both latlng and time streams', () => {
+		expect(timedPointsFromStreams(undefined, [0, 1])).toEqual({ timed: [], hasTime: false });
+		expect(
+			timedPointsFromStreams(
+				[
+					[1, 2],
+					[3, 4]
+				],
+				undefined
+			)
+		).toEqual({ timed: [], hasTime: false });
+		expect(timedPointsFromStreams([[1, 2]], [0])).toEqual({ timed: [], hasTime: false });
+	});
+
+	it('pairs points with real timestamps', () => {
+		const result = timedPointsFromStreams(
+			[
+				[1, 2],
+				[3, 4]
+			],
+			[0, 30]
+		);
+		expect(result.hasTime).toBe(true);
+		expect(result.timed).toEqual([
+			{ point: { lat: 1, lng: 2 }, t: 0 },
+			{ point: { lat: 3, lng: 4 }, t: 30 }
+		]);
+	});
 });
 
 describe('courseOverlayFeatureCollection', () => {
-	const line: import('$lib/geo').LineString = {
+	const line: import('#lib/geo.js').LineString = {
 		type: 'LineString',
 		coordinates: [
 			[146.81, -19.26],
@@ -120,7 +167,7 @@ describe('courseOverlayFeatureCollection', () => {
 	};
 
 	it('returns a deep-cloned plain FeatureCollection for MapLibre', () => {
-		const proxiedLine = new Proxy(line, {}) as import('$lib/geo').LineString;
+		const proxiedLine = new Proxy(line, {}) as import('#lib/geo.js').LineString;
 		const races = [
 			{
 				id: 'r1',
@@ -181,7 +228,7 @@ describe('isJsonLikeContentType', () => {
 });
 
 describe('lineFromCoursePayload', () => {
-	const line: import('$lib/geo').LineString = {
+	const line: import('#lib/geo.js').LineString = {
 		type: 'LineString',
 		coordinates: [
 			[146.81, -19.26],
@@ -220,5 +267,24 @@ describe('colorForRaceId', () => {
 
 	it('varies by id', () => {
 		expect(colorForRaceId('a')).not.toBe(colorForRaceId('b'));
+	});
+});
+
+describe('lineStringLengthMeters', () => {
+	it('sums the haversine length along the line', () => {
+		const line: import('#lib/geo.js').LineString = {
+			type: 'LineString',
+			coordinates: [
+				[146.81, -19.26],
+				[146.82, -19.26]
+			]
+		};
+		// 0.01° of longitude at this latitude is ~1.05 km.
+		expect(lineStringLengthMeters(line)).toBeGreaterThan(1000);
+		expect(lineStringLengthMeters(line)).toBeLessThan(1100);
+	});
+
+	it('is zero for a degenerate line', () => {
+		expect(lineStringLengthMeters({ type: 'LineString', coordinates: [[146.81, -19.26]] })).toBe(0);
 	});
 });

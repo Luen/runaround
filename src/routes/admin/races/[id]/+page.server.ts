@@ -1,12 +1,15 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
-import { db } from '$lib/server/db';
-import { races } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
-import { geojsonToGpx } from '$lib/geo';
-import { courseElevation, processUploadedGpx } from '$lib/server/elevation';
-import { computeRaceStatus } from '$lib/server/sync';
-import { endOfBrisbaneDay, parseBrisbaneInputValue } from '$lib/dates';
+import { db } from '#lib/server/db/index.js';
+import { activities, attempts, races } from '#lib/server/db/schema.js';
+import { and, desc, eq } from 'drizzle-orm';
+import { removeUploadedAttempt } from '#lib/server/upload.js';
+import { geojsonToGpx, lineStringLengthMeters } from '#lib/geo.js';
+import { courseElevation, processUploadedGpx } from '#lib/server/elevation.js';
+import { computeRaceStatus } from '#lib/server/sync.js';
+import { endOfBrisbaneDay, parseBrisbaneInputValue } from '#lib/dates.js';
+import { raceEditable } from '#lib/race-edit.js';
+import { enqueueNewRaceNewsletter } from '#lib/server/newsletter.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const schema = z.object({
@@ -15,19 +18,71 @@ const schema = z.object({
 	surface: z.enum(['road', 'trail']),
 	startsAt: z.string(),
 	endsAt: z.string(),
-	stravaSegmentId: z.string().optional()
+	stravaSegmentId: z.string().optional(),
+	resultsRevealAt: z.string().optional(),
+	teamSize: z.string().optional(),
+	teamMaxSeparationM: z.string().optional(),
+	teamMaxStartGapS: z.string().optional()
 });
+
+/** Optional positive integer form field; '' / missing → fallback. */
+function intField(value: string | undefined, fallback: number | null): number | null {
+	const n = Number.parseInt(value ?? '', 10);
+	return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
 export const load: PageServerLoad = async ({ params }) => {
 	const [race] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
 	if (!race) error(404, 'Race not found');
-	return { race };
+	const uploads = await db
+		.select({
+			id: attempts.id,
+			name: attempts.importedName,
+			timeMs: attempts.timeMs,
+			startedAt: attempts.startedAt,
+			fileName: activities.name,
+			flaggedReason: attempts.flaggedReason
+		})
+		.from(attempts)
+		.innerJoin(activities, eq(attempts.activityId, activities.id))
+		.where(and(eq(attempts.raceId, race.id), eq(activities.source, 'upload')))
+		.orderBy(desc(attempts.startedAt));
+	return { race, uploads, editable: raceEditable(race) };
 };
 
 export const actions: Actions = {
+	removeUpload: async ({ request, params }) => {
+		const id = String((await request.formData()).get('attemptId') ?? '');
+		const [race] = await db
+			.select({ id: races.id })
+			.from(races)
+			.where(eq(races.slug, params.id))
+			.limit(1);
+		if (!race || !id || !(await removeUploadedAttempt(id, race.id))) {
+			return fail(400, { message: 'Could not remove that upload' });
+		}
+		return { removed: true };
+	},
+	clearUploadFlag: async ({ request, params }) => {
+		const id = String((await request.formData()).get('attemptId') ?? '');
+		const [race] = await db
+			.select({ id: races.id })
+			.from(races)
+			.where(eq(races.slug, params.id))
+			.limit(1);
+		if (!race || !id) return fail(400, { message: 'Could not clear that flag' });
+		await db
+			.update(attempts)
+			.set({ flaggedReason: null })
+			.where(and(eq(attempts.id, id), eq(attempts.raceId, race.id)));
+		return { flagCleared: true };
+	},
 	update: async ({ request, params }) => {
 		const [race] = await db.select().from(races).where(eq(races.slug, params.id)).limit(1);
 		if (!race) error(404, 'Race not found');
+		if (!raceEditable(race)) {
+			return fail(403, { message: 'This race has finished and can no longer be edited.' });
+		}
 		const form = await request.formData();
 		const parsed = schema.safeParse(Object.fromEntries(form));
 		if (!parsed.success) return fail(400, { message: 'Check the race details' });
@@ -39,6 +94,14 @@ export const actions: Actions = {
 			endsAt = endOfBrisbaneDay(parseBrisbaneInputValue(parsed.data.endsAt));
 		} catch {
 			return fail(400, { message: 'Check the race dates' });
+		}
+		let resultsRevealAt: Date | null = null;
+		if (parsed.data.resultsRevealAt?.trim()) {
+			try {
+				resultsRevealAt = parseBrisbaneInputValue(parsed.data.resultsRevealAt);
+			} catch {
+				return fail(400, { message: 'Check the results reveal date' });
+			}
 		}
 		let courseGeojson = race.courseGeojson;
 		let gpx = race.gpx;
@@ -76,12 +139,31 @@ export const actions: Actions = {
 				endsAt,
 				status: computeRaceStatus(startsAt, endsAt),
 				stravaSegmentId: parsed.data.stravaSegmentId || null,
+				resultsRevealAt,
+				teamSize: intField(parsed.data.teamSize, null),
+				teamMaxSeparationM: intField(parsed.data.teamMaxSeparationM, 1000) ?? 1000,
+				teamMaxStartGapS: intField(parsed.data.teamMaxStartGapS, 300) ?? 300,
 				courseGeojson,
 				gpx,
+				// Keep distance in sync when the course is replaced (#232).
+				distanceM: lineStringLengthMeters(courseGeojson),
 				elevationGainM,
 				updatedAt: new Date()
 			})
 			.where(eq(races.id, race.id));
+		// Draft → published is the only update that counts as a new race (#168).
+		const status = computeRaceStatus(startsAt, endsAt);
+		if (race.status === 'draft' && (status === 'upcoming' || status === 'live')) {
+			try {
+				await enqueueNewRaceNewsletter({
+					slug: race.slug,
+					title: parsed.data.title
+				});
+			} catch (err) {
+				// The race is already saved; a failed announcement must not hide that.
+				console.error('New-race newsletter could not be queued', err);
+			}
+		}
 		throw redirect(303, `/races/${race.slug}`);
 	}
 };

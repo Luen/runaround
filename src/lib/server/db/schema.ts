@@ -29,7 +29,10 @@ export const user = pgTable('user', {
 	updatedAt: timestamp('updated_at').notNull().defaultNow(),
 	stravaAthleteId: text('strava_athlete_id').unique(),
 	isAdmin: boolean('is_admin').notNull().default(false),
-	needsEmail: boolean('needs_email').notNull().default(true)
+	needsEmail: boolean('needs_email').notNull().default(true),
+	/** Monthly newsletter (#168); only set from an explicit opt-in. */
+	newsletterOptIn: boolean('newsletter_opt_in').notNull().default(false),
+	newsletterOptInAt: timestamp('newsletter_opt_in_at', { withTimezone: true })
 }).enableRLS();
 
 export const session = pgTable('session', {
@@ -51,7 +54,8 @@ export const account = pgTable(
 		id: text('id').primaryKey(),
 		accountId: text('account_id').notNull(),
 		providerId: text('provider_id').notNull(),
-		issuer: text('issuer').notNull(),
+		/** Legacy Better Auth 1.7.0–1.7.2 column; nullable after 1.7.3+ (#security). */
+		issuer: text('issuer'),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
@@ -65,7 +69,7 @@ export const account = pgTable(
 		createdAt: timestamp('created_at').notNull().defaultNow(),
 		updatedAt: timestamp('updated_at').notNull().defaultNow()
 	},
-	(t) => [uniqueIndex('account_issuer_accountId_uidx').on(t.issuer, t.accountId)]
+	(t) => [uniqueIndex('account_provider_accountId_uidx').on(t.providerId, t.accountId)]
 ).enableRLS();
 
 export const verification = pgTable('verification', {
@@ -90,12 +94,18 @@ export const races = pgTable(
 		endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
 		status: raceStatus('status').notNull().default('draft'),
 		stravaSegmentId: text('strava_segment_id'),
-		courseGeojson: jsonb('course_geojson').$type<import('$lib/geo').LineString>().notNull(),
+		courseGeojson: jsonb('course_geojson').$type<import('#lib/geo.js').LineString>().notNull(),
 		gpx: text('gpx'),
 		distanceM: real('distance_m').notNull().default(0),
 		elevationGainM: real('elevation_gain_m').notNull().default(0),
 		elevationProfileUrl: text('elevation_profile_url'),
 		raceEndEmailsSentAt: timestamp('race_end_emails_sent_at', { withTimezone: true }),
+		/** When set, times/ranks stay hidden from everyone but admins until this instant. */
+		resultsRevealAt: timestamp('results_reveal_at', { withTimezone: true }),
+		/** Team board (#207): runners auto-linked into teams of exactly this size; null = off. */
+		teamSize: integer('team_size'),
+		teamMaxSeparationM: integer('team_max_separation_m').notNull().default(1000),
+		teamMaxStartGapS: integer('team_max_start_gap_s').notNull().default(300),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
@@ -109,7 +119,14 @@ export const activities = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		stravaActivityId: text('strava_activity_id').notNull(),
+		/** Null for non-Strava activities (uploads #205, Garmin #107). */
+		stravaActivityId: text('strava_activity_id'),
+		/** 'strava' | 'upload' | 'garmin'. */
+		source: text('source').notNull().default('strava'),
+		/** Track fingerprint for uploaded files, to reject duplicates per runner. */
+		uploadHash: text('upload_hash'),
+		/** Garmin Connect activity id (#107). */
+		garminActivityId: text('garmin_activity_id'),
 		sport: text('sport').notNull().default('Run'),
 		name: text('name').notNull().default(''),
 		startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
@@ -122,6 +139,8 @@ export const activities = pgTable(
 	},
 	(t) => [
 		uniqueIndex('activities_strava_id_idx').on(t.stravaActivityId),
+		uniqueIndex('activities_user_upload_hash_idx').on(t.userId, t.uploadHash),
+		uniqueIndex('activities_garmin_id_idx').on(t.garminActivityId),
 		index('activities_user_idx').on(t.userId)
 	]
 ).enableRLS();
@@ -143,6 +162,10 @@ export const attempts = pgTable(
 		coveragePct: real('coverage_pct'),
 		source: attemptSource('source').notNull().default('live'),
 		effortUrl: text('effort_url'),
+		/** Downsampled on-course trace [epoch ms, lat, lng][] for team linking (#207). */
+		trace: jsonb('trace').$type<import('#lib/teams.js').TracePoint[]>(),
+		/** Why an uploaded attempt looks suspicious (#248); admins review or clear it. */
+		flaggedReason: text('flagged_reason'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
 	(t) => [
@@ -190,3 +213,26 @@ export const emailSuppressions = pgTable('email_suppressions', {
 	reason: text('reason').notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }).enableRLS();
+
+/**
+ * Consent given on the email-first login form before the user row exists (#168).
+ * It is claimed by the magic-link create hook, or by /me for an existing runner.
+ */
+export const newsletterPendingOptIns = pgTable('newsletter_pending_opt_ins', {
+	email: text('email').primaryKey(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}).enableRLS();
+
+/** One row per runner and newsletter issue, so retries never send twice (#168). */
+export const newsletterSends = pgTable(
+	'newsletter_sends',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		issue: text('issue').notNull(),
+		sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [uniqueIndex('newsletter_sends_user_issue_idx').on(t.userId, t.issue)]
+).enableRLS();

@@ -1,9 +1,14 @@
-import type { Handle } from '@sveltejs/kit';
-import { building } from '$app/environment';
 import { redirect } from '@sveltejs/kit';
-import { auth } from '$lib/server/auth';
-import { isPlaceholderEmail } from '$lib/server/identity';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { building } from '$app/env';
+import { auth } from '#lib/server/auth.js';
+import { assertDatabaseConfigured } from '#lib/server/db/index.js';
+import { isPlaceholderEmail } from '#lib/server/identity.js';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
+
+// Fail fast at runtime when POSTGRES_URL is missing, but never during the SvelteKit
+// build (which imports this module without runtime env vars).
+if (!building) assertDatabaseConfigured();
 
 const crawlerLinks =
 	'</llms.txt>; rel="describedby", </humans.txt>; rel="author", </sitemap.xml>; rel="sitemap"';

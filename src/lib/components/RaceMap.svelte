@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
+	import { PUBLIC_MAPTILER_API_KEY } from '$app/env/public';
 	import type { ResolvedPathname } from '$app/types';
 	import {
 		BASEMAP_OPTIONS,
@@ -7,27 +7,31 @@
 		styleForBasemap,
 		WANDERSTORIES_ATTRIBUTION,
 		type BasemapId
-	} from '$lib/basemaps';
-	import { GeoJSONSource, LngLatBounds, Map, NavigationControl, Popup } from '$lib/maplibre';
+	} from '#lib/basemaps.js';
+	import { GeoJSONSource, LngLatBounds, Map, NavigationControl, Popup } from '#lib/maplibre.js';
 	import {
 		courseOverlayFeatureCollection,
 		isJsonLikeContentType,
 		lineFromCoursePayload,
 		type CourseFeatureCollection,
 		type LineString
-	} from '$lib/geo';
-	import { routeEndpointFeatures } from '$lib/routeMarkers';
+	} from '#lib/geo.js';
+	import { routeEndpointFeatures } from '#lib/routeMarkers.js';
 
 	type RaceOverlay = {
 		id: string;
 		title: string;
-		geojson: LineString;
+		/** Inline geometry, or omit and set `courseUrl` so the client fetches it (#260). */
+		geojson?: LineString | null;
+		courseUrl?: string | null;
 		href?: string | null;
 		surface?: string | null;
 		status?: string | null;
 		distanceM?: number | null;
 		color?: string | null;
 	};
+
+	type ResolvedOverlay = RaceOverlay & { geojson: LineString };
 
 	let {
 		races = [],
@@ -45,10 +49,17 @@
 
 	let shell = $state<HTMLDivElement | null>(null);
 	let isFullscreen = $state(false);
+	/**
+	 * CSS "pseudo" fullscreen for browsers without the element Fullscreen API
+	 * (notably iPhone Safari, where `requestFullscreen` is undefined on divs). See #202.
+	 */
+	let isPseudoFullscreen = $state(false);
 	let mapRef = $state<Map | null>(null);
 	let mapReady = $state(false);
 	/** LineString extracted from a successful `courseUrl` fetch. */
 	let fetchedFocus = $state<LineString | null>(null);
+	/** Client-fetched overlay geometry keyed by race id (#260 listing maps). */
+	let fetchedById = $state<Record<string, LineString>>({});
 	let basemap = $state<BasemapId>(DEFAULT_BASEMAP);
 	/** Bumps when a basemap style finishes loading so overlay $effect can retry. */
 	let styleGeneration = $state(0);
@@ -58,6 +69,7 @@
 	let prevOverlayRaces: RaceOverlay[] | undefined;
 	let prevOverlayFocus: LineString | null | undefined;
 	let prevOverlayFetched: LineString | null | undefined;
+	let prevFetchedById: Record<string, LineString> | undefined;
 
 	const SOURCE_ID = 'courses';
 	const CASING_LAYER_ID = 'courses-casing';
@@ -180,7 +192,7 @@
 
 	/** Non-empty MapTiler key for Outdoors (Wanderstories) + Satellite; null uses OSM raster and hides Satellite. */
 	function maptilerKey(): string | null {
-		const key = env.PUBLIC_MAPTILER_API_KEY?.trim();
+		const key = PUBLIC_MAPTILER_API_KEY?.trim();
 		return key ? key : null;
 	}
 
@@ -189,16 +201,39 @@
 	);
 
 	function syncFullscreen() {
-		isFullscreen = document.fullscreenElement === shell;
+		isFullscreen = isPseudoFullscreen || document.fullscreenElement === shell;
+	}
+
+	function setPseudoFullscreen(on: boolean) {
+		isPseudoFullscreen = on;
+		document.documentElement.style.overflow = on ? 'hidden' : '';
+		syncFullscreen();
+		requestAnimationFrame(() => mapRef?.resize());
 	}
 
 	async function toggleFullscreen() {
 		if (!shell) return;
+		if (isPseudoFullscreen) {
+			setPseudoFullscreen(false);
+			return;
+		}
 		if (document.fullscreenElement === shell) {
 			await document.exitFullscreen();
-		} else {
-			await shell.requestFullscreen();
+			return;
 		}
+		if (typeof shell.requestFullscreen === 'function' && document.fullscreenEnabled) {
+			try {
+				await shell.requestFullscreen();
+				return;
+			} catch {
+				// Fall through to the CSS fallback (e.g. blocked by permissions policy).
+			}
+		}
+		setPseudoFullscreen(true);
+	}
+
+	function onWindowKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && isPseudoFullscreen) setPseudoFullscreen(false);
 	}
 
 	function ensureCourseLayers(map: Map, initialData?: CourseFeatureCollection) {
@@ -300,9 +335,18 @@
 		}
 	}
 
+	function resolvedOverlays(): ResolvedOverlay[] {
+		const out: ResolvedOverlay[] = [];
+		for (const r of races) {
+			const geojson = r.geojson ?? fetchedById[r.id] ?? null;
+			if (geojson) out.push({ ...r, geojson });
+		}
+		return out;
+	}
+
 	function drawCourses(
 		map: Map,
-		overlayRaces: RaceOverlay[],
+		overlayRaces: ResolvedOverlay[],
 		focusLine: LineString | null,
 		options: { fit?: boolean } = {}
 	) {
@@ -334,7 +378,7 @@
 	}
 
 	function repaintCourses(map: Map, fit: boolean) {
-		drawCourses(map, races, currentFocus(), { fit });
+		drawCourses(map, resolvedOverlays(), currentFocus(), { fit });
 	}
 
 	function applyBasemap(map: Map, id: BasemapId, fitAfter: boolean) {
@@ -419,6 +463,7 @@
 
 		return () => {
 			document.removeEventListener('fullscreenchange', onFullscreen);
+			if (isPseudoFullscreen) document.documentElement.style.overflow = '';
 			map.off('click', HIT_LAYER_ID, onCourseClick);
 			map.off('click', LINE_LAYER_ID, onCourseClick);
 			map.off('mouseenter', HIT_LAYER_ID, onCourseEnter);
@@ -430,6 +475,7 @@
 			prevOverlayRaces = undefined;
 			prevOverlayFocus = undefined;
 			prevOverlayFetched = undefined;
+			prevFetchedById = undefined;
 			map.remove();
 		};
 	}
@@ -440,6 +486,9 @@
 			fetchedFocus = null;
 			return;
 		}
+		// Drop the previous race's fetched course before loading this one (#238), so a
+		// failed fetch falls back to the new SSR `focus` instead of the old line.
+		fetchedFocus = null;
 		let cancelled = false;
 		(async () => {
 			try {
@@ -463,12 +512,45 @@
 	});
 
 	$effect(() => {
+		const need = races.filter((r) => !r.geojson && r.courseUrl);
+		if (need.length === 0) {
+			fetchedById = {};
+			return;
+		}
+		let cancelled = false;
+		(async () => {
+			const next: Record<string, LineString> = {};
+			await Promise.all(
+				need.map(async (r) => {
+					const url = r.courseUrl;
+					if (!url) return;
+					try {
+						const res = await fetch(url, { credentials: 'same-origin' });
+						if (cancelled || !res.ok) return;
+						const contentType = res.headers.get('content-type') ?? '';
+						if (!isJsonLikeContentType(contentType)) return;
+						const line = lineFromCoursePayload(await res.json());
+						if (line) next[r.id] = line;
+					} catch {
+						// Leave missing — map draws whatever resolved.
+					}
+				})
+			);
+			if (!cancelled) fetchedById = next;
+		})();
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	$effect(() => {
 		const map = mapRef;
 		if (!map || !mapReady) return;
 		// Overlay data deps.
 		const r = races;
 		const f = focus;
 		const ff = fetchedFocus;
+		const fo = fetchedById;
 		// Re-run after basemap style.load (styleGeneration bump from applyBasemap).
 		void styleGeneration;
 		// During setStyle, sources are gone until style.load re-adds them.
@@ -476,19 +558,26 @@
 		// Fit only when overlay data changed — not on styleGeneration-only retries
 		// (basemap switch must keep the camera; applyBasemap already painted with fitAfter).
 		const dataChanged =
-			r !== prevOverlayRaces || f !== prevOverlayFocus || ff !== prevOverlayFetched;
+			r !== prevOverlayRaces ||
+			f !== prevOverlayFocus ||
+			ff !== prevOverlayFetched ||
+			fo !== prevFetchedById;
 		prevOverlayRaces = r;
 		prevOverlayFocus = f;
 		prevOverlayFetched = ff;
+		prevFetchedById = fo;
 		repaintCourses(map, dataChanged);
 	});
 </script>
 
+<svelte:window onkeydown={onWindowKeydown} />
+
 <div
 	bind:this={shell}
 	class={[
-		'group relative h-80 overflow-hidden rounded-xl border border-stone-200 bg-stone-100',
-		isFullscreen && 'h-screen w-screen rounded-none border-0'
+		'group h-80 overflow-hidden rounded-xl border border-stone-200 bg-stone-100',
+		isFullscreen && 'h-screen w-screen rounded-none border-0',
+		isPseudoFullscreen ? 'fixed inset-0 z-50 h-dvh' : 'relative'
 	]}
 >
 	<div class="h-full w-full" {@attach attachMap}></div>
@@ -505,6 +594,7 @@
 		<button
 			type="button"
 			class="rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-green-900 shadow-sm ring-1 ring-stone-200 hover:bg-white"
+			aria-pressed={isFullscreen}
 			onclick={toggleFullscreen}
 		>
 			{isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}

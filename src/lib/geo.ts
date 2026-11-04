@@ -68,6 +68,16 @@ export function pointsFromLineString(geojson: LineString): LngLat[] {
 	return geojson.coordinates.map(([lng, lat]) => ({ lng, lat }));
 }
 
+/** Total length (m) of a LineString, summed along its points. */
+export function lineStringLengthMeters(geojson: LineString): number {
+	const points = pointsFromLineString(geojson);
+	let total = 0;
+	for (let i = 1; i < points.length; i += 1) {
+		total += haversineMeters(points[i - 1], points[i]);
+	}
+	return total;
+}
+
 export function parseClockToMs(value: string): number | null {
 	const trimmed = value.trim();
 	const parts = trimmed.split(':').map((p) => Number(p));

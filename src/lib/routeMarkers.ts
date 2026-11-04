@@ -1,4 +1,4 @@
-import { haversineMeters, type CourseFeatureCollection } from '$lib/geo';
+import { haversineMeters, type CourseFeatureCollection } from '#lib/geo.js';
 
 /** Start and finish closer than this are a loop (one combined marker). GPS/Strava loops often end 50–100 m from the start. */
 export const LOOP_THRESHOLD_M = 150;
