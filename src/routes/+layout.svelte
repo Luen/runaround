@@ -1,18 +1,31 @@
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { navigating } from '$app/state';
 	import './layout.css';
 	import type { LayoutData } from './$types';
 
 	let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
+
+	// Pick up a new deploy's service worker on client navigations (#261).
+	afterNavigate(async () => {
+		if (!('serviceWorker' in navigator)) return;
+		const registration = await navigator.serviceWorker.getRegistration();
+		await registration?.update();
+	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href="/favicon.ico" />
+	<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+	<link rel="manifest" href="/manifest.webmanifest" />
 	<link rel="describedby" href="/llms.txt" />
 	<link rel="author" href="/humans.txt" />
 	<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 	<meta name="theme-color" content="#14532d" />
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-title" content="RunAround" />
 </svelte:head>
 
 {#if navigating}

@@ -1,0 +1,31 @@
+{
+	"name": "RunAround",
+	"short_name": "RunAround",
+	"description": "Townsville virtual running races — GPS-match Road and Trail courses and race the boards.",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#fafaf9",
+	"theme_color": "#14532d",
+	"lang": "en-AU",
+	"icons": [
+		{
+			"src": "/icons/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}

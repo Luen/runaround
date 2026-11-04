@@ -38,7 +38,8 @@ Docker (local): `docker compose up --build` (`db`, `web` on 4008, `worker`). `Do
 
 - Svelte 5 runes only. Validate `.svelte` with the Svelte MCP autofixer before finishing UI work.
 - `git mv` when relocating tracked assets so history is preserved; do not copy-then-delete binaries.
-- Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec.
+- Static site files live in `static/` (SvelteKit): `robots.txt`, `humans.txt`, `llms.txt`, `ads.txt`, `manifest.webmanifest`, `icons/`. Dynamic sitemap is `src/routes/sitemap.xml`. HTML and `Link` headers advertise `llms.txt` (`rel=describedby`) per the [llms.txt](https://llmstxt.org/) spec.
+- PWA (#261): installable via `static/manifest.webmanifest` + icons; `src/service-worker/` caches build/static assets only (network-first for pages; never caches `/api`, `/login`, `/me`, `/admin`). Auto-registered by Kit; root layout calls `registration.update()` on `afterNavigate`. Offline race matching / push are out of scope.
 - Matching: `src/lib/matching.ts` (road 25 m / trail 60 m buffer, ~85% coverage). Attempts are only recorded when the run's `startedAt` is inside the race window (`inRaceWindow`); the overall board accumulates imports, not out-of-window runs. A run with no `time` stream is never timed (`timedPointsFromStreams`). Rank email only when `notified_rank` exists and the new place is strictly better.
 - Auth/admin: outside `dev`, `BETTER_AUTH_SECRET` is required (no committed fallback). Admin is never granted from the self-asserted onboarding email — provision it with `pnpm run grant-admin` (uses `ADMIN_EMAILS`).
 - Drafts: `races.status === 'draft'` is hidden from `/races`, the race page, `gpx` and `course.json` (admins still preview) and the worker never force-closes one.
