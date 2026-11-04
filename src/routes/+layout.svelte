@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { navigating } from '$app/state';
 	import './layout.css';
 	import type { LayoutData } from './$types';
 
@@ -14,34 +15,48 @@
 	<meta name="theme-color" content="#14532d" />
 </svelte:head>
 
-<div class="min-h-screen bg-stone-50 text-stone-900">
+{#if navigating}
+	<div
+		class="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-green-900/15"
+		aria-hidden="true"
+	>
+		<div class="h-full w-1/3 animate-pulse bg-green-800"></div>
+	</div>
+{/if}
+
+<div class="min-h-screen bg-stone-50 text-stone-900" class:cursor-progress={!!navigating}>
 	<header class="border-b border-stone-200 bg-white">
 		<div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-			<a href={resolve('/')} class="flex items-center gap-3">
+			<a href={resolve('/')} data-sveltekit-preload-code="viewport" class="flex items-center gap-3">
 				<img src="/runaround-logo.png" alt="RunAround" class="h-10 w-auto" />
 				<span class="text-lg font-semibold tracking-tight">RunAround</span>
 			</a>
 			<nav class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium">
 				<a
 					href={resolve('/races')}
+					data-sveltekit-preload-code="viewport"
 					class="inline-flex min-h-11 items-center py-2 hover:text-green-800">Races</a
 				>
 				<a
 					href={resolve('/about')}
+					data-sveltekit-preload-code="viewport"
 					class="inline-flex min-h-11 items-center py-2 hover:text-green-800">About</a
 				>
 				<a
 					href={resolve('/contact')}
+					data-sveltekit-preload-code="viewport"
 					class="inline-flex min-h-11 items-center py-2 hover:text-green-800">Contact</a
 				>
 				{#if data.user}
 					<a
 						href={resolve('/me')}
+						data-sveltekit-preload-code="viewport"
 						class="inline-flex min-h-11 items-center py-2 hover:text-green-800">My results</a
 					>
 					{#if data.user.isAdmin}
 						<a
 							href={resolve('/admin/races')}
+							data-sveltekit-preload-code="viewport"
 							class="inline-flex min-h-11 items-center py-2 hover:text-green-800">Admin</a
 						>
 					{/if}
@@ -54,6 +69,7 @@
 				{:else}
 					<a
 						href={resolve('/login')}
+						data-sveltekit-preload-code="viewport"
 						class="inline-flex min-h-11 items-center rounded-full bg-green-800 px-4 py-2 text-white hover:bg-green-900"
 						>Log in</a
 					>
