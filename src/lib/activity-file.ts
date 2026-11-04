@@ -111,7 +111,13 @@ const FIT_EPOCH_MS = Date.UTC(1989, 11, 31, 0, 0, 0);
 const FIT_SEMICIRCLE_DEGREES = 180 / 2 ** 31;
 
 type FitField = { number: number; size: number; baseType: number };
-type FitDefinition = { arch: number; global: number; fields: FitField[] };
+type FitDefinition = {
+	arch: number;
+	global: number;
+	fields: FitField[];
+	/** Sizes of developer fields that trail every data message for this local type. */
+	developerFieldSizes: number[];
+};
 
 /** Base type values are `0x80 | type`, so the low five bits identify the type. */
 function fitNumber(
@@ -251,8 +257,7 @@ export function parseFitActivity(
 			let lat: number | null = null;
 			let lng: number | null = null;
 			for (const field of definition.fields) {
-				// The compressed timestamp replaces field 253, which is omitted from
-				// the data message (so it does not consume field.size bytes here).
+				// Compressed timestamp replaces field 253; those bytes are omitted.
 				if (field.number === 253) continue;
 				if (definition.global === 20 && field.number === 0) {
 					const value = fitNumber(view, offset, field.size, field.baseType, definition.arch === 0);
@@ -262,6 +267,10 @@ export function parseFitActivity(
 					if (value !== null) lng = value * FIT_SEMICIRCLE_DEGREES;
 				}
 				offset += field.size;
+			}
+			for (const size of definition.developerFieldSizes) {
+				ensure(offset, size);
+				offset += size;
 			}
 			ensure(offset, 0);
 			if (
@@ -301,14 +310,18 @@ export function parseFitActivity(
 				});
 				offset += 3;
 			}
+			const developerFieldSizes: number[] = [];
 			if (header & 0x20) {
 				ensure(offset, 1);
 				const developerFields = view.getUint8(offset);
 				offset += 1;
 				ensure(offset, developerFields * 3);
-				offset += developerFields * 3;
+				for (let i = 0; i < developerFields; i += 1) {
+					developerFieldSizes.push(view.getUint8(offset + 1));
+					offset += 3;
+				}
 			}
-			definitions.set(local, { arch, global, fields });
+			definitions.set(local, { arch, global, fields, developerFieldSizes });
 			continue;
 		}
 
@@ -317,22 +330,28 @@ export function parseFitActivity(
 		let timestampS: number | null = null;
 		let lat: number | null = null;
 		let lng: number | null = null;
+		const little = definition.arch === 0;
 		for (const field of definition.fields) {
-			if (definition.global === 20 && field.number === 253) {
-				timestampS = fitNumber(view, offset, field.size, field.baseType, definition.arch === 0);
+			if (field.number === 253) {
+				timestampS = fitNumber(view, offset, field.size, field.baseType, little);
 			} else if (definition.global === 20 && field.number === 0) {
-				const value = fitNumber(view, offset, field.size, field.baseType, definition.arch === 0);
+				const value = fitNumber(view, offset, field.size, field.baseType, little);
 				if (value !== null) lat = value * FIT_SEMICIRCLE_DEGREES;
 			} else if (definition.global === 20 && field.number === 1) {
-				const value = fitNumber(view, offset, field.size, field.baseType, definition.arch === 0);
+				const value = fitNumber(view, offset, field.size, field.baseType, little);
 				if (value !== null) lng = value * FIT_SEMICIRCLE_DEGREES;
 			}
 			offset += field.size;
 		}
+		for (const size of definition.developerFieldSizes) {
+			ensure(offset, size);
+			offset += size;
+		}
 		ensure(offset, 0);
+		// Any message with field 253 resets the compressed-timestamp base (FIT protocol).
 		if (timestampS !== null) {
 			lastTimestampS = timestampS;
-			lastOffset = 0;
+			lastOffset = timestampS & 0x1f;
 			timestampedRecords += 1;
 			if (
 				definition.global === 20 &&
