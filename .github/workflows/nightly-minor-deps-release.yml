@@ -1,0 +1,176 @@
+# Nightly dependency refresh → optional patch release → GHCR image (main only).
+#
+# Raises the version ranges in package.json to the newest release that stays
+# inside each dependency's current major (npm-check-updates `--target semver`).
+# Versions published in the last few days are skipped (`--cooldown`).
+#
+# package.json is the only file this job edits on purpose. pnpm then re-resolves
+# just the specifiers that changed, because CI and the Dockerfile install with
+# --frozen-lockfile.
+#
+# Release policy: only bump / tag / GitHub Release / Docker when a package that
+# reaches the image or Vercel build moved (scripts/nightlyRelease.mjs). A
+# tooling-only update is still committed to main after checks.
+#
+# Production app hosting is Vercel; GHCR is optional self-host with remote
+# Postgres (compose.ghcr.yml). Dependabot still opens PRs to develop for review.
+
+name: Nightly minor deps release
+
+on:
+  schedule:
+    - cron: '17 14 * * *' # ~00:17 AEST
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-minor-deps-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  NCU_VERSION: 23.1.1
+  COOLDOWN_DAYS: 3
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+      release: ${{ steps.changes.outputs.release }}
+      version: ${{ steps.version.outputs.version }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: review
+          POSTGRES_PASSWORD: review-local-only
+          POSTGRES_DB: runaround_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U review -d runaround_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      RUNAROUND_TEST_POSTGRES_URL: postgres://review:review-local-only@127.0.0.1:5432/runaround_test
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Raise package.json ranges (same major)
+        run: |
+          set -euo pipefail
+          npx --yes "npm-check-updates@${NCU_VERSION}" \
+            --target semver \
+            --cooldown "${COOLDOWN_DAYS}" \
+            --upgrade
+
+      - name: Detect package.json changes
+        id: changes
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- package.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "All dependencies already at the newest in-major release."
+            exit 0
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git diff -- package.json
+          node scripts/nightly-release-check.mjs
+
+      - name: Sync lockfile to package.json
+        if: steps.changes.outputs.changed == 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Lint
+        if: steps.changes.outputs.changed == 'true'
+        run: pnpm run lint
+
+      - name: Type check
+        if: steps.changes.outputs.changed == 'true'
+        run: pnpm run check
+
+      - name: Unit tests
+        if: steps.changes.outputs.changed == 'true'
+        run: pnpm run test:unit -- --run
+
+      - name: Build
+        if: steps.changes.outputs.changed == 'true'
+        run: pnpm run build
+
+      - name: Bump patch version
+        if: steps.changes.outputs.release == 'true'
+        id: version
+        run: |
+          set -euo pipefail
+          NEW_VERSION="$(npm version patch --no-git-tag-version)"
+          echo "version=${NEW_VERSION#v}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to ${NEW_VERSION}"
+
+      - name: Commit, tag (release only) and push
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          RELEASE: ${{ steps.changes.outputs.release }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          if [ "${RELEASE}" = "true" ]; then
+            git commit -m "chore(deps): nightly in-major dependency update (v${VERSION})"
+          else
+            git commit -m "chore(deps): nightly in-major tooling update (no release)"
+          fi
+          # A PR may have merged while tests ran.
+          git pull --rebase origin main
+          if [ "${RELEASE}" = "true" ]; then
+            git tag "v${VERSION}"
+            git push origin HEAD:main "v${VERSION}"
+          else
+            git push origin HEAD:main
+          fi
+
+      - name: Create GitHub Release
+        if: steps.changes.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          {
+            echo "Nightly in-major dependency update."
+            echo
+            echo "Vercel is primary hosting. Optional GHCR self-host uses compose.ghcr.yml with remote Postgres; web container runs migrations on start."
+          } > notes.md
+          gh release create "$TAG" --target main --title "$TAG" --notes-file notes.md --generate-notes
+
+  docker:
+    needs: update
+    if: needs.update.outputs.release == 'true'
+    uses: ./.github/workflows/docker-release.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      ref: v${{ needs.update.outputs.version }}

@@ -1,0 +1,93 @@
+name: Docker release
+
+on:
+  # A tag push is the only automatic trigger. `gh release create` pushes the tag
+  # and publishes the release together, so a `release` trigger would build twice.
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to publish (e.g. latest or v0.1.0)'
+        required: true
+        default: 'latest'
+  # Called by nightly-minor-deps-release.yml: a tag pushed with GITHUB_TOKEN
+  # doesn't fire the tag trigger above.
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Release tag to check out and publish (e.g. v2.1.2)'
+        required: true
+        type: string
+
+concurrency:
+  group: docker-release-${{ inputs.ref || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # In a workflow_call run github.* describes the caller (schedule on main),
+          # so the semver tags read the version from inputs.ref instead.
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.ref }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.ref }}
+            type=semver,pattern={{major}},value=${{ inputs.ref }}
+            type=raw,value=latest,enable=${{ inputs.ref != '' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "### Published images" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "Optional self-host (remote Postgres) upgrade:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "docker compose -f compose.ghcr.yml pull && docker compose -f compose.ghcr.yml up -d" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "Vercel remains the primary deploy. DB migrations run when the web container starts." >> "$GITHUB_STEP_SUMMARY"

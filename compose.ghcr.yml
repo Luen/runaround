@@ -1,0 +1,40 @@
+# Optional self-host from public GHCR images (Vercel remains primary).
+# Requires a remote Postgres URL in `.env` (no local DB service).
+#
+# Usage:
+#   cp .env.template .env   # set POSTGRES_URL (+ secrets)
+#   docker compose -f compose.ghcr.yml pull
+#   docker compose -f compose.ghcr.yml up -d
+#
+# Pin a version with RUNAROUND_IMAGE_TAG=2.1.1 (no v prefix: 2.1.1, 2.1, 2, latest)
+# Host publish port: HOST_PORT=4008
+# Bind loopback only (tunnel): HOST_BIND=127.0.0.1
+
+services:
+  web:
+    image: ghcr.io/luen/runaround:${RUNAROUND_IMAGE_TAG:-latest}
+    container_name: runaround-web
+    labels:
+      com.centurylinklabs.watchtower.enable: 'true'
+    ports:
+      - '${HOST_BIND:-127.0.0.1}:${HOST_PORT:-4008}:3000'
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      BODY_SIZE_LIMIT: 5M
+    command: ['sh', '-c', 'pnpm exec drizzle-kit migrate && node build']
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/luen/runaround:${RUNAROUND_IMAGE_TAG:-latest}
+    container_name: runaround-worker
+    labels:
+      com.centurylinklabs.watchtower.enable: 'true'
+    command: ['pnpm', 'exec', 'tsx', 'src/worker/index.ts']
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - web

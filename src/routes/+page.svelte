@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import RaceMap from '#lib/components/RaceMap.svelte';
 	import Seo from '#lib/components/Seo.svelte';
+	import { raceCourseJsonUrl } from '#lib/geo.js';
 	import { websiteJsonLd } from '#lib/seo.js';
 	import type { PageData } from './$types';
 
@@ -18,7 +19,7 @@
 		[...data.races, ...(showPastRaces ? data.pastRaces : [])].map((r) => ({
 			id: r.slug,
 			title: r.title,
-			geojson: r.courseGeojson,
+			courseUrl: raceCourseJsonUrl(r.slug),
 			href: `/races/${r.slug}`,
 			surface: r.surface,
 			status: r.status,
@@ -45,6 +46,7 @@
 	<div class="flex flex-wrap gap-3">
 		<a
 			href={resolve('/races')}
+			data-sveltekit-preload-code="viewport"
 			class="rounded-full bg-green-800 px-4 py-2 text-white hover:bg-green-900">See races</a
 		>
 		<a
@@ -67,6 +69,7 @@
 				<li>
 					<a
 						class="font-medium text-green-900 underline"
+						data-sveltekit-preload-code="viewport"
 						href={resolve('/races/[id]', { id: race.slug })}>{race.title}</a
 					>
 					<span class="text-sm text-stone-500"> · {race.surface}</span>

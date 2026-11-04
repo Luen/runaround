@@ -4,7 +4,7 @@
 	const racesHref = resolve('/races');
 	import RaceMap from '#lib/components/RaceMap.svelte';
 	import Seo from '#lib/components/Seo.svelte';
-	import { formatDuration } from '#lib/geo.js';
+	import { formatDuration, raceCourseJsonUrl } from '#lib/geo.js';
 	import { calendarFeedUrl, googleCalendarSubscribeUrl, webcalFeedUrl } from '#lib/calendar.js';
 	import type { PageData } from './$types';
 
@@ -58,6 +58,7 @@
 		<li class="rounded-xl border border-stone-200 bg-white p-4">
 			<a
 				class="text-lg font-semibold text-green-900"
+				data-sveltekit-preload-code="viewport"
 				href={resolve('/races/[id]', { id: race.slug })}>{race.title}</a
 			>
 			<p class="text-sm text-stone-500 capitalize">
@@ -84,7 +85,7 @@
 		races={data.races.map((r) => ({
 			id: r.slug,
 			title: r.title,
-			geojson: r.courseGeojson,
+			courseUrl: raceCourseJsonUrl(r.slug),
 			href: `/races/${r.slug}`,
 			surface: r.surface,
 			status: r.status,

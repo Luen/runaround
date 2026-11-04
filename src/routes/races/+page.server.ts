@@ -3,6 +3,7 @@ import { effectiveRaceStatus } from '#lib/matching.js';
 import { canSeeResults } from '#lib/reveal.js';
 import { db } from '#lib/server/db/index.js';
 import { attempts, races } from '#lib/server/db/schema.js';
+import { raceListingColumns } from '#lib/server/race-select.js';
 import { desc, inArray } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
@@ -17,10 +18,10 @@ function leaderFromBoard(rows: Parameters<typeof rankedLeaderboard>[0]): BoardLe
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const surface = url.searchParams.get('surface');
 	try {
-		// Drafts are never public (#237).
-		const all = (await db.select().from(races).orderBy(desc(races.startsAt))).filter(
-			(r) => r.status !== 'draft'
-		);
+		// Drafts are never public (#237). Omit gpx / courseGeojson (#260).
+		const all = (
+			await db.select(raceListingColumns).from(races).orderBy(desc(races.startsAt))
+		).filter((r) => r.status !== 'draft');
 		const filtered =
 			surface === 'road' || surface === 'trail' ? all.filter((r) => r.surface === surface) : all;
 
