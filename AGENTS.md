@@ -32,7 +32,7 @@ Docker (local): `docker compose up --build` (`db`, `web` on 4008, `worker`). `Do
 
 - **Primary:** Vercel (adapter-vercel when `VERCEL=1`). Staging tracks `develop`; production tracks `main`.
 - **Optional self-host:** GHCR image `ghcr.io/luen/runaround` via `.github/workflows/docker-release.yml` (tag `v*` / dispatch / nightly call). Use `compose.ghcr.yml` with a **remote** `POSTGRES_URL` (no bundled Postgres). Same image runs `web` (migrate + `node build`) and `worker` (`tsx src/worker/index.ts`).
-- **Nightly deps:** `.github/workflows/nightly-minor-deps-release.yml` is scheduled from `develop` (default branch) but checks out and commits to `main`. It loads `scripts/nightly-release-check.mjs` / `scripts/nightlyRelease.mjs` from the workflow commit when `main` lags. Runs in-major `npm-check-updates` (3-day cooldown), commits tooling-only bumps, and on shipping changes patch-tags + GitHub Release + GHCR. Decision rules: `scripts/nightlyRelease.mjs`. Dependabot still opens review PRs to `develop`.
+- **Nightly deps:** `.github/workflows/nightly-minor-deps-release.yml` is scheduled from `develop` (default branch) but checks out `main`. It loads `scripts/nightly-release-check.mjs` / `scripts/nightlyRelease.mjs` from the workflow commit when `main` lags. Runs in-major `npm-check-updates` (3-day cooldown), then opens a short-lived PR to `main` and merges it (Protect production requires PRs; user-owned repos cannot bypass with the built-in Actions app). On shipping changes it patch-tags + GitHub Release + GHCR. Decision rules: `scripts/nightlyRelease.mjs`. Dependabot still opens review PRs to `develop`.
 
 ## Conventions
 
