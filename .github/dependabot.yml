@@ -9,4 +9,18 @@ updates:
     directory: '/'
     target-branch: 'develop'
     schedule:
-      interval: 'weekly'
+      interval: 'monthly'
+
+  # Monthly checks for Docker base images
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    target-branch: 'develop'
+
+  # Monthly checks for GitHub Actions version bumps
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    target-branch: 'develop'

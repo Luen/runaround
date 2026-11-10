@@ -10,7 +10,12 @@
 #
 # Release policy: only bump / tag / GitHub Release / Docker when a package that
 # reaches the image or Vercel build moved (scripts/nightlyRelease.mjs). A
-# tooling-only update is still committed to main after checks.
+# tooling-only update is still landed on main after checks.
+#
+# main requires PRs (Protect production ruleset). User-owned repos cannot add
+# the built-in GitHub Actions app as a ruleset bypass, so this job opens a
+# short-lived PR to main and merges it (0 required reviews) instead of pushing
+# directly. Tags are pushed after the merge.
 #
 # Production app hosting is Vercel; GHCR is optional self-host with remote
 # Postgres (compose.ghcr.yml). Dependabot still opens PRs to develop for review.
@@ -29,6 +34,7 @@ concurrency:
 permissions:
   contents: write
   packages: write
+  pull-requests: write
 
 env:
   NCU_VERSION: 23.1.1
@@ -132,28 +138,43 @@ jobs:
           echo "version=${NEW_VERSION#v}" >> "$GITHUB_OUTPUT"
           echo "Bumped to ${NEW_VERSION}"
 
-      - name: Commit, tag (release only) and push
+      - name: Commit, PR to main, merge, and tag (release only)
         if: steps.changes.outputs.changed == 'true'
         env:
           RELEASE: ${{ steps.changes.outputs.release }}
           VERSION: ${{ steps.version.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json pnpm-lock.yaml
           if [ "${RELEASE}" = "true" ]; then
-            git commit -m "chore(deps): nightly in-major dependency update (v${VERSION})"
+            MSG="chore(deps): nightly in-major dependency update (v${VERSION})"
           else
-            git commit -m "chore(deps): nightly in-major tooling update (no release)"
+            MSG="chore(deps): nightly in-major tooling update (no release)"
           fi
+          git commit -m "$MSG"
           # A PR may have merged while tests ran.
-          git pull --rebase origin main
+          git fetch origin main
+          git rebase origin/main
+          BRANCH="nightly-deps-$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          git push -u origin HEAD
+          cat > pr-body.md <<'EOF'
+          Automated nightly in-major dependency update.
+
+          Opened as a PR because main requires pull requests, and this user-owned
+          repo cannot list the built-in GitHub Actions app as a ruleset bypass.
+          EOF
+          PR_URL="$(gh pr create --base main --head "$BRANCH" --title "$MSG" --body-file pr-body.md)"
+          gh pr merge "$PR_URL" --merge --delete-branch
           if [ "${RELEASE}" = "true" ]; then
-            git tag "v${VERSION}"
-            git push origin HEAD:main "v${VERSION}"
-          else
-            git push origin HEAD:main
+            git fetch origin main
+            # Tag the merge commit on main (not the PR head).
+            MERGE_SHA="$(git rev-parse origin/main)"
+            git tag "v${VERSION}" "$MERGE_SHA"
+            git push origin "v${VERSION}"
           fi
 
       - name: Create GitHub Release
