@@ -1,7 +1,7 @@
 {
 	"name": "runaround",
 	"private": true,
-	"version": "2.3.5",
+	"version": "2.3.6",
 	"type": "module",
 	"engines": {
 		"node": "^24"
@@ -64,7 +64,7 @@
 		"@vercel/speed-insights": "^2.1.0",
 		"better-auth": "1.7.16",
 		"drizzle-orm": "^0.45.4",
-		"maplibre-gl": "^6.16.0",
+		"maplibre-gl": "^6.17.0",
 		"postgres": "^3.4.9",
 		"sharp": "^0.35.5",
 		"tsx": "^4.23.15",
