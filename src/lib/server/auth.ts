@@ -14,6 +14,7 @@ import { enqueueJob } from './jobs';
 import { sendEmail } from './email';
 import { adminEmails, isPlaceholderEmail } from './identity';
 import { MAGIC_LINK_EXPIRES_S, magicLinkEmail, magicLinkEnabled } from './magic-link';
+import { stravaId } from '#lib/strava-id.js';
 // Empty/unset ORIGIN must not fall back to localhost in production: better-auth's
 // SvelteKit handler only serves /api/auth/* when the request origin matches
 // baseURL, so a wrong baseURL 404s every auth route. Undefined = infer per request.
@@ -82,11 +83,12 @@ export const auth = betterAuth({
 						if (!res.ok) return null;
 						const athlete = (await res.json()) as {
 							id: number;
+							id_str?: string;
 							firstname?: string;
 							lastname?: string;
 							profile?: string;
 						};
-						const id = String(athlete.id);
+						const id = stravaId(athlete);
 						return {
 							id,
 							name: `${athlete.firstname ?? ''} ${athlete.lastname ?? ''}`.trim() || 'Runner',

@@ -233,6 +233,19 @@ describe.skipIf(!process.env.RUNAROUND_TEST_POSTGRES_URL)(
 			expect(await db.select().from(activities)).toHaveLength(2);
 			expect(await db.select().from(attempts).where(eq(attempts.userId, 'runner'))).toHaveLength(2);
 		});
+		it('stores the exact Strava id_str for 64-bit ids (#298)', async () => {
+			vi.mocked(getActivityStreams).mockClear();
+			await upsertAndMatchActivity('runner', {
+				...strava,
+				id: 1234567890987654000,
+				id_str: '1234567890987654321'
+			});
+			const [row] = await db
+				.select({ stravaActivityId: activities.stravaActivityId })
+				.from(activities);
+			expect(row.stravaActivityId).toBe('1234567890987654321');
+			expect(getActivityStreams).toHaveBeenCalledWith('runner', '1234567890987654321');
+		});
 		it('ignores an activity outside the race window (#222)', async () => {
 			await upsertAndMatchActivity('runner', {
 				...strava,

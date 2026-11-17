@@ -31,6 +31,7 @@ import { resultsHidden } from '../reveal';
 import { findSameRun, withActivityIngestion, type ActivityDatabase } from './activity-ingestion';
 import { newsletterUnsubscribeUrl, reviveNewsletterDigest } from './newsletter';
 import { newsletterEmail, type NewsletterKind } from '../newsletter';
+import { stravaId } from '../strava-id';
 
 const RUN_SPORTS = new Set(['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike']);
 
@@ -104,13 +105,13 @@ export async function upsertAndMatchActivity(
 		? null
 		: Array.isArray(activity.segment_efforts)
 			? activity
-			: await getActivity(userId, String(activity.id));
-	const streams = matchable ? await getActivityStreams(userId, String(activity.id)) : null;
+			: await getActivity(userId, stravaId(activity));
+	const streams = matchable ? await getActivityStreams(userId, stravaId(activity)) : null;
 	return withActivityIngestion(userId, async (database) => {
 		const [existing] = await database
 			.select()
 			.from(activities)
-			.where(eq(activities.stravaActivityId, String(activity.id)))
+			.where(eq(activities.stravaActivityId, stravaId(activity)))
 			.limit(1);
 
 		let activityRow = existing;
@@ -121,7 +122,7 @@ export async function upsertAndMatchActivity(
 				.insert(activities)
 				.values({
 					userId,
-					stravaActivityId: String(activity.id),
+					stravaActivityId: stravaId(activity),
 					sport,
 					name: activity.name,
 					startedAt: new Date(activity.start_date),
@@ -162,7 +163,7 @@ export async function matchActivityToRaces(
 	activityRow: typeof activities.$inferSelect,
 	timed: TimedPoint[],
 	hasTime: boolean,
-	segmentEfforts?: { segment?: { id: number }; elapsed_time: number }[],
+	segmentEfforts?: { segment?: { id: number; id_str?: string }; elapsed_time: number }[],
 	database: ActivityDatabase = db,
 	flaggedReason: string | null = null
 ) {
@@ -184,8 +185,10 @@ export async function matchActivityToRaces(
 		let timeMs: number | null = null;
 		let coverage: number | null = null;
 
-		const segmentId = race.stravaSegmentId ? Number(race.stravaSegmentId) : null;
-		const effort = segmentEfforts?.find((e) => e.segment?.id === segmentId);
+		const segmentId = race.stravaSegmentId?.trim();
+		const effort = segmentId
+			? segmentEfforts?.find((e) => e.segment && stravaId(e.segment).trim() === segmentId)
+			: undefined;
 		if (effort) {
 			method = 'segment_effort';
 			timeMs = effort.elapsed_time * 1000;

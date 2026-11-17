@@ -6,6 +6,8 @@ const STRAVA = 'https://www.strava.com/api/v3';
 
 export type StravaActivity = {
 	id: number;
+	/** Exact id from June 1, 2027; prefer this over `id` (#298). */
+	id_str?: string;
 	name: string;
 	type: string;
 	sport_type?: string;
@@ -14,7 +16,11 @@ export type StravaActivity = {
 	moving_time: number;
 	elapsed_time: number;
 	map?: { summary_polyline?: string };
-	segment_efforts?: { segment?: { id: number }; elapsed_time: number; start_date: string }[];
+	segment_efforts?: {
+		segment?: { id: number; id_str?: string };
+		elapsed_time: number;
+		start_date: string;
+	}[];
 };
 
 export type StravaStreams = {
