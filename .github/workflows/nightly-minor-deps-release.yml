@@ -86,6 +86,12 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      # Always populate the pnpm store. On a no-change night no conditional
+      # install runs, so setup-node's post step would try to save a store path
+      # that does not exist and fail the job when the cache misses (#300).
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Raise package.json ranges (same major)
         run: |
           set -euo pipefail
